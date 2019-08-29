@@ -4,3 +4,6 @@
 build
 .cipd
 .gclient_entries
+
+# ignore libs for now
+*.a

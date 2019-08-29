@@ -1,7 +1,6 @@
 [submodule "deps/v8"]
 	path = deps/v8
 	url = https://chromium.googlesource.com/v8/v8.git
-	branch = 7.6.303
 [submodule "deps/depot_tools"]
 	path = deps/depot_tools
 	url = https://chromium.googlesource.com/chromium/tools/depot_tools.git

@@ -88,7 +88,10 @@ def main():
                         env=env)
 
     lib_fn = os.path.join(build_path, "obj/libv8_monolith.a")
-    dest_fn = os.path.join(deps_path, os_arch(), 'libv8.a')
+    dest_path = os.path.join(deps_path, os_arch())
+    if not os.path.exists(dest_path):
+        os.makedirs(dest_path)
+    dest_fn = os.path.join(dest_path, 'libv8.a')
     shutil.copy(lib_fn, dest_fn)
 
 
