@@ -7,5 +7,5 @@ package v8go
 import "C"
 
 func Version() string {
-	return C.GoString(C.version())
+	return C.GoString(C.Version())
 }

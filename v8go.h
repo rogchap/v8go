@@ -4,7 +4,14 @@
 extern "C" {
 #endif
 
-const char* version();
+typedef void* IsolatePtr;
+typedef void* ContextPtr;
+
+extern void Init();
+extern IsolatePtr NewIsolate();
+extern void IsolateRelease(IsolatePtr ptr);
+
+const char* Version();
 
 #ifdef __cplusplus
 }  // extern "C"
