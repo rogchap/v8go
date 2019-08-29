@@ -2,6 +2,7 @@
 import platform
 import os
 import subprocess
+import shutil
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
@@ -35,26 +36,25 @@ gclient_sln = [
 ]
 
 gn_args = """
-    is_component_build=false
-    is_debug=false
-    symbol_level=0
-    strip_debug_info=true
-    treat_warnings_as_errors=false
-    use_custom_libcxx=false
-    use_sysroot=false
-    v8_deprecation_warnings=false
-    v8_embedder_string="-v8worker2"
-    v8_enable_gdbjit=false
-    v8_enable_i18n_support=false
-    v8_enable_test_features=false
-    v8_extra_library_files=[]
-    v8_imminent_deprecation_warnings=false
-    v8_monolithic=true
-    v8_static_library=true
-    v8_target_cpu="x64"
-    v8_untrusted_code_mitigations=false
-    v8_use_external_startup_data=false
-    v8_use_snapshot=true
+clang_use_chrome_plugins=false
+linux_use_bundled_binutils=false
+use_custom_libcxx=false
+use_sysroot=false
+is_debug=false
+symbol_level=0
+is_component_build=false
+v8_monolithic=true
+v8_static_library=true
+v8_use_external_startup_data=false
+treat_warnings_as_errors=false
+v8_embedder_string="-v8go"
+strip_debug_info=true
+v8_enable_gdbjit=false
+v8_enable_i18n_support=false
+v8_enable_test_features=false
+v8_extra_library_files=[]
+v8_untrusted_code_mitigations=false
+v8_use_snapshot=true
 """
 
 def v8deps():
@@ -86,6 +86,11 @@ def main():
     subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"],
                         cwd=v8_path,
                         env=env)
+
+    lib_fn = os.path.join(build_path, "obj/libv8_monolith.a")
+    dest_fn = os.path.join(deps_path, os_arch(), 'libv8.a')
+    shutil.copy(lib_fn, dest_fn)
+
 
 if __name__ == "__main__":
     main()
