@@ -9,7 +9,11 @@ typedef void* ContextPtr;
 
 extern void Init();
 extern IsolatePtr NewIsolate();
-extern void IsolateRelease(IsolatePtr ptr);
+extern void IsolateDispose(IsolatePtr ptr);
+extern void TerminateExecution(IsolatePtr ptr);
+
+extern ContextPtr NewContext(IsolatePtr prt);
+extern void RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
 
 const char* Version();
 

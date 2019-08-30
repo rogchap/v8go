@@ -40,21 +40,21 @@ clang_use_chrome_plugins=false
 linux_use_bundled_binutils=false
 use_custom_libcxx=false
 use_sysroot=false
-is_debug=false
-symbol_level=0
+is_debug=true
+symbol_level=1
+strip_debug_info=true
 is_component_build=false
 v8_monolithic=true
 v8_static_library=true
 v8_use_external_startup_data=false
 treat_warnings_as_errors=false
 v8_embedder_string="-v8go"
-strip_debug_info=true
 v8_enable_gdbjit=false
 v8_enable_i18n_support=false
 v8_enable_test_features=false
 v8_extra_library_files=[]
 v8_untrusted_code_mitigations=false
-v8_use_snapshot=true
+v8_use_snapshot=false
 """
 
 def v8deps():

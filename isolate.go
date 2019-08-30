@@ -14,12 +14,6 @@ type Isolate struct {
 	ptr C.IsolatePtr
 }
 
-func (i *Isolate) release() {
-	C.IsolateRelease(i.ptr)
-	i.ptr = nil
-	runtime.SetFinalizer(i, nil)
-}
-
 func NewIsolate() *Isolate {
 	v8once.Do(func() {
 		C.Init()
@@ -27,4 +21,10 @@ func NewIsolate() *Isolate {
 	iso := &Isolate{C.NewIsolate()}
 	runtime.SetFinalizer(iso, (*Isolate).release)
 	return iso
+}
+
+func (i *Isolate) release() {
+	C.IsolateDispose(i.ptr)
+	i.ptr = nil
+	runtime.SetFinalizer(i, nil)
 }
