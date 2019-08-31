@@ -8,15 +8,22 @@ typedef void* IsolatePtr;
 typedef void* ContextPtr;
 typedef void* ValuePtr;
 
+typedef struct {
+  ValuePtr value;
+  const char* error;
+} RtnValue;
+
 extern void Init();
 extern IsolatePtr NewIsolate();
 extern void IsolateDispose(IsolatePtr ptr);
 extern void TerminateExecution(IsolatePtr ptr);
 
 extern ContextPtr NewContext(IsolatePtr prt);
-extern ValuePtr RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
+extern void ContextDispose(ContextPtr ptr);
+extern RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
 
-const char* ValueToString(ValuePtr val_ptr);
+extern void ValueDispose(ValuePtr ptr);
+const char* ValueToString(ValuePtr ptr);
 
 const char* Version();
 

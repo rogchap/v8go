@@ -71,7 +71,7 @@ ContextPtr NewContext(IsolatePtr ptr) {
     return static_cast<ContextPtr>(ctx);
 }
 
-ValuePtr RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
+RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
     Isolate* iso = ctx->iso;
     Locker locker(iso);
@@ -85,6 +85,8 @@ ValuePtr RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     Local<String> src = String::NewFromUtf8(iso, source, NewStringType::kNormal).ToLocalChecked();
     Local<String> ogn = String::NewFromUtf8(iso, origin, NewStringType::kNormal).ToLocalChecked();
 
+    RtnValue rtn = { nullptr, nullptr };
+
     ScriptOrigin script_origin(ogn);
     Local<Script> script = Script::Compile(local_ctx, src, &script_origin).ToLocalChecked();
     
@@ -96,13 +98,43 @@ ValuePtr RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     val->ctx_ptr = ctx;
     val->ptr.Reset(iso, Persistent<Value>(iso, result));
 
-    return static_cast<ValuePtr>(val);
+    rtn.value = static_cast<ValuePtr>(val);
+    return rtn;
 }
+
+void ContextDispose(ContextPtr ptr) {
+    if (ptr == nullptr) {
+        return;
+    }
+    m_ctx* ctx = static_cast<m_ctx*>(ptr);
+    Isolate* iso = ctx->iso;
+    Locker locker(iso);
+    Isolate::Scope isolate_scope(iso);  
+
+    ctx->ptr.Reset();  
+} 
 
 /********** Value **********/
 
-const char* ValueToString(ValuePtr val_ptr) {
-  m_value* val = static_cast<m_value*>(val_ptr);
+void ValueDispose(ValuePtr ptr) {
+  m_value* val = static_cast<m_value*>(ptr);
+  if (val == nullptr) {
+    return;
+  }
+  m_ctx* ctx = val->ctx_ptr;
+  if (ctx == nullptr) {
+    return;
+  }
+
+  Isolate* iso = ctx->iso;
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+
+  val->ptr.Reset();
+}
+
+const char* ValueToString(ValuePtr ptr) {
+  m_value* val = static_cast<m_value*>(ptr);
   m_ctx* ctx = val->ctx_ptr;
   Isolate* iso = ctx->iso;
 
