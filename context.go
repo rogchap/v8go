@@ -14,8 +14,9 @@ func NewContext(iso *Isolate) *Context {
 	return ctx
 }
 
-func (c *Context) RunScript() {
-	C.RunScript(c.ptr, C.CString("source"), C.CString("origin"))
+func (c *Context) RunScript(source string) (*Value, error) {
+	valuePtr := C.RunScript(c.ptr, C.CString(source), C.CString("origin"))
+	return &Value{valuePtr}, nil
 }
 
 func (c *Context) release() {

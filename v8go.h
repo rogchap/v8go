@@ -6,6 +6,7 @@ extern "C" {
 
 typedef void* IsolatePtr;
 typedef void* ContextPtr;
+typedef void* ValuePtr;
 
 extern void Init();
 extern IsolatePtr NewIsolate();
@@ -13,7 +14,9 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void TerminateExecution(IsolatePtr ptr);
 
 extern ContextPtr NewContext(IsolatePtr prt);
-extern void RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
+extern ValuePtr RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
+
+const char* ValueToString(ValuePtr val_ptr);
 
 const char* Version();
 

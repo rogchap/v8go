@@ -14,7 +14,19 @@ using namespace v8;
 auto default_platform = platform::NewDefaultPlatform();
 auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
-extern "C" {
+typedef struct {
+  Persistent<Context> ptr;
+  Isolate* iso;
+} m_ctx;
+
+typedef struct {
+  Persistent<Value> ptr;
+  m_ctx* ctx_ptr;
+} m_value;
+
+
+extern "C"
+{
 
 /********** Isolate **********/
 
@@ -27,7 +39,6 @@ void Init() {
 IsolatePtr NewIsolate() {
     Isolate::CreateParams params;
     params.array_buffer_allocator = default_allocator;
-    Isolate::New(params);
     return static_cast<IsolatePtr>(Isolate::New(params));
 }
 
@@ -51,24 +62,62 @@ ContextPtr NewContext(IsolatePtr ptr) {
     Locker locker(iso);
     Isolate::Scope isolate_scope(iso);
     HandleScope handle_scope(iso);
+  
     iso->SetCaptureStackTraceForUncaughtExceptions(true);
-    Local<Context> ctx = Context::New(iso);
-    return static_cast<ContextPtr>(std::move(&ctx));
+    
+    m_ctx* ctx = new m_ctx;
+    ctx->ptr.Reset(iso, Context::New(iso));
+    ctx->iso = iso;
+    return static_cast<ContextPtr>(ctx);
 }
 
-void RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
-    Local<Context> ctx = *(static_cast<Local<Context>*>(ctx_ptr));
-    Isolate* iso = ctx->GetIsolate();
+ValuePtr RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
+    m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
+    Isolate* iso = ctx->iso;
     Locker locker(iso);
     Isolate::Scope isolate_scope(iso);
     HandleScope handle_scope(iso);
     TryCatch try_catch(iso);
 
-    Local<Script> script = Script::Compile(ctx, String::NewFromUtf8(iso, "1 + 1").ToLocalChecked()).ToLocalChecked();
-    v8::Local<v8::Value> result = script->Run(ctx).ToLocalChecked();
-    // Convert the result to an UTF8 string and print it.
-    v8::String::Utf8Value utf8(iso, result);
-    printf("%s\n", *utf8);
+    Local<Context> local_ctx = ctx->ptr.Get(iso);
+    Context::Scope context_scope(local_ctx);
+
+    Local<String> src = String::NewFromUtf8(iso, source, NewStringType::kNormal).ToLocalChecked();
+    Local<String> ogn = String::NewFromUtf8(iso, origin, NewStringType::kNormal).ToLocalChecked();
+
+    ScriptOrigin script_origin(ogn);
+    Local<Script> script = Script::Compile(local_ctx, src, &script_origin).ToLocalChecked();
+    
+    // TODO check to make sure script is not empty
+    Local<v8::Value> result = script->Run(local_ctx).ToLocalChecked();
+    
+    // TODO deal with any errors/exceptions from result
+    m_value* val = new m_value;
+    val->ctx_ptr = ctx;
+    val->ptr.Reset(iso, Persistent<Value>(iso, result));
+
+    return static_cast<ValuePtr>(val);
+}
+
+/********** Value **********/
+
+const char* ValueToString(ValuePtr val_ptr) {
+  m_value* val = static_cast<m_value*>(val_ptr);
+  m_ctx* ctx = val->ctx_ptr;
+  Isolate* iso = ctx->iso;
+
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+  Context::Scope context_scope(ctx->ptr.Get(iso));
+
+  Local<Value> value = val->ptr.Get(iso);
+  String::Utf8Value utf8(iso, value);
+  
+  char* data = static_cast<char*>(malloc(utf8.length()));
+  //memcpy(data, *utf8, utf8.length());
+  sprintf(data, "%s", *utf8);
+  return data;
 }
 
 
@@ -81,9 +130,10 @@ const char* Version() {
 }
 
 
-int main(int argc, char* argv[]) {
+int _main(int argc, char* argv[]) {
     Init();
     auto i = NewIsolate();
     auto c = NewContext(i);
-    RunScript(c, "", "");
+    RunScript(c, "18 + 17", "");
+    return 0;
 }

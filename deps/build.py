@@ -54,7 +54,7 @@ v8_enable_i18n_support=false
 v8_enable_test_features=false
 v8_extra_library_files=[]
 v8_untrusted_code_mitigations=false
-v8_use_snapshot=false
+v8_use_snapshot=true
 """
 
 def v8deps():
