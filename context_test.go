@@ -8,17 +8,17 @@ import (
 
 func TestRunScriptStringer(t *testing.T) {
 	t.Parallel()
-	var iso = v8go.NewIsolate()
-	ctx := v8go.NewContext(iso)
+	ctx, _ := v8go.NewContext(nil)
 	var tests = [...]struct {
 		name   string
 		source string
 		out    string
 	}{
-		{"Addition", "2 + 2", "4"},
-		{"Multiplication", "13 * 2", "26"},
+		{"Addition", `2 + 2`, "4"},
+		{"Multiplication", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
+		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}
 
 	for _, tt := range tests {

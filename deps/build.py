@@ -40,8 +40,8 @@ clang_use_chrome_plugins=false
 linux_use_bundled_binutils=false
 use_custom_libcxx=false
 use_sysroot=false
-is_debug=true
-symbol_level=1
+is_debug=false
+symbol_level=0
 strip_debug_info=true
 is_component_build=false
 v8_monolithic=true
@@ -55,6 +55,7 @@ v8_enable_test_features=false
 v8_extra_library_files=[]
 v8_untrusted_code_mitigations=false
 v8_use_snapshot=true
+target_cpu="x64"
 """
 
 def v8deps():
@@ -76,7 +77,7 @@ def main():
     ninja_path = os.path.join(tools_path, "ninja")
     assert(os.path.exists(ninja_path))
 
-    build_path = os.path.join(deps_path, "build")
+    build_path = os.path.join(deps_path, ".build", os_arch())
 
     env = os.environ.copy()
     args = gn_args.replace('\n', ' ')

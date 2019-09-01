@@ -10,17 +10,24 @@ import (
 
 var v8once sync.Once
 
+// An isolate is a JavaScript VM instance with its own heap and
+// garbage collector. Most applications will create one isolate
+// with many V8 contexts for execution.
 type Isolate struct {
 	ptr C.IsolatePtr
 }
 
-func NewIsolate() *Isolate {
+// NewIsolate creates a new V8 isolate. Only one thread may access
+// a given isolate at a time, but different threads may access
+// different isolates simultaneously.
+func NewIsolate() (*Isolate, error) {
 	v8once.Do(func() {
 		C.Init()
 	})
 	iso := &Isolate{C.NewIsolate()}
 	runtime.SetFinalizer(iso, (*Isolate).finalizer)
-	return iso
+	// TODO: [RC] catch any C++ exceptions and return as error
+	return iso, nil
 }
 
 func (i *Isolate) finalizer() {

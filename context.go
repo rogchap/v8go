@@ -5,21 +5,49 @@ package v8go
 import "C"
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"unsafe"
 )
 
+// Context is a global root execution environment that allows separate,
+// unrelated, JavaScript applications to run in a single instance of V8.
 type Context struct {
+	iso *Isolate
 	ptr C.ContextPtr
 }
 
-func NewContext(iso *Isolate) *Context {
-	ctx := &Context{C.NewContext(iso.ptr)}
+// NewContext creates a new JavaScript context for a given isoltate;
+// if isolate is `nil` than a new isolate will be created.
+func NewContext(iso *Isolate) (*Context, error) {
+	if iso == nil {
+		var err error
+		iso, err = NewIsolate()
+		if err != nil {
+			return nil, fmt.Errorf("context: failed to create new Isolate: %v", err)
+		}
+	}
+
+	// TODO: [RC] does the isolate need to track all the contexts created?
+	// any script run against the context should make sure the VM has not been
+	// terninated
+	ctx := &Context{
+		iso: iso,
+		ptr: C.NewContext(iso.ptr),
+	}
 	runtime.SetFinalizer(ctx, (*Context).finalizer)
-	return ctx
+	// TODO: [RC] catch any C++ exceptions and return as error
+	return ctx, nil
 }
 
-// RunScript executes the source JavaScript; origin or filename  provides a
+// Isolate gets the current context's parent isolate.An  error is returned
+// if the isolate has been terninated.
+func (c *Context) Isolate() (*Isolate, error) {
+	// TODO: [RC] check to see if the isolate has not been terninated
+	return c.iso, nil
+}
+
+// RunScript executes the source JavaScript; origin or filename provides a
 // reference for the script and used in the exception stack trace.
 func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	cSource := C.CString(source)

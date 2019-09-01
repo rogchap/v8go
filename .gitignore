@@ -1,7 +1,7 @@
 *swp
 .DS_Store
 
-build
+.build
 .cipd
 .gclient_entries
 
