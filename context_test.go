@@ -6,30 +6,26 @@ import (
 	"rogchap.com/v8go"
 )
 
-func TestRunScriptStringer(t *testing.T) {
+func TestContextExec(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
-	var tests = [...]struct {
-		name   string
-		source string
-		out    string
-	}{
-		{"Addition", `2 + 2`, "4"},
-		{"Multiplication", `13 * 2`, "26"},
-		{"String", `"string"`, "string"},
-		{"Object", `let obj = {}; obj`, "[object Object]"},
-		{"Function", `let fn = function(){}; fn`, "function(){}"},
+	ctx.RunScript(`function add(a, b) { return a + b }`, "add.js")
+	val, _ := ctx.RunScript(`add(3, 4)`, "main.js")
+	rtn := val.String()
+	if rtn != "7" {
+		t.Errorf("script returned an unexpected value: expected %q, got %q", "7", rtn)
 	}
 
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			result, _ := ctx.RunScript(tt.source, "test.js")
-			str := result.String()
-			if str != tt.out {
-				t.Errorf("unespected result: expected %q, got %q", tt.out, str)
-			}
-		})
+	_, err := ctx.RunScript(`add`, "func.js")
+	if err != nil {
+		t.Errorf("function should be defined: %v", err)
 	}
+
+	/*iso, _ := ctx.Isolate()
+	ctx2, _ := v8go.NewContext(iso)
+	val, _ = ctx2.RunScript(`add`, "ctx2.js")
+	rtn = val.String()
+	if rtn != "undefined" {
+		t.Errorf("%q", rtn)
+	}*/
 }
