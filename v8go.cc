@@ -24,6 +24,35 @@ typedef struct {
   m_ctx* ctx_ptr;
 } m_value;
 
+const char* CString(String::Utf8Value& value) {
+  if (value.length() == 0) {
+    return "empty exception";
+  }
+  return *value;
+}
+
+const char* ExceptionString(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  std::stringstream sb;
+  String::Utf8Value exception(iso, try_catch.Exception());
+  sb << CString(exception);
+
+  Local<Message> msg = try_catch.Message();
+  if (!msg.IsEmpty()) {
+    String::Utf8Value origin(iso, msg->GetScriptOrigin().ResourceName());
+    sb << std::endl
+       << " at " << CString(origin);
+  }
+
+
+  std::string str = sb.str();
+  char* data = static_cast<char*>(malloc(str.length()));
+  sprintf(data, "%s", str.c_str());
+  return data;
+}
 
 extern "C"
 {
@@ -88,15 +117,21 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     RtnValue rtn = { nullptr, nullptr };
 
     ScriptOrigin script_origin(ogn);
-    Local<Script> script = Script::Compile(local_ctx, src, &script_origin).ToLocalChecked();
-    
-    // TODO check to make sure script is not empty
-    Local<v8::Value> result = script->Run(local_ctx).ToLocalChecked();
-    
-    // TODO deal with any errors/exceptions from result
+    MaybeLocal<Script> script = Script::Compile(local_ctx, src, &script_origin);
+    if (script.IsEmpty()) {
+      assert(try_catch.HasCaught());
+      rtn.error = ExceptionString(try_catch, iso, local_ctx);
+      return rtn;
+    } 
+    MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(local_ctx);
+    if (result.IsEmpty()) {
+      assert(try_catch.HasCaught());
+      rtn.error = "some error in result";
+      return rtn;
+    }
     m_value* val = new m_value;
     val->ctx_ptr = ctx;
-    val->ptr.Reset(iso, Persistent<Value>(iso, result));
+    val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
     rtn.value = static_cast<ValuePtr>(val);
     return rtn;
@@ -147,7 +182,6 @@ const char* ValueToString(ValuePtr ptr) {
   String::Utf8Value utf8(iso, value);
   
   char* data = static_cast<char*>(malloc(utf8.length()));
-  //memcpy(data, *utf8, utf8.length());
   sprintf(data, "%s", *utf8);
   return data;
 }

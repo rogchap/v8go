@@ -4,11 +4,42 @@ package v8go
 // #import "v8go.h"
 import "C"
 import (
-	"errors"
 	"fmt"
+	"io"
 	"runtime"
 	"unsafe"
 )
+
+type jsErr struct {
+	msg      string
+	location string
+	stack    string
+}
+
+func (e *jsErr) Error() string {
+	return e.msg
+}
+
+func (e *jsErr) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			io.WriteString(s, e.msg)
+			if e.location != "" {
+				fmt.Fprintf(s, ": %s", e.location)
+			}
+			if e.stack != "" {
+				fmt.Fprintf(s, "\n%s", e.stack)
+			}
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, e.msg)
+	case 'q':
+		fmt.Fprintf(s, "%q", e.msg)
+	}
+}
 
 // Context is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
@@ -78,6 +109,5 @@ func getError(rtn C.RtnValue) error {
 	if rtn.error == nil {
 		return nil
 	}
-	defer C.free(unsafe.Pointer(rtn.error))
-	return errors.New(C.GoString(rtn.error))
+	return &jsErr{msg: C.GoString(rtn.error), location: "blah line 8", stack: "bad things happen"}
 }

@@ -18,14 +18,19 @@ func TestContextExec(t *testing.T) {
 
 	_, err := ctx.RunScript(`add`, "func.js")
 	if err != nil {
-		t.Errorf("function should be defined: %v", err)
+		t.Errorf("error not expected: %v", err)
 	}
 
-	/*iso, _ := ctx.Isolate()
+	iso, _ := ctx.Isolate()
 	ctx2, _ := v8go.NewContext(iso)
-	val, _ = ctx2.RunScript(`add`, "ctx2.js")
-	rtn = val.String()
-	if rtn != "undefined" {
-		t.Errorf("%q", rtn)
-	}*/
+	_, err = ctx2.RunScript(`add`, "ctx2.js")
+	if err == nil {
+		t.Error("error expected but was <nil>")
+	}
+}
+
+func TestBadScript(t *testing.T) {
+	ctx, _ := v8go.NewContext(nil)
+	_, err := ctx.RunScript("bad script", "bad.js")
+	t.Errorf("error: %+v", err)
 }
