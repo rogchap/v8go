@@ -9,7 +9,7 @@ import (
 func TestContextExec(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
-	ctx.RunScript(`function add(a, b) { return a + b }`, "add.js")
+	ctx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	val, _ := ctx.RunScript(`add(3, 4)`, "main.js")
 	rtn := val.String()
 	if rtn != "7" {
