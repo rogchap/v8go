@@ -1,4 +1,6 @@
-# Execute JavaScript from Go`
+# Execute JavaScript from Go
+
+[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go)
 
 ## Usage
 
