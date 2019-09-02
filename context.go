@@ -5,41 +5,9 @@ package v8go
 import "C"
 import (
 	"fmt"
-	"io"
 	"runtime"
 	"unsafe"
 )
-
-type jsErr struct {
-	msg      string
-	location string
-	stack    string
-}
-
-func (e *jsErr) Error() string {
-	return e.msg
-}
-
-func (e *jsErr) Format(s fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		if s.Flag('+') {
-			io.WriteString(s, e.msg)
-			if e.location != "" {
-				fmt.Fprintf(s, ": %s", e.location)
-			}
-			if e.stack != "" {
-				fmt.Fprintf(s, "\n%s", e.stack)
-			}
-			return
-		}
-		fallthrough
-	case 's':
-		io.WriteString(s, e.msg)
-	case 'q':
-		fmt.Fprintf(s, "%q", e.msg)
-	}
-}
 
 // Context is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
@@ -79,7 +47,8 @@ func (c *Context) Isolate() (*Isolate, error) {
 }
 
 // RunScript executes the source JavaScript; origin or filename provides a
-// reference for the script and used in the exception stack trace.
+// reference for the script and used in the stack trace if there is an error.
+// error will be of type `JSError` of not nil.
 func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
@@ -106,8 +75,13 @@ func getValue(rtn C.RtnValue) *Value {
 }
 
 func getError(rtn C.RtnValue) error {
-	if rtn.error == nil {
+	if rtn.error.msg == nil {
 		return nil
 	}
-	return &jsErr{msg: C.GoString(rtn.error), location: "blah line 8", stack: "bad things happen"}
+	err := &JSError{
+		Message:    C.GoString(rtn.error.msg),
+		Location:   C.GoString(rtn.error.location),
+		StackTrace: C.GoString(rtn.error.stack),
+	}
+	return err
 }

@@ -26,32 +26,57 @@ typedef struct {
 
 const char* CString(String::Utf8Value& value) {
   if (value.length() == 0) {
-    return "empty exception";
+    return "empty";
   }
   return *value;
 }
 
-const char* ExceptionString(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
+const char* CopyString(std::string str) {
+  char* data = static_cast<char*>(malloc(str.length()));
+  sprintf(data, "%s", str.c_str());
+  return data;
+}
+
+const char* CopyString(String::Utf8Value& value) {
+  if (value.length() == 0) {
+    return "";
+  }
+  return CopyString(*value);
+}
+
+RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
-  std::stringstream sb;
+  RtnError rtn = {nullptr, nullptr, nullptr};
+
   String::Utf8Value exception(iso, try_catch.Exception());
-  sb << CString(exception);
+  rtn.msg = CopyString(exception);
 
   Local<Message> msg = try_catch.Message();
   if (!msg.IsEmpty()) {
     String::Utf8Value origin(iso, msg->GetScriptOrigin().ResourceName());
-    sb << std::endl
-       << " at " << CString(origin);
+    std::ostringstream sb;
+    sb << *origin;
+    Maybe<int> line = try_catch.Message()->GetLineNumber(ctx);
+    if (line.IsJust()) {
+      sb << ":" << line.ToChecked();
+    }
+    Maybe<int> start = try_catch.Message()->GetStartColumn(ctx);
+    if (start.IsJust()) {
+      sb << ":" << start.ToChecked() + 1; // + 1 to match output from stack trace
+    }
+    rtn.location = CopyString(sb.str());
   }
-
-
-  std::string str = sb.str();
-  char* data = static_cast<char*>(malloc(str.length()));
-  sprintf(data, "%s", str.c_str());
-  return data;
+ 
+  MaybeLocal<Value> mstack = try_catch.StackTrace(ctx);
+  if (!mstack.IsEmpty()) {
+    String::Utf8Value stack(iso, mstack.ToLocalChecked());
+    rtn.stack = CopyString(stack);
+  }
+  
+  return rtn;
 }
 
 extern "C"
@@ -120,13 +145,13 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     MaybeLocal<Script> script = Script::Compile(local_ctx, src, &script_origin);
     if (script.IsEmpty()) {
       assert(try_catch.HasCaught());
-      rtn.error = ExceptionString(try_catch, iso, local_ctx);
+      rtn.error = ExceptionError(try_catch, iso, local_ctx);
       return rtn;
     } 
     MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(local_ctx);
     if (result.IsEmpty()) {
       assert(try_catch.HasCaught());
-      rtn.error = "some error in result";
+      rtn.error = ExceptionError(try_catch, iso, local_ctx);
       return rtn;
     }
     m_value* val = new m_value;

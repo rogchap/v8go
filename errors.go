@@ -1,0 +1,36 @@
+package v8go
+
+import (
+	"fmt"
+	"io"
+)
+
+// JSError is an error that is returned if there is are any
+// JavaScript exceptions handled in the context. When used with the fmt
+// verb `%+v`, will output the JavaScript stack trace, if available.
+type JSError struct {
+	Message    string
+	Location   string
+	StackTrace string
+}
+
+func (e *JSError) Error() string {
+	return e.Message
+}
+
+func (e *JSError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			if e.StackTrace != "" {
+				io.WriteString(s, e.StackTrace)
+				return
+			}
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, e.Message)
+	case 'q':
+		fmt.Fprintf(s, "%q", e.Message)
+	}
+}

@@ -29,8 +29,32 @@ func TestContextExec(t *testing.T) {
 	}
 }
 
-func TestBadScript(t *testing.T) {
+func TestJSExceptions(t *testing.T) {
+	t.Parallel()
+
+	tests := [...]struct {
+		name   string
+		source string
+		origin string
+		err    string
+	}{
+		{"SyntaxError", "bad js syntax", "syntax.js", "SyntaxError: Unexpected identifier"},
+		{"ReferenceError", "add()", "add.js", "ReferenceError: add is not defined"},
+	}
+
 	ctx, _ := v8go.NewContext(nil)
-	_, err := ctx.RunScript("bad script", "bad.js")
-	t.Errorf("error: %+v", err)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := ctx.RunScript(tt.source, tt.origin)
+			if err == nil {
+				t.Error("error expected but got <nil>")
+				return
+			}
+			if err.Error() != tt.err {
+				t.Errorf("expected %q, got %q", tt.err, err.Error())
+			}
+		})
+	}
 }

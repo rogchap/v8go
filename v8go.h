@@ -9,8 +9,14 @@ typedef void* ContextPtr;
 typedef void* ValuePtr;
 
 typedef struct {
+  const char* msg;
+  const char* location;
+  const char* stack;
+} RtnError;
+
+typedef struct {
   ValuePtr value;
-  const char* error;
+  RtnError error;
 } RtnValue;
 
 extern void Init();
