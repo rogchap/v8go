@@ -10,7 +10,7 @@ import (
 
 var v8once sync.Once
 
-// An isolate is a JavaScript VM instance with its own heap and
+// Isolate is a JavaScript VM instance with its own heap and
 // garbage collector. Most applications will create one isolate
 // with many V8 contexts for execution.
 type Isolate struct {

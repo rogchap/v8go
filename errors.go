@@ -18,6 +18,8 @@ func (e *JSError) Error() string {
 	return e.Message
 }
 
+// Format implements the fmt.Formatter interface to provide a custom formatter
+// primarily to output the javascript stack trace with %+v
 func (e *JSError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
