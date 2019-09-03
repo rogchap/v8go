@@ -1,7 +1,8 @@
 # Execute JavaScript from Go
 
 [![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
-[![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go)
+[![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go) 
+[![Build Status](https://travis-ci.org/rogchap/v8go.svg?branch=master)](https://travis-ci.org/rogchap/v8go)
 
 <img src="gopher.jpg" width="20%" style="margin:10px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
