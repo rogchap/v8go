@@ -3,6 +3,9 @@
 [![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
 [![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go)
 
+<div align="center">
+  <img src="gopher.jpg" width="40%" style="margin:10px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
+</div>
 
 ## Usage
 
@@ -60,3 +63,7 @@ In order to make `v8go` usable as a standard Go package, prebuilt static librari
 are included for Linux and OSX ie. you *should not* require to build V8 yourself.
 
 V8 requires 64-bit, therfore will not work on 32-bit systems. 
+
+---
+
+V8 Gopher artwork based on original artwork from the amazing [Renee French](http://reneefrench.blogspot.com).
