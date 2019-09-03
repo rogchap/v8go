@@ -3,6 +3,12 @@ import platform
 import os
 import subprocess
 import shutil
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--debug', dest='debug', action='store_true')
+parser.set_defaults(debug=False)
+args = parser.parse_args()
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
@@ -36,16 +42,15 @@ gclient_sln = [
 ]
 
 gn_args = """
+is_debug=%s
 clang_use_chrome_plugins=false
 linux_use_bundled_binutils=false
 use_custom_libcxx=false
 use_sysroot=false
-is_debug=false
 symbol_level=0
 strip_debug_info=true
 is_component_build=false
 v8_monolithic=true
-v8_static_library=true
 v8_use_external_startup_data=false
 treat_warnings_as_errors=false
 v8_embedder_string="-v8go"
@@ -55,7 +60,6 @@ v8_enable_test_features=false
 v8_extra_library_files=[]
 v8_untrusted_code_mitigations=false
 v8_use_snapshot=true
-target_cpu="x64"
 """
 
 def v8deps():
@@ -78,10 +82,13 @@ def main():
     assert(os.path.exists(ninja_path))
 
     build_path = os.path.join(deps_path, ".build", os_arch())
-
     env = os.environ.copy()
-    args = gn_args.replace('\n', ' ')
-    subprocess.check_call([gn_path, "gen", build_path, "--args=" + args], 
+
+    is_debug = 'true' if args.debug else 'false'
+    gnargs = gn_args % is_debug
+    gen_args = gnargs.replace('\n', ' ')
+    
+    subprocess.check_call([gn_path, "gen", build_path, "--args=" + gen_args], 
                         cwd=v8_path,
                         env=env)
     subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"],

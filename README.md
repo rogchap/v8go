@@ -1,6 +1,8 @@
 # Execute JavaScript from Go
 
-[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go)
+[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
+[![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go)
+
 
 ## Usage
 
@@ -46,6 +48,9 @@ if err != nil {
 }
 ```
 
+## Documentation
+
+GoDoc: https://godoc.org/rogchap.com/v8go
 
 ## V8 dependancy
 
