@@ -3,9 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
 [![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go)
 
-<div align="center">
-  <img src="gopher.jpg" width="20%" style="margin:10px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
-</div>
+<img src="gopher.jpg" width="20%" style="margin:10px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
 ## Usage
 
