@@ -66,4 +66,4 @@ V8 requires 64-bit, therfore will not work on 32-bit systems.
 
 ---
 
-V8 Gopher artwork based on original artwork from the amazing [Renee French](http://reneefrench.blogspot.com).
+V8 Gopher image based on original artwork from the amazing [Renee French](http://reneefrench.blogspot.com).
