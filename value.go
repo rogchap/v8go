@@ -1,6 +1,6 @@
 package v8go
 
-// #import "v8go.h"
+// #include "v8go.h"
 import "C"
 import "runtime"
 

@@ -1,7 +1,7 @@
 package v8go
 
-// #import <stdlib.h>
-// #import "v8go.h"
+// #include <stdlib.h>
+// #include "v8go.h"
 import "C"
 import (
 	"fmt"

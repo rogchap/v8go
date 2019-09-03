@@ -17,7 +17,6 @@ func TestValueString(t *testing.T) {
 		{"Number", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
-		{"Date", `new Date("Sun Sep 01 2019 17:11:06 GMT+1000 (AEST)")`, "Sun Sep 01 2019 17:11:06 GMT+1000 (AEST)"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}
 

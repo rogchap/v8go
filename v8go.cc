@@ -144,13 +144,11 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     ScriptOrigin script_origin(ogn);
     MaybeLocal<Script> script = Script::Compile(local_ctx, src, &script_origin);
     if (script.IsEmpty()) {
-      assert(try_catch.HasCaught());
       rtn.error = ExceptionError(try_catch, iso, local_ctx);
       return rtn;
     } 
     MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(local_ctx);
     if (result.IsEmpty()) {
-      assert(try_catch.HasCaught());
       rtn.error = ExceptionError(try_catch, iso, local_ctx);
       return rtn;
     }
