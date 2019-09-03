@@ -5,5 +5,4 @@
 .cipd
 .gclient_entries
 
-# ignore darwin libs for now
-deps/darwin-x86_64/libv8.a
+deps/darwin-x86_64/libv8_debug.a

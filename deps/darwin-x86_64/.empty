@@ -1,2 +1,0 @@
-libv8.a is currently ignored during initial development
-Once we optomize the size of libv8.a it will be included as part of this project

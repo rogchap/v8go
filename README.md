@@ -61,7 +61,7 @@ V8 version: 7.6.303.31
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
 are included for Linux and OSX ie. you *should not* require to build V8 yourself.
 
-V8 requires 64-bit, therfore will not work on 32-bit systems. 
+V8 requires 64-bit, therefore will not work on 32-bit systems. 
 
 ---
 
