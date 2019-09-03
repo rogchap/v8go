@@ -4,7 +4,7 @@
 [![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go)
 
 <div align="center">
-  <img src="gopher.jpg" width="40%" style="margin:10px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
+  <img src="gopher.jpg" width="20%" style="margin:10px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 </div>
 
 ## Usage
