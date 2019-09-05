@@ -54,7 +54,7 @@ if err != nil {
 
 GoDoc: https://godoc.org/rogchap.com/v8go
 
-## V8 dependancy
+## V8 dependency
 
 V8 version: 7.6.303.31
 
