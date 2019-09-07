@@ -1,6 +1,7 @@
 package v8go_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -10,13 +11,13 @@ import (
 func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	ctx1, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewContext(iso)
 	//	ctx2, _ := v8go.NewContext(iso)
 
 	err := make(chan error, 1)
 
 	go func() {
-		_, e := ctx1.RunScript(`while (true) { }`, "forever.js")
+		_, e := ctx.RunScript(`while (true) { }`, "forever.js")
 		err <- e
 	}()
 
@@ -26,7 +27,7 @@ func TestIsolateTermination(t *testing.T) {
 		iso.TerminateExecution()
 	}()
 
-	if e := <-err; e == nil || e.Error() != "ExecutionTerminated: script execution has been terminated" {
+	if e := <-err; e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
 	}
 }
