@@ -30,6 +30,12 @@ func NewIsolate() (*Isolate, error) {
 	return iso, nil
 }
 
+// Forcefully terminate the current thread of JavaScript execution
+// in the given isolate.
+func (i *Isolate) TerminateExecution() {
+	C.IsolateTerminateExecution(i.ptr)
+}
+
 func (i *Isolate) finalizer() {
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil

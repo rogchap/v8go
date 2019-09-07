@@ -50,6 +50,34 @@ if err != nil {
 }
 ```
 
+### Terminate long running scripts
+
+```go
+
+vals := make(chan *v8go.Value, 1)
+errs := make(chan error, 1)
+
+go func() {
+    val, err := ctx.RunScript(script, "forever.js") // exec a long running script
+    if err != nil {
+        errs <- err
+        return
+    }
+    vals <- val
+}()
+
+select {
+case val := <- vals:
+    // sucess
+case err := <- errs:
+    // javascript error
+case <- time.After(200 * time.Milliseconds):
+    vm, _ := ctx.Isolate() // get the Isolate from the context
+    vm.TerminateExecution() // terminate the execution 
+    err := <- errs // will get a termination error back from the running script
+}
+```
+
 ## Documentation
 
 GoDoc: https://godoc.org/rogchap.com/v8go
