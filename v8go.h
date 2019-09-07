@@ -22,7 +22,7 @@ typedef struct {
 extern void Init();
 extern IsolatePtr NewIsolate();
 extern void IsolateDispose(IsolatePtr ptr);
-extern void TerminateExecution(IsolatePtr ptr);
+extern void IsolateTerminateExecution(IsolatePtr ptr);
 
 extern ContextPtr NewContext(IsolatePtr prt);
 extern void ContextDispose(ContextPtr ptr);

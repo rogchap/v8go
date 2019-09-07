@@ -51,6 +51,11 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
 
   RtnError rtn = {nullptr, nullptr, nullptr};
 
+  if (try_catch.HasTerminated()) {
+    rtn.msg = "ExecutionTerminated: script execution has been terminated";
+    return rtn;
+  }
+
   String::Utf8Value exception(iso, try_catch.Exception());
   rtn.msg = CopyString(exception);
 
@@ -104,7 +109,7 @@ void IsolateDispose(IsolatePtr ptr) {
     iso->Dispose();
 }
 
-void TerminateExecution(IsolatePtr ptr) {
+void IsolateTerminateExecution(IsolatePtr ptr) {
     Isolate* iso = static_cast<Isolate*>(ptr);
     iso->TerminateExecution();
 }
