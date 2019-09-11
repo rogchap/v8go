@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   test:
-    name: Tests on ${{ matrix.go-version }}
+    name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
     strategy:
       matrix:
         go-version: [1.12.9, 1.13]
