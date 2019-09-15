@@ -83,5 +83,8 @@ func getError(rtn C.RtnValue) error {
 		Location:   C.GoString(rtn.error.location),
 		StackTrace: C.GoString(rtn.error.stack),
 	}
+	C.free(unsafe.Pointer(rtn.error.msg))
+	C.free(unsafe.Pointer(rtn.error.location))
+	C.free(unsafe.Pointer(rtn.error.stack))
 	return err
 }
