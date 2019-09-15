@@ -1,18 +1,23 @@
 language: go
 
-os:
-  - linux
-  - osx
+branches:
+    only:
+        - master
 
-env: 
+os:
+    - linux
+    - osx
+
+env:
     - GO111MODULE=on
-    
+
 go:
-    - 1.12.x
+    - 1.12.9
+    - 1.13
 
 git:
     depth: 1
     submodules: false
 
 script:
-    - go test -v -race ./...
+    - go test -v -cover  ./...
