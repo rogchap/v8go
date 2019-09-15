@@ -23,11 +23,9 @@ func (e *JSError) Error() string {
 func (e *JSError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		if s.Flag('+') {
-			if e.StackTrace != "" {
-				io.WriteString(s, e.StackTrace)
-				return
-			}
+		if s.Flag('+') && e.StackTrace != "" {
+			io.WriteString(s, e.StackTrace)
+			return
 		}
 		fallthrough
 	case 's':
