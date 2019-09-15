@@ -175,6 +175,7 @@ void ContextDispose(ContextPtr ptr) {
     Isolate::Scope isolate_scope(iso);  
 
     ctx->ptr.Reset();  
+    delete ctx;
 } 
 
 /********** Value **********/
@@ -194,6 +195,7 @@ void ValueDispose(ValuePtr ptr) {
   Isolate::Scope isolate_scope(iso);
 
   val->ptr.Reset();
+  delete val;
 }
 
 const char* ValueToString(ValuePtr ptr) {
