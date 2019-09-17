@@ -1,8 +1,12 @@
 package v8go
 
+// #include <stdlib.h>
 // #include "v8go.h"
 import "C"
-import "runtime"
+import (
+	"runtime"
+	"unsafe"
+)
 
 // Value represents all Javascript values and objects
 type Value struct {
@@ -13,7 +17,9 @@ type Value struct {
 // are returned as-is, objects will return `[object Object]` and functions will
 // print their definition.
 func (v *Value) String() string {
-	return C.GoString(C.ValueToString(v.ptr))
+	s := C.ValueToString(v.ptr)
+	defer C.free(unsafe.Pointer(s))
+	return C.GoString(s)
 }
 
 func (v *Value) finalizer() {

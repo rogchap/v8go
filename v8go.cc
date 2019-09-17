@@ -24,22 +24,17 @@ typedef struct {
   m_ctx* ctx_ptr;
 } m_value;
 
-const char* CString(String::Utf8Value& value) {
-  if (value.length() == 0) {
-    return "empty";
-  }
-  return *value;
-}
-
 const char* CopyString(std::string str) {
-  char* data = static_cast<char*>(malloc(str.length()));
-  sprintf(data, "%s", str.c_str());
-  return data;
+  int len = str.length();
+  char *mem = (char*)malloc(len+1);
+  memcpy(mem, str.data(), len);
+  mem[len] = 0;
+  return mem;
 }
 
 const char* CopyString(String::Utf8Value& value) {
   if (value.length() == 0) {
-    return "";
+    return nullptr;
   }
   return CopyString(*value);
 }
@@ -52,7 +47,7 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   RtnError rtn = {nullptr, nullptr, nullptr};
 
   if (try_catch.HasTerminated()) {
-    rtn.msg = "ExecutionTerminated: script execution has been terminated";
+    rtn.msg = CopyString("ExecutionTerminated: script execution has been terminated");
     return rtn;
   }
 
@@ -175,6 +170,7 @@ void ContextDispose(ContextPtr ptr) {
     Isolate::Scope isolate_scope(iso);  
 
     ctx->ptr.Reset();  
+    delete ctx;
 } 
 
 /********** Value **********/
@@ -194,6 +190,7 @@ void ValueDispose(ValuePtr ptr) {
   Isolate::Scope isolate_scope(iso);
 
   val->ptr.Reset();
+  delete val;
 }
 
 const char* ValueToString(ValuePtr ptr) {
@@ -209,10 +206,8 @@ const char* ValueToString(ValuePtr ptr) {
   Local<Value> value = val->ptr.Get(iso);
   String::Utf8Value utf8(iso, value);
   
-  char* data = static_cast<char*>(malloc(utf8.length()));
-  sprintf(data, "%s", *utf8);
-  return data;
-}
+  return CopyString(utf8);
+} 
 
 
 /********** Version **********/
