@@ -25,7 +25,9 @@ jobs:
               run: echo 'testing PR after build' >  dummy-file.txt
 
     pull_request:
+        name: Create Pull Request
         needs: build
+        runs-on: ubuntu-latest
         steps:
             - name: Create V8 PR
               uses: peter-evans/create-pull-request@v1.2.0
