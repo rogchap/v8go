@@ -34,7 +34,9 @@ def ignore_event(event_name, event_data):
 
 
 def pr_branch_exists(repo, branch):
+    print("Checking if PR branch exists")
     for ref in repo.remotes.origin.refs:
+        print(ref.name)
         if ref.name == ("origin/%s" % branch):
             return True
     return False
