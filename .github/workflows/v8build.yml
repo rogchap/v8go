@@ -25,7 +25,7 @@ jobs:
               run: echo 'testing PR after build' >  dummy-file.txt
             - name: Create PR
               run: |
-                  pip install --requirement ./.github/scripts/requirements.txt
+                  pip3 install --requirement ./.github/scripts/requirements.txt
                   ./.github/scripts/create-pull-request.py
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
