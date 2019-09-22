@@ -4,8 +4,8 @@ on:
     push:
         branches:
             - 'ci-build-v8' # remove once working
-            - 'build-v8*'
-
+#on: repository_dispatch
+              
 jobs:
     build:
         name: Build V8 for ${{ matrix.platform }}
@@ -18,11 +18,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v1
               with:
-                  #  submodules: true
+                  submodules: true
                   fetch-depth: 1
             - name: Build V8
-              # run: cd deps && ./build.py
-              run: echo 'testing PR after build' >  dummy-file.txt
+              run: cd deps && ./build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
