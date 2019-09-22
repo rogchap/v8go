@@ -8,7 +8,7 @@ jobs:
         name: Build V8 for ${{ matrix.platform }}
         strategy:
             matrix:
-                platform: [ubuntu-latest, macos-latest, windows-latest]
+                platform: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.platform }}
 
         steps:
