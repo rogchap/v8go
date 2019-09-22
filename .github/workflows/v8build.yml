@@ -11,7 +11,7 @@ jobs:
         name: Build V8 for ${{ matrix.platform }}
         strategy:
             matrix:
-                platform: [ubuntu-latest]
+                platform: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.platform }}
 
         steps:
@@ -23,7 +23,8 @@ jobs:
             - name: Build V8
               # run: cd deps && ./build.py
               run: echo 'testing PR after build' >  dummy-file.txt
-            - name: Install Setup Tools
+            - name: Install Python3 setup tools
+              if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
             - name: Create PR
               run: |
@@ -33,4 +34,6 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 PULL_REQUEST_BRANCH: v8-lib
                 COMMIT_MESSAGE: Update V8 static library for ${{ matrix.platform  }}
+                PULL_REQUEST_TITLE: V8 static library for ${{ matrix.platform  }}
+                PULL_REQUEST_BODY: Auto-generated pull request via GitHub Action
  
