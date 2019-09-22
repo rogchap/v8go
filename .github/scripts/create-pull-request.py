@@ -2,6 +2,7 @@
 ''' Create Pull Request '''
 import json
 import os
+import time
 from git import Repo
 from github import Github
 
@@ -34,9 +35,7 @@ def ignore_event(event_name, event_data):
 
 
 def pr_branch_exists(repo, branch):
-    print("Checking if PR branch exists")
     for ref in repo.remotes.origin.refs:
-        print(ref.name)
         if ref.name == ("origin/%s" % branch):
             return True
     return False
@@ -136,7 +135,7 @@ if not ignore_event(event_name, event_data):
     # Skip if the current branch is a PR branch created by this action
     if not base.startswith(branch):
         # Suffix with the short SHA1 hash
-        branch = "%s-%s" % (branch, get_head_short_sha1(repo))
+        branch = "%s-%s" % (branch, int(time.time()))
 
         # Check if a PR branch already exists for this HEAD commit
         if not pr_branch_exists(repo, branch):
