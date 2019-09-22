@@ -11,7 +11,7 @@ jobs:
         name: Build V8 for ${{ matrix.platform }}
         strategy:
             matrix:
-                platform: [ubuntu-latest, macos-latest]
+                platform: [ubuntu-latest]
         runs-on: ${{ matrix.platform }}
 
         steps:
@@ -24,7 +24,6 @@ jobs:
               # run: cd deps && ./build.py
               run: echo 'testing PR after build' >  dummy-file.txt
             - name: Install Setup Tools
-              if: ${{ matrix.platform }} == ubuntu-latest
               run: apt-get install python3-setuptools
             - name: Create PR
               run: |
