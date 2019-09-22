@@ -18,21 +18,15 @@ jobs:
             - name: Checkout
               uses: actions/checkout@v1
               with:
-                  submodules: true
+                  #  submodules: true
                   fetch-depth: 1
             - name: Build V8
               # run: cd deps && ./build.py
               run: echo 'testing PR after build' >  dummy-file.txt
-
-    pull_request:
-        name: Create Pull Request
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
-            - name: Create V8 PR
+            - name: Create PR
               uses: peter-evans/create-pull-request@v1.2.0
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 PULL_REQUEST_BRANCH: v8-lib
-                COMMIT_MESSAGE: Update V8 static library
-
+                COMMIT_MESSAGE: Update V8 static library for ${{ matrix.platform  }}
+ 
