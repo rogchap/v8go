@@ -1,10 +1,6 @@
 name: V8 Build
 
-on:
-    push:
-        branches:
-            - 'ci-build-v8' # remove once working
-#on: repository_dispatch
+on: repository_dispatch
               
 jobs:
     build:
@@ -13,16 +9,14 @@ jobs:
             matrix:
                 platform: [ubuntu-latest, macos-latest]
         runs-on: ${{ matrix.platform }}
-
         steps:
             - name: Checkout
               uses: actions/checkout@v1
               with:
-                  # submodules: true
+                  submodules: true
                   fetch-depth: 1
             - name: Build V8
-              #run: cd deps && ./build.py
-              run: echo 'build ${{ matrix.platform }}' > _${{ matrix.platform }}.txt
+              run: cd deps && ./build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
@@ -35,5 +29,5 @@ jobs:
                 PULL_REQUEST_BRANCH: v8-lib
                 COMMIT_MESSAGE: Update V8 static library for ${{ matrix.platform  }}
                 PULL_REQUEST_TITLE: V8 static library for ${{ matrix.platform  }}
-                PULL_REQUEST_BODY: Auto-generated pull request via GitHub Action
+                PULL_REQUEST_BODY: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
  
