@@ -24,7 +24,7 @@ jobs:
               # run: cd deps && ./build.py
               run: echo 'testing PR after build' >  dummy-file.txt
             - name: Install Setup Tools
-              run: apt-get install python3-setuptools
+              run: sudo apt-get install python3-setuptools
             - name: Create PR
               run: |
                   pip3 install --requirement ./.github/scripts/requirements.txt
