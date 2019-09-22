@@ -24,7 +24,9 @@ jobs:
               # run: cd deps && ./build.py
               run: echo 'testing PR after build' >  dummy-file.txt
             - name: Create PR
-              uses: peter-evans/create-pull-request@v1.2.0
+              run: |
+                  pip install --requirement ./.github/scripts/requirements.txt
+                  ./.github/scripts/create-pull-request.py
               env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 PULL_REQUEST_BRANCH: v8-lib
