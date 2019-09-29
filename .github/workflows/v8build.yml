@@ -17,8 +17,12 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 1
+            - uses: actions/setup-python@v1
+              with:
+                  python-version: '2.x'
+                  architecture: 'x64'
             - name: Build V8
-              run: cd deps && pip install virtualenv && C:/hostedtoolcache/windows/Python/2.7.16/x64/python build.py
+              run: cd deps && python build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
