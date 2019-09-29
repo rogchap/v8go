@@ -10,6 +10,7 @@ parser.add_argument('--debug', dest='debug', action='store_true')
 parser.set_defaults(debug=False)
 args = parser.parse_args()
 
+is_windows = platform.uname()[0] == 'windows' 
 deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
@@ -66,9 +67,9 @@ def v8deps():
     spec = "solutions = %s" % gclient_sln
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
-    print(os_arch())
-    # if windows use .bat
-    subprocess.check_call(["gclient.bat", "sync", "--spec", spec],
+    
+    gclient_path = os.path.join(tools_path, "gclient.bat" if is_windows else "gclinet")
+    subprocess.check_call([gclient_path, "sync", "--spec", spec],
                         cwd=deps_path,
                         env=env)
 
@@ -78,9 +79,9 @@ def os_arch():
 
 def main():
     v8deps()
-    gn_path = os.path.join(tools_path, "gn.bat")
+    gn_path = os.path.join(tools_path, "gn.bat" if is_windows else "gn")
     assert(os.path.exists(gn_path))
-    ninja_path = os.path.join(tools_path, "ninja.bat")
+    ninja_path = os.path.join(tools_path, "ninja.bat" if is_windows else "ninja")
     assert(os.path.exists(ninja_path))
 
     build_path = os.path.join(deps_path, ".build", os_arch())
@@ -97,7 +98,7 @@ def main():
                         cwd=v8_path,
                         env=env)
 
-    lib_fn = os.path.join(build_path, "obj/libv8_monolith.a")
+    lib_fn = os.path.join(build_path, "obj", "libv8_monolith.a")
     dest_path = os.path.join(deps_path, os_arch())
     if not os.path.exists(dest_path):
         os.makedirs(dest_path)
