@@ -66,7 +66,7 @@ v8_use_snapshot=true
 def v8deps():
     spec = "solutions = %s" % gclient_sln
     env = os.environ.copy()
-    env["PATH"] = env["PATH"] + os.pathsep + tools_path    
+    env["PATH"] = tool_path + os.pathsep + env["PATH"]  
     gclient_path = os.path.join(tools_path, "gclient.bat" if is_windows else "gclinet")
     subprocess.check_call([gclient_path, "sync", "--spec", spec],
                         cwd=deps_path,
