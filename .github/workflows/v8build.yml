@@ -17,12 +17,14 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 1
-            - uses: actions/setup-python@v1
-              with:
-                  python-version: '2.x'
-                  architecture: 'x64'
+                  #- uses: actions/setup-python@v1
+                  #with:
+                  #python-version: '2.x'
+                  #architecture: 'x64'
             - name: Build V8
               run: cd deps && python build.py
+              env:
+                  pythonLocation: C:\ProgramData\Chocolatey\bin\python2.7.exe
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
