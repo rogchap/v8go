@@ -4,6 +4,7 @@ import os
 import subprocess
 import shutil
 import argparse
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', dest='debug', action='store_true')
