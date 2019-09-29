@@ -19,8 +19,8 @@ jobs:
                   fetch-depth: 1
             - uses: actions/setup-python@v1
               with:
-              python-version: '2.x'
-              architecture: 'x64'
+                  python-version: '2.x'
+                  architecture: 'x64'
             - name: Build V8
               run: cd deps && pip install functools && python build.py
             - name: Install Python3 setup tools
