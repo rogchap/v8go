@@ -63,6 +63,13 @@ v8_untrusted_code_mitigations=false
 v8_use_snapshot=true
 """
 
+def win_fix():
+    py_executable_dll = 'python%s%s.dll' % (sys.version_info[0], sys.version_info[1])
+    pythondll = os.path.join(os.path.dirname(sys.executable), py_executable_dll)
+    if os.path.exists(pythondll):
+        print('Also created %s' % py_executable_dll)
+        shutil.copyfile(pythondll, os.path.join(os.path.dirname(py_executable), py_executable_dll))
+
 def v8deps():
     spec = "solutions = %s" % gclient_sln
     env = os.environ.copy()
@@ -78,8 +85,11 @@ def os_arch():
     return (u[0] + "-" + u[4]).lower()
 
 def main():
-    print("starting build for " + os_arch())
+    print('starting build for %s...' % os_arch())
+    if is_windows:
+        win_fix()
     v8deps()
+
     gn_path = os.path.join(tools_path, "gn.bat" if is_windows else "gn")
     assert(os.path.exists(gn_path))
     ninja_path = os.path.join(tools_path, "ninja.bat" if is_windows else "ninja")
