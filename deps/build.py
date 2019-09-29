@@ -66,9 +66,9 @@ def v8deps():
     spec = "solutions = %s" % gclient_sln
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
-    print(tools_path)
-    print(env["PATH"])
-    subprocess.check_call(["gclient", "sync", "--spec", spec],
+    print(os_arch())
+    # if windows use .bat
+    subprocess.check_call(["gclient.bat", "sync", "--spec", spec],
                         cwd=deps_path,
                         env=env)
 
@@ -78,9 +78,9 @@ def os_arch():
 
 def main():
     v8deps()
-    gn_path = os.path.join(tools_path, "gn")
+    gn_path = os.path.join(tools_path, "gn.bat")
     assert(os.path.exists(gn_path))
-    ninja_path = os.path.join(tools_path, "ninja")
+    ninja_path = os.path.join(tools_path, "ninja.bat")
     assert(os.path.exists(ninja_path))
 
     build_path = os.path.join(deps_path, ".build", os_arch())
@@ -90,7 +90,7 @@ def main():
     gnargs = gn_args % is_debug
     gen_args = gnargs.replace('\n', ' ')
     
-    subprocess.check_call([gn_path, "gen", build_path, "--args=" + gen_args], 
+    adding some debug statementssubprocess.check_call([gn_path, "gen", build_path, "--args=" + gen_args], 
                         cwd=v8_path,
                         env=env)
     subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"],
