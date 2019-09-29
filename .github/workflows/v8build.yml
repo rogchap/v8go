@@ -22,7 +22,7 @@ jobs:
                   python-version: '2.x'
                   architecture: 'x64'
             - name: Build V8
-              run: choco list && choco uninstall python && cd deps && python build.py
+              run: choco uninstall python2 python2-x86_32 && cd deps && python build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
