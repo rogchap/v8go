@@ -90,7 +90,7 @@ def main():
     gnargs = gn_args % is_debug
     gen_args = gnargs.replace('\n', ' ')
     
-    adding some debug statementssubprocess.check_call([gn_path, "gen", build_path, "--args=" + gen_args], 
+    subprocess.check_call([gn_path, "gen", build_path, "--args=" + gen_args], 
                         cwd=v8_path,
                         env=env)
     subprocess.check_call([ninja_path, "-v", "-C", build_path, "v8_monolith"],
