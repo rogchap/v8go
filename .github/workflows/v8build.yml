@@ -1,13 +1,15 @@
 name: V8 Build
 
-on: repository_dispatch
-              
+#on: repository_dispatch
+on: push
+
 jobs:
     build:
         name: Build V8 for ${{ matrix.platform }}
         strategy:
             matrix:
-                platform: [ubuntu-latest, macos-latest]
+                #platform: [ubuntu-latest, macos-latest]
+                platform: [windows-latest]
         runs-on: ${{ matrix.platform }}
         steps:
             - name: Checkout
@@ -16,11 +18,13 @@ jobs:
                   submodules: true
                   fetch-depth: 1
             - name: Build V8
+              shell: bash
               run: cd deps && ./build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
             - name: Create PR
+              shell: bash
               run: |
                   pip3 install --requirement ./.github/scripts/requirements.txt
                   ./.github/scripts/create-pull-request.py
