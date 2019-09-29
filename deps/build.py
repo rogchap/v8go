@@ -10,7 +10,7 @@ parser.add_argument('--debug', dest='debug', action='store_true')
 parser.set_defaults(debug=False)
 args = parser.parse_args()
 
-is_windows = platform.uname()[0] == 'windows' 
+is_windows = (platform.uname()[0]).lower() == 'windows' 
 deps_path = os.path.dirname(os.path.realpath(__file__))
 v8_path = os.path.join(deps_path, "v8")
 tools_path = os.path.join(deps_path, "depot_tools")
@@ -78,6 +78,7 @@ def os_arch():
     return (u[0] + "-" + u[4]).lower()
 
 def main():
+    print("starting build for " + os_arch())
     v8deps()
     gn_path = os.path.join(tools_path, "gn.bat" if is_windows else "gn")
     assert(os.path.exists(gn_path))
