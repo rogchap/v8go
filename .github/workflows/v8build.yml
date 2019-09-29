@@ -13,6 +13,7 @@ jobs:
         runs-on: ${{ matrix.platform }}
         steps:
             - name: Checkout
+              shell: bash
               uses: actions/checkout@v1
               with:
                   submodules: true
