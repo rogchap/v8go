@@ -66,6 +66,8 @@ def v8deps():
     spec = "solutions = %s" % gclient_sln
     env = os.environ.copy()
     env["PATH"] = tools_path + os.pathsep + env["PATH"]
+    print(tools_path)
+    print(env["PATH"])
     subprocess.check_call(["gclient", "sync", "--spec", spec],
                         cwd=deps_path,
                         env=env)
