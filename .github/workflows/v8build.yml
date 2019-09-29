@@ -18,8 +18,7 @@ jobs:
                   submodules: true
                   fetch-depth: 1
             - name: Build V8
-              shell: bash
-              run: cd deps && ./build.py
+              run: cd deps && python build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
