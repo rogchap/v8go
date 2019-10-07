@@ -18,7 +18,7 @@ jobs:
                   submodules: true
                   fetch-depth: 1
             - name: Build V8
-              run: docker run -v %cd%:C:/data -w C:/data chocolateyfest/chocolatey cmd /S /C "choco install -y python2 git && choco refreshenv  && cd deps && python2 build.py"
+              run: docker run -v %cd%:C:/data -w C:/data chocolateyfest/chocolatey cmd /S /C "choco install -y python2 git && refreshenv && cd deps && python2 build.py"
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
