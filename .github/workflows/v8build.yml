@@ -18,7 +18,7 @@ jobs:
                   submodules: true
                   fetch-depth: 1
             - name: Build V8
-              run: docker run -v %cd%:C:/data -w C:/data python:2.7.16-windowsservercore-ltsc2016 cmd /S /C "cd deps && python build.py"
+              run: docker run -v %cd%:C:/data -w C:/data stefanscherer/chocolatey cmd /S /C "choco install -y phthon2 git && cd deps && python build.py"
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
