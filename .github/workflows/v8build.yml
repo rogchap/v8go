@@ -18,7 +18,7 @@ jobs:
                   submodules: true
                   fetch-depth: 1
             - name: Build V8
-              run: docker run -v /d/a/v8go/v8go:/src -w /src mcr.microsoft.com/windows/servercore:ltsc2019 -c "cd deps && python build.py"
+              run: docker run -v %cd%:C:/data -w C:/data mcr.microsoft.com/windows/servercore:ltsc2019 -c "cd deps && python build.py"
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
