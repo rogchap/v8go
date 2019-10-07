@@ -17,12 +17,8 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 1
-            - uses: actions/setup-python@v1
-              with:
-                  python-version: '3.x'
-                  architecture: 'x64'
             - name: Build V8
-              run: cd deps && python build.py
+              run: docker -v $(pwd):/src -w /src mcr.microsoft.com/windows/servercore:ltsc2019 -c "cd deps && python build.py"
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
