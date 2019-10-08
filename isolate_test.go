@@ -31,3 +31,20 @@ func TestIsolateTermination(t *testing.T) {
 		t.Errorf("unexpected error: %v", e)
 	}
 }
+
+func TestGetHeapStatistics(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	v8go.NewContext(iso)
+	v8go.NewContext(iso)
+
+	hs := iso.GetHeapStatistics()
+
+	if hs.NumberOfNativeContexts != 2 {
+		t.Error("expect NumberOfNativeContexts return 2, got", hs.NumberOfNativeContexts)
+	}
+
+	if hs.NumberOfDetachedContexts != 0 {
+		t.Error("expect NumberOfDetachedContexts return 0, got", hs.NumberOfDetachedContexts)
+	}
+}
