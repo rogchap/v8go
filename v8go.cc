@@ -109,6 +109,29 @@ void IsolateTerminateExecution(IsolatePtr ptr) {
     iso->TerminateExecution();
 }
 
+IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
+  if (ptr == nullptr) {
+    return IsolateHStatistics{0};
+  }
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  v8::HeapStatistics hs;
+  iso->GetHeapStatistics(&hs);
+  
+  return IsolateHStatistics{
+    hs.total_heap_size(),
+    hs.total_heap_size_executable(),
+    hs.total_physical_size(),
+    hs.total_available_size(),
+    hs.used_heap_size(),
+    hs.heap_size_limit(),
+    hs.malloced_memory(),
+    hs.external_memory(),
+    hs.peak_malloced_memory(),
+    hs.number_of_native_contexts(),
+    hs.number_of_detached_contexts()
+  };
+}
+
 /********** Context **********/
 
 ContextPtr NewContext(IsolatePtr ptr) {
