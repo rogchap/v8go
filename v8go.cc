@@ -184,7 +184,15 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
 }
 
 void ContextDispose(ContextPtr ptr) {
-    delete static_cast<m_ctx*>(ptr);
+    if (ptr == nullptr) {
+        return;
+    }
+    m_ctx* ctx = static_cast<m_ctx*>(ptr);
+    if (ctx == nullptr) {
+        return;
+    }
+    ctx->ptr.Reset(); 
+    delete ctx;
 } 
 
 /********** Value **********/

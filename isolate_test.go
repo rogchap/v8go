@@ -56,7 +56,7 @@ func BenchmarkIsolateInitialization(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
 		vm, _ := v8go.NewIsolate()
-		vm.Dispose() // force disposal of the VM
+		vm.Close() // force disposal of the VM
 	}
 }
 
@@ -69,7 +69,8 @@ func BenchmarkIsolateInitAndRun(b *testing.B) {
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)
 		ctx.RunScript(cmd, "cmd.js")
-		vm.Dispose() // force disposal of the VM
+		ctx.Close()
+		vm.Close() // force disposal of the VM
 	}
 }
 

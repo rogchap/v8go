@@ -76,7 +76,7 @@ func (i *Isolate) finalizer() {
 	runtime.SetFinalizer(i, nil)
 }
 
-// Dispose will dispose the Isolate VM; subsequent calls will panic
-func (i *Isolate) Dispose() {
+// Close will dispose the Isolate VM; subsequent calls will panic
+func (i *Isolate) Close() {
 	i.finalizer()
 }
