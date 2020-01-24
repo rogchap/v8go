@@ -75,3 +75,8 @@ func (i *Isolate) finalizer() {
 	i.ptr = nil
 	runtime.SetFinalizer(i, nil)
 }
+
+// Close will dispose the Isolate VM; subsequent calls will panic
+func (i *Isolate) Close() {
+	i.finalizer()
+}

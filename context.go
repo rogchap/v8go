@@ -59,6 +59,11 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	return getValue(rtn), getError(rtn)
 }
 
+// Close will dispose the context and free the memory.
+func (c *Context) Close() {
+	c.finalizer()
+}
+
 func (c *Context) finalizer() {
 	C.ContextDispose(c.ptr)
 	c.ptr = nil

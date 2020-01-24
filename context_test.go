@@ -1,6 +1,8 @@
 package v8go_test
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"rogchap.com/v8go"
@@ -56,5 +58,19 @@ func TestJSExceptions(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.err, err.Error())
 			}
 		})
+	}
+}
+
+func BenchmarkContext(b *testing.B) {
+	b.ReportAllocs()
+	vm, _ := v8go.NewIsolate()
+	defer vm.Close()
+	for n := 0; n < b.N; n++ {
+		ctx, _ := v8go.NewContext(vm)
+		ctx.RunScript(script, "main.js")
+		str, _ := json.Marshal(makeObject())
+		cmd := fmt.Sprintf("process(%s)", str)
+		ctx.RunScript(cmd, "cmd.js")
+		ctx.Close()
 	}
 }

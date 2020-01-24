@@ -188,32 +188,17 @@ void ContextDispose(ContextPtr ptr) {
         return;
     }
     m_ctx* ctx = static_cast<m_ctx*>(ptr);
-    Isolate* iso = ctx->iso;
-    Locker locker(iso);
-    Isolate::Scope isolate_scope(iso);  
-
-    ctx->ptr.Reset();  
+    if (ctx == nullptr) {
+        return;
+    }
+    ctx->ptr.Reset(); 
     delete ctx;
 } 
 
 /********** Value **********/
 
 void ValueDispose(ValuePtr ptr) {
-  m_value* val = static_cast<m_value*>(ptr);
-  if (val == nullptr) {
-    return;
-  }
-  m_ctx* ctx = val->ctx_ptr;
-  if (ctx == nullptr) {
-    return;
-  }
-
-  Isolate* iso = ctx->iso;
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-
-  val->ptr.Reset();
-  delete val;
+  delete static_cast<m_value*>(ptr);
 }
 
 const char* ValueToString(ValuePtr ptr) {
@@ -241,11 +226,3 @@ const char* Version() {
 
 }
 
-
-int _main(int argc, char* argv[]) {
-    Init();
-    auto i = NewIsolate();
-    auto c = NewContext(i);
-    RunScript(c, "18 + 17", "");
-    return 0;
-}
