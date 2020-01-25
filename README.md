@@ -84,7 +84,7 @@ GoDoc: https://godoc.org/rogchap.com/v8go
 
 ## V8 dependency
 
-V8 version: 7.7.299.9
+V8 version: 8.0.426.15
 
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
 are included for Linux and OSX ie. you *should not* require to build V8 yourself.

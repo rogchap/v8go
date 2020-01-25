@@ -109,6 +109,29 @@ void IsolateTerminateExecution(IsolatePtr ptr) {
     iso->TerminateExecution();
 }
 
+IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
+  if (ptr == nullptr) {
+    return IsolateHStatistics{0};
+  }
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  v8::HeapStatistics hs;
+  iso->GetHeapStatistics(&hs);
+  
+  return IsolateHStatistics{
+    hs.total_heap_size(),
+    hs.total_heap_size_executable(),
+    hs.total_physical_size(),
+    hs.total_available_size(),
+    hs.used_heap_size(),
+    hs.heap_size_limit(),
+    hs.malloced_memory(),
+    hs.external_memory(),
+    hs.peak_malloced_memory(),
+    hs.number_of_native_contexts(),
+    hs.number_of_detached_contexts()
+  };
+}
+
 /********** Context **********/
 
 ContextPtr NewContext(IsolatePtr ptr) {
@@ -165,32 +188,17 @@ void ContextDispose(ContextPtr ptr) {
         return;
     }
     m_ctx* ctx = static_cast<m_ctx*>(ptr);
-    Isolate* iso = ctx->iso;
-    Locker locker(iso);
-    Isolate::Scope isolate_scope(iso);  
-
-    ctx->ptr.Reset();  
+    if (ctx == nullptr) {
+        return;
+    }
+    ctx->ptr.Reset(); 
     delete ctx;
 } 
 
 /********** Value **********/
 
 void ValueDispose(ValuePtr ptr) {
-  m_value* val = static_cast<m_value*>(ptr);
-  if (val == nullptr) {
-    return;
-  }
-  m_ctx* ctx = val->ctx_ptr;
-  if (ctx == nullptr) {
-    return;
-  }
-
-  Isolate* iso = ctx->iso;
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-
-  val->ptr.Reset();
-  delete val;
+  delete static_cast<m_value*>(ptr);
 }
 
 const char* ValueToString(ValuePtr ptr) {
@@ -218,11 +226,3 @@ const char* Version() {
 
 }
 
-
-int _main(int argc, char* argv[]) {
-    Init();
-    auto i = NewIsolate();
-    auto c = NewContext(i);
-    RunScript(c, "18 + 17", "");
-    return 0;
-}
