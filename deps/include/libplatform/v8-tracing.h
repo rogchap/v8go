@@ -35,7 +35,7 @@ const int kTraceMaxNumArgs = 2;
 class V8_PLATFORM_EXPORT TraceObject {
  public:
   union ArgValue {
-    bool as_bool;
+    V8_DEPRECATED("use as_uint ? true : false") bool as_bool;
     uint64_t as_uint;
     int64_t as_int;
     double as_double;
@@ -244,6 +244,8 @@ class V8_PLATFORM_EXPORT TracingController
 
   TracingController();
   ~TracingController() override;
+
+  // Takes ownership of |trace_buffer|.
   void Initialize(TraceBuffer* trace_buffer);
 #ifdef V8_USE_PERFETTO
   // Must be called before StartTracing() if V8_USE_PERFETTO is true. Provides
