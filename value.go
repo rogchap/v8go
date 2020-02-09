@@ -18,8 +18,9 @@ type Value struct {
 // print their definition.
 func (v *Value) String() string {
 	s := C.ValueToString(v.ptr)
-	defer C.free(unsafe.Pointer(s))
-	return C.GoString(s)
+	value := C.GoString(s)
+	C.free(unsafe.Pointer(s))
+	return value
 }
 
 func (v *Value) finalizer() {
