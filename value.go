@@ -17,6 +17,12 @@ type Value struct {
 // are returned as-is, objects will return `[object Object]` and functions will
 // print their definition.
 func (v *Value) String() string {
+	if v == nil {
+		return "<nil value>"
+	}
+	if v.ptr == nil {
+		return "<nil ptr>"
+	}
 	s := C.ValueToString(v.ptr)
 	defer C.free(unsafe.Pointer(s))
 	return C.GoString(s)

@@ -8,6 +8,20 @@ import (
 	"rogchap.com/v8go"
 )
 
+func TestLog(t *testing.T) {
+	t.Parallel()
+	ctx, err := v8go.NewContext(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx.RunScript(`const printtest = () => { print(42); return 42; }`, "add.js")
+	val, _ := ctx.RunScript(`printtest(42)`, "main.js")
+	rtn := val.String()
+	if rtn != "42" {
+		t.Errorf("script returned an unexpected value: expected %q, got %q", "42", rtn)
+	}
+}
+
 func TestContextExec(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)

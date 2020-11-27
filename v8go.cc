@@ -134,6 +134,24 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
 
 /********** Context **********/
 
+// Print provides a basic interface to print to stdout.
+static void Print(const FunctionCallbackInfo<Value>& args) {
+  bool first = true;
+  auto iso = args.GetIsolate();
+  for (int i = 0; i < args.Length(); i++) {
+    HandleScope handle_scope(iso);
+    if (first) {
+      first = false;
+    } else {
+      printf(" ");
+    }
+    String::Utf8Value value(iso, args[i]);
+    printf("%s", *value);
+  }
+  printf("\n");
+  fflush(stdout);
+}
+
 ContextPtr NewContext(IsolatePtr ptr) {
     Isolate* iso = static_cast<Isolate*>(ptr);
     Locker locker(iso);
@@ -141,9 +159,13 @@ ContextPtr NewContext(IsolatePtr ptr) {
     HandleScope handle_scope(iso);
   
     iso->SetCaptureStackTraceForUncaughtExceptions(true);
+
+    v8::Local<v8::ObjectTemplate> global = v8::ObjectTemplate::New(iso);
+    global->Set(v8::String::NewFromUtf8(iso, "print", NewStringType::kNormal).ToLocalChecked(),
+        FunctionTemplate::New(iso, Print));
     
     m_ctx* ctx = new m_ctx;
-    ctx->ptr.Reset(iso, Context::New(iso));
+    ctx->ptr.Reset(iso, Context::New(iso, nullptr, global));
     ctx->iso = iso;
     return static_cast<ContextPtr>(ctx);
 }
