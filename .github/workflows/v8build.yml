@@ -23,7 +23,14 @@ jobs:
                 echo "D:\a\v8go\v8go\depot_tools" >> $GITHUB_PATH
             - name: Dependencies
               run: choco install -y -r python2 git
+            - name: Build V8
+              continue-on-error: true
+              env:
+                DEPOT_TOOLS_UPDATE: "0"
+                DEPOT_TOOLS_WIN_TOOLCHAIN: "0"
+              run: cd deps && python build.py
 
+# rdp debugging
             - name: dbg:ngrok 
               run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
             - name: dbg:Extract
@@ -39,13 +46,7 @@ jobs:
             - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
             - name: dbg:Create Tunnel
               run: .\ngrok\ngrok.exe tcp 3389
-
-            - name: Build V8
-              continue-on-error: true
-              env:
-                DEPOT_TOOLS_UPDATE: "0"
-                DEPOT_TOOLS_WIN_TOOLCHAIN: "0"
-              run: cd deps && python build.py
+# end rdp debugging
 
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
