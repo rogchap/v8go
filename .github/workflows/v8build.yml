@@ -21,11 +21,29 @@ jobs:
               run: |
                 pwd >> $GITHUB_PATH
                 echo "D:\a\v8go\v8go\depot_tools" >> $GITHUB_PATH
+            - name: Dependencies
+              run: choco install -y -r python2 git
             - name: Build V8
+              continue-on-error: true
               env:
                 DEPOT_TOOLS_UPDATE: "0"
                 DEPOT_TOOLS_WIN_TOOLCHAIN: "0"
-              run: choco install -y -r python2 git && refreshenv && cd deps && python build.py
+              run: cd deps && python build.py
+            - name: dbg:ngrok 
+              run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
+            - name: dbg:Extract
+              run: Expand-Archive ngrok.zip
+            - name: dbg:Auth
+              run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
+              env:
+                NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+            - name: dbg:Enable TS
+              run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+            - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+            - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+            - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+            - name: dbg:Create Tunnel
+              run: .\ngrok\ngrok.exe tcp 3389
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
               run: sudo apt-get install python3-setuptools
