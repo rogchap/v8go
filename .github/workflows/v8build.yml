@@ -18,6 +18,8 @@ jobs:
                   submodules: true
                   fetch-depth: 1
             - name: Build V8
+              env:
+                DEPOT_TOOLS_UPDATE: "0"
               run: choco install -y -r python2 git && refreshenv && cd deps && python build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
