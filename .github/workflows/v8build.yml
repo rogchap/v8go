@@ -17,9 +17,14 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 1
+            - name: Set PATH
+              run: |
+                pwd >> $GITHUB_PATH
+                echo "D:\a\v8go\v8go\depot_tools" >> $GITHUB_PATH
             - name: Build V8
               env:
                 DEPOT_TOOLS_UPDATE: "0"
+                DEPOT_TOOLS_WIN_TOOLCHAIN: "0"
               run: choco install -y -r python2 git && refreshenv && cd deps && python build.py
             - name: Install Python3 setup tools
               if:  matrix.platform == 'ubuntu-latest'
