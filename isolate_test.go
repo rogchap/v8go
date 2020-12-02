@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"rogchap.com/v8go"
+	"github.com/twitchel/v8go"
 )
 
 func TestIsolateTermination(t *testing.T) {

@@ -4,12 +4,12 @@
 [![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go) 
 [![Build Status](https://travis-ci.org/rogchap/v8go.svg?branch=master)](https://travis-ci.org/rogchap/v8go)
 
-<img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
+![V8 Gopher based on original artwork from the amazing Renee French](gopher.jpg)
 
 ## Usage
 
 ```go
-import "rogchap.com/v8go"
+import "github.com/twitchel/v8go"
 ```
 
 ### Running a script

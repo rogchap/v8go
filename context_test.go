@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"rogchap.com/v8go"
+	"github.com/twitchel/v8go"
 )
 
 func TestContextExec(t *testing.T) {

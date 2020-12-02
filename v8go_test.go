@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"rogchap.com/v8go"
+	"github.com/twitchel/v8go"
 )
 
 func TestVersion(t *testing.T) {
