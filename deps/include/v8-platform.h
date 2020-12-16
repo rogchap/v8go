@@ -11,11 +11,33 @@
 #include <memory>
 #include <string>
 
-#include "v8config.h"  // NOLINT(build/include)
+#include "v8config.h"  // NOLINT(build/include_directory)
 
 namespace v8 {
 
 class Isolate;
+
+// Valid priorities supported by the task scheduling infrastructure.
+enum class TaskPriority : uint8_t {
+  /**
+   * Best effort tasks are not critical for performance of the application. The
+   * platform implementation should preempt such tasks if higher priority tasks
+   * arrive.
+   */
+  kBestEffort,
+  /**
+   * User visible tasks are long running background tasks that will
+   * improve performance and memory usage of the application upon completion.
+   * Example: background compilation and garbage collection.
+   */
+  kUserVisible,
+  /**
+   * User blocking tasks are highest priority tasks that block the execution
+   * thread (e.g. major garbage collection). They must be finished as soon as
+   * possible.
+   */
+  kUserBlocking,
+};
 
 /**
  * A Task represents a unit of work.
@@ -58,6 +80,14 @@ class TaskRunner {
    * implementation takes ownership of |task|. The |task| cannot be nested
    * within other task executions.
    *
+   * Tasks which shouldn't be interleaved with JS execution must be posted with
+   * |PostNonNestableTask| or |PostNonNestableDelayedTask|. This is because the
+   * embedder may process tasks in a callback which is called during JS
+   * execution.
+   *
+   * In particular, tasks which execute JS must be non-nestable, since JS
+   * execution is not allowed to nest.
+   *
    * Requires that |TaskRunner::NonNestableTasksEnabled()| is true.
    */
   virtual void PostNonNestableTask(std::unique_ptr<Task> task) {}
@@ -75,6 +105,14 @@ class TaskRunner {
    * after the given number of seconds |delay_in_seconds|. The TaskRunner
    * implementation takes ownership of |task|. The |task| cannot be nested
    * within other task executions.
+   *
+   * Tasks which shouldn't be interleaved with JS execution must be posted with
+   * |PostNonNestableTask| or |PostNonNestableDelayedTask|. This is because the
+   * embedder may process tasks in a callback which is called during JS
+   * execution.
+   *
+   * In particular, tasks which execute JS must be non-nestable, since JS
+   * execution is not allowed to nest.
    *
    * Requires that |TaskRunner::NonNestableDelayedTasksEnabled()| is true.
    */
@@ -114,6 +152,106 @@ class TaskRunner {
 };
 
 /**
+ * Delegate that's passed to Job's worker task, providing an entry point to
+ * communicate with the scheduler.
+ */
+class JobDelegate {
+ public:
+  /**
+   * Returns true if this thread should return from the worker task on the
+   * current thread ASAP. Workers should periodically invoke ShouldYield (or
+   * YieldIfNeeded()) as often as is reasonable.
+   */
+  virtual bool ShouldYield() = 0;
+
+  /**
+   * Notifies the scheduler that max concurrency was increased, and the number
+   * of worker should be adjusted accordingly. See Platform::PostJob() for more
+   * details.
+   */
+  virtual void NotifyConcurrencyIncrease() = 0;
+
+  /**
+   * Returns a task_id unique among threads currently running this job, such
+   * that GetTaskId() < worker count. To achieve this, the same task_id may be
+   * reused by a different thread after a worker_task returns.
+   */
+  virtual uint8_t GetTaskId() = 0;
+
+  /**
+   * Returns true if the current task is called from the thread currently
+   * running JobHandle::Join().
+   * TODO(etiennep): Make pure virtual once custom embedders implement it.
+   */
+  virtual bool IsJoiningThread() const { return false; }
+};
+
+/**
+ * Handle returned when posting a Job. Provides methods to control execution of
+ * the posted Job.
+ */
+class JobHandle {
+ public:
+  virtual ~JobHandle() = default;
+
+  /**
+   * Notifies the scheduler that max concurrency was increased, and the number
+   * of worker should be adjusted accordingly. See Platform::PostJob() for more
+   * details.
+   */
+  virtual void NotifyConcurrencyIncrease() = 0;
+
+  /**
+   * Contributes to the job on this thread. Doesn't return until all tasks have
+   * completed and max concurrency becomes 0. When Join() is called and max
+   * concurrency reaches 0, it should not increase again. This also promotes
+   * this Job's priority to be at least as high as the calling thread's
+   * priority.
+   */
+  virtual void Join() = 0;
+
+  /**
+   * Forces all existing workers to yield ASAP. Waits until they have all
+   * returned from the Job's callback before returning.
+   */
+  virtual void Cancel() = 0;
+
+  /**
+   * Returns true if there's no work pending and no worker running.
+   */
+  virtual bool IsCompleted() = 0;
+
+  /**
+   * Returns true if associated with a Job and other methods may be called.
+   * Returns false after Join() or Cancel() was called.
+   */
+  virtual bool IsRunning() = 0;
+};
+
+/**
+ * A JobTask represents work to run in parallel from Platform::PostJob().
+ */
+class JobTask {
+ public:
+  virtual ~JobTask() = default;
+
+  virtual void Run(JobDelegate* delegate) = 0;
+
+  /**
+   * Controls the maximum number of threads calling Run() concurrently, given
+   * the number of threads currently assigned to this job and executing Run().
+   * Run() is only invoked if the number of threads previously running Run() was
+   * less than the value returned. Since GetMaxConcurrency() is a leaf function,
+   * it must not call back any JobHandle methods.
+   */
+  virtual size_t GetMaxConcurrency(size_t worker_count) const = 0;
+
+  // TODO(1114823): Clean up once all overrides are removed.
+  V8_DEPRECATED("Use the version that takes |worker_count|.")
+  virtual size_t GetMaxConcurrency() const { return 0; }
+};
+
+/**
  * The interface represents complex arguments to trace events.
  */
 class ConvertableToTraceFormat {
@@ -138,6 +276,10 @@ class TracingController {
  public:
   virtual ~TracingController() = default;
 
+  // In Perfetto mode, trace events are written using Perfetto's Track Event
+  // API directly without going through the embedder. However, it is still
+  // possible to observe tracing being enabled and disabled.
+#if !defined(V8_USE_PERFETTO)
   /**
    * Called by TRACE_EVENT* macros, don't call this directly.
    * The name parameter is a category group for example:
@@ -183,6 +325,7 @@ class TracingController {
    **/
   virtual void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,
                                         const char* name, uint64_t handle) {}
+#endif  // !defined(V8_USE_PERFETTO)
 
   class TraceStateObserver {
    public:
@@ -272,6 +415,69 @@ class PageAllocator {
    * memory area brings the memory transparently back.
    */
   virtual bool DiscardSystemPages(void* address, size_t size) { return true; }
+
+  /**
+   * INTERNAL ONLY: This interface has not been stabilised and may change
+   * without notice from one release to another without being deprecated first.
+   */
+  class SharedMemoryMapping {
+   public:
+    // Implementations are expected to free the shared memory mapping in the
+    // destructor.
+    virtual ~SharedMemoryMapping() = default;
+    virtual void* GetMemory() const = 0;
+  };
+
+  /**
+   * INTERNAL ONLY: This interface has not been stabilised and may change
+   * without notice from one release to another without being deprecated first.
+   */
+  class SharedMemory {
+   public:
+    // Implementations are expected to free the shared memory in the destructor.
+    virtual ~SharedMemory() = default;
+    virtual std::unique_ptr<SharedMemoryMapping> RemapTo(
+        void* new_address) const = 0;
+    virtual void* GetMemory() const = 0;
+    virtual size_t GetSize() const = 0;
+  };
+
+  /**
+   * INTERNAL ONLY: This interface has not been stabilised and may change
+   * without notice from one release to another without being deprecated first.
+   *
+   * Reserve pages at a fixed address returning whether the reservation is
+   * possible. The reserved memory is detached from the PageAllocator and so
+   * should not be freed by it. It's intended for use with
+   * SharedMemory::RemapTo, where ~SharedMemoryMapping would free the memory.
+   */
+  virtual bool ReserveForSharedMemoryMapping(void* address, size_t size) {
+    return false;
+  }
+
+  /**
+   * INTERNAL ONLY: This interface has not been stabilised and may change
+   * without notice from one release to another without being deprecated first.
+   *
+   * Allocates shared memory pages. Not all PageAllocators need support this and
+   * so this method need not be overridden.
+   * Allocates a new read-only shared memory region of size |length| and copies
+   * the memory at |original_address| into it.
+   */
+  virtual std::unique_ptr<SharedMemory> AllocateSharedPages(
+      size_t length, const void* original_address) {
+    return {};
+  }
+
+  /**
+   * INTERNAL ONLY: This interface has not been stabilised and may change
+   * without notice from one release to another without being deprecated first.
+   *
+   * If not overridden and changed to return true, V8 will not attempt to call
+   * AllocateSharedPages or RemapSharedPages. If overridden, AllocateSharedPages
+   * and RemapSharedPages must also be overridden.
+   */
+  virtual bool CanAllocateSharedPages() { return false; }
 };
 
 /**
@@ -326,7 +532,8 @@ class Platform {
 
   /**
    * Returns a TaskRunner which can be used to post a task on the foreground.
-   * This function should only be called from a foreground thread.
+   * The TaskRunner's NonNestableTasksEnabled() must be true. This function
+   * should only be called from a foreground thread.
    */
   virtual std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner(
       Isolate* isolate) = 0;
@@ -363,42 +570,64 @@ class Platform {
                                          double delay_in_seconds) = 0;
 
   /**
-   * Schedules a task to be invoked on a foreground thread wrt a specific
-   * |isolate|. Tasks posted for the same isolate should be execute in order of
-   * scheduling. The definition of "foreground" is opaque to V8.
-   */
-  V8_DEPRECATED("Use a taskrunner acquired by GetForegroundTaskRunner instead.")
-  virtual void CallOnForegroundThread(Isolate* isolate, Task* task) { abort(); }
-
-  /**
-   * Schedules a task to be invoked on a foreground thread wrt a specific
-   * |isolate| after the given number of seconds |delay_in_seconds|.
-   * Tasks posted for the same isolate should be execute in order of
-   * scheduling. The definition of "foreground" is opaque to V8.
-   */
-  V8_DEPRECATED("Use a taskrunner acquired by GetForegroundTaskRunner instead.")
-  virtual void CallDelayedOnForegroundThread(Isolate* isolate, Task* task,
-                                             double delay_in_seconds) {
-    abort();
-  }
-
-  /**
-   * Schedules a task to be invoked on a foreground thread wrt a specific
-   * |isolate| when the embedder is idle.
-   * Requires that SupportsIdleTasks(isolate) is true.
-   * Idle tasks may be reordered relative to other task types and may be
-   * starved for an arbitrarily long time if no idle time is available.
-   * The definition of "foreground" is opaque to V8.
-   */
-  V8_DEPRECATED("Use a taskrunner acquired by GetForegroundTaskRunner instead.")
-  virtual void CallIdleOnForegroundThread(Isolate* isolate, IdleTask* task) {
-    abort();
-  }
-
-  /**
    * Returns true if idle tasks are enabled for the given |isolate|.
    */
   virtual bool IdleTasksEnabled(Isolate* isolate) { return false; }
+
+  /**
+   * Posts |job_task| to run in parallel. Returns a JobHandle associated with
+   * the Job, which can be joined or canceled.
+   * This avoids degenerate cases:
+   * - Calling CallOnWorkerThread() for each work item, causing significant
+   *   overhead.
+   * - Fixed number of CallOnWorkerThread() calls that split the work and might
+   *   run for a long time. This is problematic when many components post
+   *   "num cores" tasks and all expect to use all the cores. In these cases,
+   *   the scheduler lacks context to be fair to multiple same-priority requests
+   *   and/or ability to request lower priority work to yield when high priority
+   *   work comes in.
+   * A canonical implementation of |job_task| looks like:
+   * class MyJobTask : public JobTask {
+   *  public:
+   *   MyJobTask(...) : worker_queue_(...) {}
+   *   // JobTask:
+   *   void Run(JobDelegate* delegate) override {
+   *     while (!delegate->ShouldYield()) {
+   *       // Smallest unit of work.
+   *       auto work_item = worker_queue_.TakeWorkItem(); // Thread safe.
+   *       if (!work_item) return;
+   *       ProcessWork(work_item);
+   *     }
+   *   }
+   *
+   *   size_t GetMaxConcurrency() const override {
+   *     return worker_queue_.GetSize(); // Thread safe.
+   *   }
+   * };
+   * auto handle = PostJob(TaskPriority::kUserVisible,
+   *                       std::make_unique<MyJobTask>(...));
+   * handle->Join();
+   *
+   * PostJob() and methods of the returned JobHandle/JobDelegate, must never be
+   * called while holding a lock that could be acquired by JobTask::Run or
+   * JobTask::GetMaxConcurrency -- that could result in a deadlock. This is
+   * because [1] JobTask::GetMaxConcurrency may be invoked while holding
+   * internal lock (A), hence JobTask::GetMaxConcurrency can only use a lock (B)
+   * if that lock is *never* held while calling back into JobHandle from any
+   * thread (A=>B/B=>A deadlock) and [2] JobTask::Run or
+   * JobTask::GetMaxConcurrency may be invoked synchronously from JobHandle
+   * (B=>JobHandle::foo=>B deadlock).
+   *
+   * A sufficient PostJob() implementation that uses the default Job provided in
+   * libplatform looks like:
+   *  std::unique_ptr<JobHandle> PostJob(
+   *      TaskPriority priority, std::unique_ptr<JobTask> job_task) override {
+   *    return v8::platform::NewDefaultJobHandle(
+   *        this, priority, std::move(job_task), NumberOfWorkerThreads());
+   * }
+   */
+  virtual std::unique_ptr<JobHandle> PostJob(
+      TaskPriority priority, std::unique_ptr<JobTask> job_task) = 0;
 
   /**
    * Monotonically increasing time in seconds from an arbitrary fixed point in
