@@ -85,6 +85,9 @@ extern "C"
 /********** Isolate **********/
 
 void Init() {
+#ifdef _WIN32
+    V8::InitializeExternalStartupData(".");
+#endif
     V8::InitializePlatform(default_platform.get());
     V8::Initialize();
     return;
