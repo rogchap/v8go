@@ -85,6 +85,13 @@ domain Debugger
       integer lineNumber
       integer columnNumber
 
+  # Location range within one script.
+  experimental type LocationRange extends object
+    properties
+      Runtime.ScriptId scriptId
+      ScriptPosition start
+      ScriptPosition end
+
   # JavaScript call frame. Array of call frames form the call stack.
   type CallFrame extends object
     properties
@@ -119,6 +126,7 @@ domain Debugger
         script
         eval
         module
+        wasm-expression-stack
       # Object representing the scope. For `global` and `with` scopes it represents the actual
       # object; for the rest of the scopes, it is artificial transient object enumerating scope
       # variables as its properties.
@@ -203,6 +211,21 @@ domain Debugger
       # Exception details.
       optional Runtime.ExceptionDetails exceptionDetails
 
+  # Execute a Wasm Evaluator module on a given call frame.
+  experimental command executeWasmEvaluator
+    parameters
+      # WebAssembly call frame identifier to evaluate on.
+      CallFrameId callFrameId
+      # Code of the evaluator module.
+      binary evaluator
+      # Terminate execution after timing out (number of milliseconds).
+      experimental optional Runtime.TimeDelta timeout
+    returns
+      # Object wrapper for the evaluation result.
+      Runtime.RemoteObject result
+      # Exception details.
+      optional Runtime.ExceptionDetails exceptionDetails
+
   # Returns possible locations for breakpoint. scriptId in start and end range locations should be
   # the same.
   command getPossibleBreakpoints
@@ -273,6 +296,13 @@ domain Debugger
 
   # Resumes JavaScript execution.
   command resume
+    parameters
+      # Set to true to terminate execution upon resuming execution. In contrast
+      # to Runtime.terminateExecution, this will allows to execute further
+      # JavaScript (i.e. via evaluation) until execution of the paused code
+      # is actually resumed, at which point termination is triggered.
+      # If execution is currently not paused, this parameter has no effect.
+      optional boolean terminateOnResume
 
   # Searches for given string in script content.
   command searchInContent
@@ -449,12 +479,17 @@ domain Debugger
       # Debugger will pause on the execution of the first async task which was scheduled
       # before next pause.
       experimental optional boolean breakOnAsyncCall
+      # The skipList specifies location ranges that should be skipped on step into.
+      experimental optional array of LocationRange skipList
 
   # Steps out of the function call.
   command stepOut
 
   # Steps over the statement.
   command stepOver
+    parameters
+      # The skipList specifies location ranges that should be skipped on step over.
+      experimental optional array of LocationRange skipList
 
   # Fired when breakpoint is resolved to an actual script and location.
   event breakpointResolved
@@ -496,6 +531,24 @@ domain Debugger
   # Fired when the virtual machine resumed execution.
   event resumed
 
+  # Enum of possible script languages.
+  type ScriptLanguage extends string
+    enum
+      JavaScript
+      WebAssembly
+
+  # Debug symbols available for a wasm script.
+  type DebugSymbols extends object
+    properties
+      # Type of the debug symbols.
+      enum type
+        None
+        SourceMap
+        EmbeddedDWARF
+        ExternalDWARF
+      # URL of the external symbol source.
+      optional string externalURL
+
   # Fired when virtual machine fails to parse the script.
   event scriptFailedToParse
     parameters
@@ -527,6 +580,12 @@ domain Debugger
       optional integer length
       # JavaScript top stack frame of where the script parsed event was triggered if available.
       experimental optional Runtime.StackTrace stackTrace
+      # If the scriptLanguage is WebAssembly, the code section offset in the module.
+      experimental optional integer codeOffset
+      # The language of the script.
+      experimental optional Debugger.ScriptLanguage scriptLanguage
+      # The name the embedder supplied for this script.
+      experimental optional string embedderName
 
   # Fired when virtual machine parses script. This event is also fired for all known and uncollected
   # scripts upon enabling debugger.
@@ -562,6 +621,14 @@ domain Debugger
       optional integer length
       # JavaScript top stack frame of where the script parsed event was triggered if available.
       experimental optional Runtime.StackTrace stackTrace
+      # If the scriptLanguage is WebAssembly, the code section offset in the module.
+      experimental optional integer codeOffset
+      # The language of the script.
+      experimental optional Debugger.ScriptLanguage scriptLanguage
+      # If the scriptLanguage is WebASsembly, the source of debug symbols for the module.
+      experimental optional Debugger.DebugSymbols debugSymbols
+      # The name the embedder supplied for this script.
+      experimental optional string embedderName
 
 experimental domain HeapProfiler
   depends on Runtime
@@ -653,11 +720,14 @@ experimental domain HeapProfiler
       # If true 'reportHeapSnapshotProgress' events will be generated while snapshot is being taken
       # when the tracking is stopped.
       optional boolean reportProgress
+      optional boolean treatGlobalObjectsAsRoots
 
   command takeHeapSnapshot
     parameters
       # If true 'reportHeapSnapshotProgress' events will be generated while snapshot is being taken.
       optional boolean reportProgress
+      # If true, a raw snapshot without artifical roots will be generated
+      optional boolean treatGlobalObjectsAsRoots
 
   event addHeapSnapshotChunk
     parameters
@@ -793,6 +863,16 @@ domain Profiler
       # Counter value.
       integer value
 
+  # Runtime call counter information.
+  experimental type RuntimeCallCounterInfo extends object
+    properties
+      # Counter name.
+      string name
+      # Counter value.
+      number value
+      # Counter time in seconds.
+      number time
+
   command disable
 
   command enable
@@ -821,6 +901,11 @@ domain Profiler
       optional boolean callCount
       # Collect block-based coverage.
       optional boolean detailed
+      # Allow the backend to send updates on its own initiative
+      optional boolean allowTriggeredUpdates
+    returns
+      # Monotonically increasing time (in seconds) when the coverage update was taken in the backend.
+      number timestamp
 
   # Enable type profile.
   experimental command startTypeProfile
@@ -843,12 +928,26 @@ domain Profiler
     returns
       # Coverage data for the current isolate.
       array of ScriptCoverage result
+      # Monotonically increasing time (in seconds) when the coverage update was taken in the backend.
+      number timestamp
 
   # Collect type profile.
   experimental command takeTypeProfile
     returns
       # Type profile for all scripts since startTypeProfile() was turned on.
       array of ScriptTypeProfile result
+
+  # Enable counters collection.
+  experimental command enableCounters
+
+  # Disable counters collection.
+  experimental command disableCounters
+
+  # Retrieve counters.
+  experimental command getCounters
+    returns
+      # Collected counters information.
+      array of CounterInfo result
 
   # Enable run time call stats collection.
   experimental command enableRuntimeCallStats
@@ -859,8 +958,8 @@ domain Profiler
   # Retrieve run time call stats.
   experimental command getRuntimeCallStats
     returns
-      # Collected counter information.
-      array of CounterInfo result
+      # Collected runtime call counter information.
+      array of RuntimeCallCounterInfo result
 
   event consoleProfileFinished
     parameters
@@ -879,6 +978,19 @@ domain Profiler
       Debugger.Location location
       # Profile title passed as an argument to console.profile().
       optional string title
+
+  # Reports coverage delta since the last poll (either from an event like this, or from
+  # `takePreciseCoverage` for the current isolate. May only be sent if precise code
+  # coverage has been started. This event can be trigged by the embedder to, for example,
+  # trigger collection of coverage data immediatelly at a certain point in time.
+  experimental event preciseCoverageDeltaUpdate
+    parameters
+      # Monotonically increasing time (in seconds) when the coverage update was taken in the backend.
+      number timestamp
+      # Identifier for distinguishing coverage events.
+      string occassion
+      # Coverage data for the current isolate.
+      array of ScriptCoverage result
 
 # Runtime domain exposes JavaScript runtime by means of remote evaluation and mirror objects.
 # Evaluation results are returned as mirror object that expose object type, string representation
@@ -910,7 +1022,8 @@ domain Runtime
         boolean
         symbol
         bigint
-      # Object subtype hint. Specified for `object` type values only.
+        wasm
+      # Object subtype hint. Specified for `object` or `wasm` type values only.
       optional enum subtype
         array
         null
@@ -929,6 +1042,12 @@ domain Runtime
         typedarray
         arraybuffer
         dataview
+        i32
+        i64
+        f32
+        f64
+        v128
+        externref
       # Object class (constructor) name. Specified for `object` type values only.
       optional string className
       # Remote object value in case of primitive values or JSON values (if it was requested).
@@ -1073,7 +1192,13 @@ domain Runtime
       # Private property name.
       string name
       # The value associated with the private property.
-      RemoteObject value
+      optional RemoteObject value
+      # A function which serves as a getter for the private property,
+      # or `undefined` if there is no getter (accessor descriptors only).
+      optional RemoteObject get
+      # A function which serves as a setter for the private property,
+      # or `undefined` if there is no setter (accessor descriptors only).
+      optional RemoteObject set
 
   # Represents function call argument. Either remote object id `objectId`, primitive `value`,
   # unserializable primitive value or neither of (for undefined) them should be specified.
@@ -1279,8 +1404,15 @@ domain Runtime
       experimental optional TimeDelta timeout
       # Disable breakpoints during execution.
       experimental optional boolean disableBreaks
-      # Reserved flag for future REPL mode support. Setting this flag has currently no effect.
+      # Setting this flag to true enables `let` re-declaration and top-level `await`.
+      # Note that `let` variables can only be re-declared if they originate from
+      # `replMode` themselves.
       experimental optional boolean replMode
+      # The Content Security Policy (CSP) for the target might block 'unsafe-eval'
+      # which includes eval(), Function(), setTimeout() and setInterval()
+      # when called with non-callable arguments. This flag bypasses CSP for this
+      # evaluation and allows unsafe-eval. Defaults to true.
+      experimental optional boolean allowUnsafeEvalBlockedByCSP
     returns
       # Evaluation result.
       RemoteObject result
