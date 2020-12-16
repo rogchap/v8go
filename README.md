@@ -101,7 +101,7 @@ To set this up:
 3. Open MSYS2 MSYS and execute `pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-v8`
 4. This will allow building projects that depend on `v8go`, but, in order to actually run them,
    you will need to copy the `snapshot_blob.bin` file from the Mingw-w64 bin folder to your program's
-   working directory (which is typically whereever `main.go` is)
+   working directory (which is typically wherever `main.go` is)
 
 ---
 
