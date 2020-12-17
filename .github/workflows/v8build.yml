@@ -22,6 +22,8 @@ jobs:
               with:
                 commit-message: Update V8 static library for ${{ matrix.platform  }}
                 branch: v8-lib
+                branch-suffix: random
+                delete-branch: true
                 title: V8 static library for ${{ matrix.platform  }}
                 body: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
 
