@@ -91,6 +91,18 @@ are included for Linux and OSX ie. you *should not* require to build V8 yourself
 
 V8 requires 64-bit, therefore will not work on 32-bit systems. 
 
+## Windows
+While no prebuilt static V8 library is included for Windows, MSYS2 provides a package containing
+a dynamically linked V8 library that works.
+
+To set this up:
+1. Install MSYS2 (https://www.msys2.org/)
+2. Add the Mingw-w64 bin to your PATH environment variable (`C:\msys64\mingw64\bin` by default)
+3. Open MSYS2 MSYS and execute `pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-v8`
+4. This will allow building projects that depend on `v8go`, but, in order to actually run them,
+   you will need to copy the `snapshot_blob.bin` file from the Mingw-w64 bin folder to your program's
+   working directory (which is typically wherever `main.go` is)
+
 ---
 
 V8 Gopher image based on original artwork from the amazing [Renee French](http://reneefrench.blogspot.com).
