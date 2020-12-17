@@ -11,23 +11,19 @@ jobs:
         runs-on: ${{ matrix.platform }}
         steps:
             - name: Checkout
-              uses: actions/checkout@v1
+              uses: actions/checkout@v2
               with:
                   submodules: true
                   fetch-depth: 1
             - name: Build V8
               run: cd deps && ./build.py
-            - name: Install Python3 setup tools
-              if:  matrix.platform == 'ubuntu-latest'
-              run: sudo apt-get install python3-setuptools
             - name: Create PR
-              run: |
-                  pip3 install --requirement ./.github/scripts/requirements.txt
-                  ./.github/scripts/create-pull-request.py
-              env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                PULL_REQUEST_BRANCH: v8-lib
-                COMMIT_MESSAGE: Update V8 static library for ${{ matrix.platform  }}
-                PULL_REQUEST_TITLE: V8 static library for ${{ matrix.platform  }}
-                PULL_REQUEST_BODY: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
- 
+              uses: peter-evans/create-pull-request@v3
+              with:
+                commit-message: Update V8 static library for ${{ matrix.platform  }}
+                branch: v8-lib
+                branch-suffix: random
+                delete-branch: true
+                title: V8 static library for ${{ matrix.platform  }}
+                body: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
+
