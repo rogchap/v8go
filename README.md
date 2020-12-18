@@ -1,8 +1,8 @@
 # Execute JavaScript from Go
 
 [![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
-[![GoDoc](https://godoc.org/rogchap.com/v8go?status.svg)](https://godoc.org/rogchap.com/v8go) 
-[![Build Status](https://travis-ci.org/rogchap/v8go.svg?branch=master)](https://travis-ci.org/rogchap/v8go)
+[![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
+[![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
@@ -80,7 +80,7 @@ case <- time.After(200 * time.Milliseconds):
 
 ## Documentation
 
-GoDoc: https://godoc.org/rogchap.com/v8go
+Go Reference: https://pkg.go.dev/rogchap.com/v8go
 
 ## V8 dependency
 
