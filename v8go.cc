@@ -200,25 +200,57 @@ void ContextDispose(ContextPtr ptr) {
 
 /********** Value **********/
 
+#define LOCAL_VALUE(ptr) \
+    m_value* val = static_cast<m_value*>(ptr); \
+    m_ctx* ctx = val->ctx_ptr; \
+    Isolate* iso = ctx->iso; \
+    Locker locker(iso); \
+    Isolate::Scope isolate_scope(iso); \
+    HandleScope handle_scope(iso); \
+    Context::Scope context_scope(ctx->ptr.Get(iso)); \
+    Local<Value> value = val->ptr.Get(iso);
+
 void ValueDispose(ValuePtr ptr) {
-  delete static_cast<m_value*>(ptr);
+    delete static_cast<m_value*>(ptr);
 }
 
 const char* ValueToString(ValuePtr ptr) {
-  m_value* val = static_cast<m_value*>(ptr);
-  m_ctx* ctx = val->ctx_ptr;
-  Isolate* iso = ctx->iso;
+    LOCAL_VALUE(ptr);
+    String::Utf8Value utf8(iso, value);
 
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-  Context::Scope context_scope(ctx->ptr.Get(iso));
-
-  Local<Value> value = val->ptr.Get(iso);
-  String::Utf8Value utf8(iso, value);
-  
-  return CopyString(utf8);
+    return CopyString(utf8);
 } 
+
+int ValueIsUndefined(ValuePtr ptr) {
+    LOCAL_VALUE(ptr);
+    return value->IsUndefined() ? 1 : 0;
+}
+
+int ValueIsNull(ValuePtr ptr) {
+    LOCAL_VALUE(ptr);
+    return value->IsNull() ? 1 : 0;
+}
+
+int ValueIsNullOrUndefined(ValuePtr ptr) {
+    LOCAL_VALUE(ptr);
+    return value->IsNullOrUndefined() ? 1 : 0;
+}
+
+int ValueIsTrue(ValuePtr ptr) {
+    LOCAL_VALUE(ptr);
+    return value->IsTrue() ? 1 : 0;
+}
+
+int ValueIsFalse(ValuePtr ptr) {
+    LOCAL_VALUE(ptr);
+    return value->IsFalse() ? 1 : 0;
+}
+
+int ValueIsString(ValuePtr ptr) {
+    LOCAL_VALUE(ptr);
+
+    return value->IsString() ? 1 : 0;
+}
 
 
 /********** Version **********/

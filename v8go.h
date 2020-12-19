@@ -47,6 +47,12 @@ extern RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* or
 
 extern void ValueDispose(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
+int ValueIsUndefined(ValuePtr ptr);
+int ValueIsNull(ValuePtr ptr);
+int ValueIsNullOrUndefined(ValuePtr ptr);
+int ValueIsTrue(ValuePtr ptr);
+int ValueIsFalse(ValuePtr ptr);
+int ValueIsString(ValuePtr ptr);
 
 const char* Version();
 
