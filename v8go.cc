@@ -223,272 +223,272 @@ const char* ValueToString(ValuePtr ptr) {
 
 int ValueIsUndefined(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsUndefined() ? 1 : 0;
+    return value->IsUndefined();
 }
 
 int ValueIsNull(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsNull() ? 1 : 0;
+    return value->IsNull();
 }
 
 int ValueIsNullOrUndefined(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsNullOrUndefined() ? 1 : 0;
+    return value->IsNullOrUndefined();
 }
 
 int ValueIsTrue(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsTrue() ? 1 : 0;
+    return value->IsTrue();
 }
 
 int ValueIsFalse(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsFalse() ? 1 : 0;
+    return value->IsFalse();
 }
 
 int ValueIsName(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsName() ? 1 : 0;
+    return value->IsName();
 }
 
 int ValueIsString(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsString() ? 1 : 0;
+    return value->IsString();
 }
 
 int ValueIsSymbol(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsSymbol() ? 1 : 0;
+    return value->IsSymbol();
 }
 
 int ValueIsFunction(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsFunction() ? 1 : 0;
+    return value->IsFunction();
 }
 
 int ValueIsObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsObject() ? 1 : 0;
+    return value->IsObject();
 }
 
 int ValueIsBigInt(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsBigInt() ? 1 : 0;
+    return value->IsBigInt();
 }
 
 int ValueIsBoolean(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsBoolean() ? 1 : 0;
+    return value->IsBoolean();
 }
 
 int ValueIsNumber(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsNumber() ? 1 : 0;
+    return value->IsNumber();
 }
 
 int ValueIsExternal(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsExternal() ? 1 : 0;
+    return value->IsExternal();
 }
 
 int ValueIsInt32(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsInt32() ? 1 : 0;
+    return value->IsInt32();
 }
 
 int ValueIsUint32(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsUint32() ? 1 : 0;
+    return value->IsUint32();
 }
 
 int ValueIsDate(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsDate() ? 1 : 0;
+    return value->IsDate();
 }
 
 int ValueIsArgumentsObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsArgumentsObject() ? 1 : 0;
+    return value->IsArgumentsObject();
 }
 
 int ValueIsBigIntObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsBigIntObject() ? 1 : 0;
+    return value->IsBigIntObject();
 }
 
 int ValueIsNumberObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsNumberObject() ? 1 : 0;
+    return value->IsNumberObject();
 }
 
 int ValueIsStringObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsStringObject() ? 1 : 0;
+    return value->IsStringObject();
 }
 
 int ValueIsSymbolObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsSymbolObject() ? 1 : 0;
+    return value->IsSymbolObject();
 }
 
 int ValueIsNativeError(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsNativeError() ? 1 : 0;
+    return value->IsNativeError();
 }
 
 int ValueIsRegExp(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsRegExp() ? 1 : 0;
+    return value->IsRegExp();
 }
 
 int ValueIsAsyncFunction(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsAsyncFunction() ? 1 : 0;
+    return value->IsAsyncFunction();
 }
 
 int ValueIsGeneratorFunction(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsGeneratorFunction() ? 1 : 0;
+    return value->IsGeneratorFunction();
 }
 
 int ValueIsGeneratorObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsGeneratorObject() ? 1 : 0;
+    return value->IsGeneratorObject();
 }
 
 int ValueIsPromise(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsPromise() ? 1 : 0;
+    return value->IsPromise();
 }
 
 int ValueIsMap(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsMap() ? 1 : 0;
+    return value->IsMap();
 }
 
 int ValueIsSet(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsSet() ? 1 : 0;
+    return value->IsSet();
 }
 
 int ValueIsMapIterator(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsMapIterator() ? 1 : 0;
+    return value->IsMapIterator();
 }
 
 int ValueIsSetIterator(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsSetIterator() ? 1 : 0;
+    return value->IsSetIterator();
 }
 
 int ValueIsWeakMap(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsWeakMap() ? 1 : 0;
+    return value->IsWeakMap();
 }
 
 int ValueIsWeakSet(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsWeakSet() ? 1 : 0;
+    return value->IsWeakSet();
 }
 
 int ValueIsArray(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsArray() ? 1 : 0;
+    return value->IsArray();
 }
 
 int ValueIsArrayBuffer(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsArrayBuffer() ? 1 : 0;
+    return value->IsArrayBuffer();
 }
 
 int ValueIsArrayBufferView(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsArrayBufferView() ? 1 : 0;
+    return value->IsArrayBufferView();
 }
 
 int ValueIsTypedArray(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsTypedArray() ? 1 : 0;
+    return value->IsTypedArray();
 }
 
 int ValueIsUint8Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsUint8Array() ? 1 : 0;
+    return value->IsUint8Array();
 }
 
 int ValueIsUint8ClampedArray(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsUint8ClampedArray() ? 1 : 0;
+    return value->IsUint8ClampedArray();
 }
 
 int ValueIsInt8Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsInt8Array() ? 1 : 0;
+    return value->IsInt8Array();
 }
 
 int ValueIsUint16Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsUint16Array() ? 1 : 0;
+    return value->IsUint16Array();
 }
 
 int ValueIsInt16Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsInt16Array() ? 1 : 0;
+    return value->IsInt16Array();
 }
 
 int ValueIsUint32Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsUint32Array() ? 1 : 0;
+    return value->IsUint32Array();
 }
 
 int ValueIsInt32Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsInt32Array() ? 1 : 0;
+    return value->IsInt32Array();
 }
 
 int ValueIsFloat32Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsFloat32Array() ? 1 : 0;
+    return value->IsFloat32Array();
 }
 
 int ValueIsFloat64Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsFloat64Array() ? 1 : 0;
+    return value->IsFloat64Array();
 }
 
 int ValueIsBigInt64Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsBigInt64Array() ? 1 : 0;
+    return value->IsBigInt64Array();
 }
 
 int ValueIsBigUint64Array(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsBigUint64Array() ? 1 : 0;
+    return value->IsBigUint64Array();
 }
 
 int ValueIsDataView(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsDataView() ? 1 : 0;
+    return value->IsDataView();
 }
 
 int ValueIsSharedArrayBuffer(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsSharedArrayBuffer() ? 1 : 0;
+    return value->IsSharedArrayBuffer();
 }
 
 int ValueIsProxy(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsProxy() ? 1 : 0;
+    return value->IsProxy();
 }
 
 int ValueIsWasmModuleObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsWasmModuleObject() ? 1 : 0;
+    return value->IsWasmModuleObject();
 }
 
 int ValueIsModuleNamespaceObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr);
-    return value->IsModuleNamespaceObject() ? 1 : 0;
+    return value->IsModuleNamespaceObject();
 }
 
 /********** Version **********/
