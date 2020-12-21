@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Value methods for checking value kind (is string, number, array etc)
+
 ## [v0.3.0]
 
 ### Added
