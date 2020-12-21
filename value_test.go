@@ -11,7 +11,7 @@ import (
 func TestValueString(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
-	var tests = [...]struct {
+	tests := [...]struct {
 		name   string
 		source string
 		out    string
@@ -35,10 +35,42 @@ func TestValueString(t *testing.T) {
 	}
 }
 
+func TestValueBoolean(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source string
+		out    bool
+	}{
+		{"true", true},
+		{"false", false},
+		{"1", true},
+		{"0", false},
+		{"null", false},
+		{"undefined", false},
+		{"''", false},
+		{"'foo'", true},
+		{"() => {}", true},
+		{"{}", false},
+		{"{foo:'bar'}", true},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if b := val.Boolean(); b != tt.out {
+				t.Errorf("unespected value: expected %v, got %v", tt.out, b)
+			}
+		})
+	}
+}
+
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	var tests = []struct {
+	tests := [...]struct {
 		source string
 		assert func(*v8go.Value) bool
 	}{

@@ -22,6 +22,11 @@ func (v *Value) String() string {
 	return C.GoString(s)
 }
 
+// Boolean perform the equivalent of Boolean(value) in JS. This can never fail.
+func (v *Value) Boolean() bool {
+	return C.ValueToBoolean(v.ptr) != 0
+}
+
 // IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
 func (v *Value) IsUndefined() bool {
 	return C.ValueIsUndefined(v.ptr) != 0

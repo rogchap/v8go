@@ -222,6 +222,11 @@ const char* ValueToString(ValuePtr ptr) {
   return CopyString(utf8);
 }
 
+int ValueToBoolean(ValuePtr ptr) {
+    LOCAL_VALUE(ptr);
+    return value->BooleanValue(iso);
+}
+
 int ValueIsUndefined(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsUndefined();
