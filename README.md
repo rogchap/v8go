@@ -87,7 +87,7 @@ Go Reference: https://pkg.go.dev/rogchap.com/v8go
 V8 version: 8.7.220.31
 
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
-are included for Linux and OSX ie. you *should not* require to build V8 yourself.
+are included for Linux and macOS ie. you *should not* require to build V8 yourself.
 
 V8 requires 64-bit, therefore will not work on 32-bit systems. 
 
@@ -102,6 +102,15 @@ To set this up:
 4. This will allow building projects that depend on `v8go`, but, in order to actually run them,
    you will need to copy the `snapshot_blob.bin` file from the Mingw-w64 bin folder to your program's
    working directory (which is typically wherever `main.go` is)
+
+## Development
+
+### Formatting
+
+Go has `go fmt`, C has `clang-format`. Any changes to the `v8go.h|cc` should be formated with `clang-format` with the
+"Chromium" Coding style. This can be done easily by running the `go generate` command.
+
+`brew install clang-format` to install on macOS.
 
 ---
 
