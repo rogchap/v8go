@@ -13,7 +13,50 @@ type Value struct {
 	ptr C.ValuePtr
 }
 
-// String will return the string representation of the value. Primitive values
+// ArrayIndex converts a string to an array index
+func (v *Value) ArrayIndex() uint32 {
+	//TODO(rogchap): What should we do if this fails? Return an error?
+	panic("not implemented")
+}
+
+// BigInt perform the equivalent of `BigInt(value)` in JS.
+func (v *Value) BigInt() struct{} { // *BigInt
+	panic("not implemented")
+}
+
+// Boolean perform the equivalent of `Boolean(value)` in JS. This can never fail.
+func (v *Value) Boolean() bool {
+	return C.ValueToBoolean(v.ptr) != 0
+}
+
+// DetailString provide a string representation of this value usable for debugging.
+func (v *Value) DetailString() string {
+	panic("not implemented")
+}
+
+// Int32 perform the equivalent of `Number(value)` in JS and convert the result to a
+// signed 32-bit integer by performing the steps in https://tc39.es/ecma262/#sec-toint32.
+func (v *Value) Int32() int32 {
+	panic("not implemented")
+}
+
+// Integer perform the equivalent of `Number(value)` in JS and convert the result to an integer.
+// Negative values are rounded up, positive values are rounded down. NaN is converted to 0.
+// Infinite values yield undefined results.
+func (v *Value) Integer() int64 {
+	panic("not implemented")
+}
+
+// Number perform the equivalent of `Number(value)` in JS.
+func (v *Value) Number() float64 {
+	panic("not implemented")
+}
+
+func (v *Value) Object() struct{} { // *Object
+	panic("not implemented")
+}
+
+// String perform the equivalent of `String(value)` in JS. Primitive values
 // are returned as-is, objects will return `[object Object]` and functions will
 // print their definition.
 func (v *Value) String() string {
@@ -22,9 +65,10 @@ func (v *Value) String() string {
 	return C.GoString(s)
 }
 
-// Boolean perform the equivalent of Boolean(value) in JS. This can never fail.
-func (v *Value) Boolean() bool {
-	return C.ValueToBoolean(v.ptr) != 0
+// Uint32 perform the equivalent of `Number(value)` in JS and convert the result to an
+// unsigned 32-bit integer by performing the steps in https://tc39.es/ecma262/#sec-touint32.
+func Uint32() uint32 {
+	panic("not implemented")
 }
 
 // IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
