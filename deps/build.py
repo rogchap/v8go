@@ -43,8 +43,8 @@ gclient_sln = [
 
 gn_args = """
 is_debug=%s
+is_clang=false
 clang_use_chrome_plugins=false
-linux_use_bundled_binutils=false
 use_custom_libcxx=false
 use_sysroot=false
 symbol_level=0
@@ -57,9 +57,7 @@ v8_embedder_string="-v8go"
 v8_enable_gdbjit=false
 v8_enable_i18n_support=false
 v8_enable_test_features=false
-v8_extra_library_files=[]
 v8_untrusted_code_mitigations=false
-v8_use_snapshot=true
 """
 
 def v8deps():

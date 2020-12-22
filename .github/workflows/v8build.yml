@@ -1,6 +1,6 @@
 name: V8 Build
 
-on: repository_dispatch
+on: [workflow_dispatch,repository_dispatch]
               
 jobs:
     build:
