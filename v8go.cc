@@ -216,6 +216,18 @@ void ValueDispose(ValuePtr ptr) {
   delete static_cast<m_value*>(ptr);
 }
 
+const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  MaybeLocal<Uint32> array_index = value->ToArrayIndex(ctx->ptr.Get(iso));
+  if (array_index.IsEmpty()) {
+    return nullptr;
+  }
+
+  uint32_t* idx = new uint32_t;
+  *idx = array_index.ToLocalChecked()->Value();
+  return idx;
+}
+
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   String::Utf8Value utf8(iso, value);
@@ -223,8 +235,8 @@ const char* ValueToString(ValuePtr ptr) {
 }
 
 int ValueToBoolean(ValuePtr ptr) {
-    LOCAL_VALUE(ptr);
-    return value->BooleanValue(iso);
+  LOCAL_VALUE(ptr);
+  return value->BooleanValue(iso);
 }
 
 int ValueIsUndefined(ValuePtr ptr) {

@@ -13,10 +13,14 @@ type Value struct {
 	ptr C.ValuePtr
 }
 
-// ArrayIndex converts a string to an array index
-func (v *Value) ArrayIndex() uint32 {
-	//TODO(rogchap): What should we do if this fails? Return an error?
-	panic("not implemented")
+// ArrayIndex attempts to converts a string to an array index. Returns ok false if conversion fails.
+func (v *Value) ArrayIndex() (idx uint32, ok bool) {
+	arrayIdx := C.ValueToArrayIndex(v.ptr)
+	defer C.free(unsafe.Pointer(arrayIdx))
+	if arrayIdx == nil {
+		return 0, false
+	}
+	return uint32(*arrayIdx), true
 }
 
 // BigInt perform the equivalent of `BigInt(value)` in JS.

@@ -29,7 +29,7 @@ func TestValueString(t *testing.T) {
 			result, _ := ctx.RunScript(tt.source, "test.js")
 			str := result.String()
 			if str != tt.out {
-				t.Errorf("unespected result: expected %q, got %q", tt.out, str)
+				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
 			}
 		})
 	}
@@ -61,10 +61,47 @@ func TestValueBoolean(t *testing.T) {
 			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			if b := val.Boolean(); b != tt.out {
-				t.Errorf("unespected value: expected %v, got %v", tt.out, b)
+				t.Errorf("unexpected value: expected %v, got %v", tt.out, b)
 			}
 		})
 	}
+}
+
+func TestValueArrayIndex(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source string
+		idx    uint32
+		ok     bool
+	}{
+		{"1", 1, true},
+		{"0", 0, true},
+		{"-1", 0, false},
+		{"'1'", 1, true},
+		{"'-1'", 0, false},
+		{"'a'", 0, false},
+		{"[1]", 1, true},
+		{"['1']", 1, true},
+		{"[1, 1]", 0, false},
+		{"{}", 0, false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			idx, ok := val.ArrayIndex()
+			if ok != tt.ok {
+				t.Errorf("unexpected ok: expected %v, got %v", tt.ok, ok)
+			}
+			if idx != tt.idx {
+				t.Errorf("unexpected array index: expected %v, got %v", tt.idx, idx)
+			}
+		})
+	}
+
 }
 
 func TestValueIsXXX(t *testing.T) {

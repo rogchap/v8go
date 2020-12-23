@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef void* IsolatePtr;
 typedef void* ContextPtr;
@@ -49,6 +50,7 @@ extern RtnValue RunScript(ContextPtr ctx_ptr,
 
 extern void ValueDispose(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
+const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
