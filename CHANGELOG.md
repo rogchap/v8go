@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Value methods for checking value kind (is string, number, array etc)
 - C formatting via `clang-format` to aid future development
+- Support of vendoring with `go mod vendor`
 
 ### Changed
 - Use g++ (default for cgo) for linux builds of the static v8 lib

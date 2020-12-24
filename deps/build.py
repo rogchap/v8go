@@ -71,7 +71,7 @@ def v8deps():
 
 def os_arch():
     u = platform.uname()
-    return (u[0] + "-" + u[4]).lower()
+    return (u[0] + "_" + u[4]).lower()
 
 def main():
     v8deps()
