@@ -228,15 +228,20 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   return idx;
 }
 
+int ValueToBoolean(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->BooleanValue(iso);
+}
+
+int32_t ValueToInt32(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->Int32Value(ctx->ptr.Get(iso)).ToChecked();
+}
+
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   String::Utf8Value utf8(iso, value);
   return CopyString(utf8);
-}
-
-int ValueToBoolean(ValuePtr ptr) {
-  LOCAL_VALUE(ptr);
-  return value->BooleanValue(iso);
 }
 
 int ValueIsUndefined(ValuePtr ptr) {

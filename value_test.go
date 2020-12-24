@@ -101,7 +101,41 @@ func TestValueArrayIndex(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestValueInt32(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected int32
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", -1},
+		{"'1'", 1},
+		{"'a'", 0},
+		{"[1]", 1},
+		{"[1,1]", 0},
+		{"Infinity", 0},
+		{"Number.MAX_SAFE_INTEGER", -1},
+		{"Number.MIN_SAFE_INTEGER", 1},
+		{"Number.NaN", 0},
+		{"2_147_483_647", 1<<31 - 1},
+		{"-2_147_483_648", -1 << 31},
+		{"2_147_483_648", -1 << 31}, // overflow
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if i32 := val.Int32(); i32 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i32)
+			}
+		})
+	}
 }
 
 func TestValueIsXXX(t *testing.T) {

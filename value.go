@@ -41,7 +41,7 @@ func (v *Value) DetailString() string {
 // Int32 perform the equivalent of `Number(value)` in JS and convert the result to a
 // signed 32-bit integer by performing the steps in https://tc39.es/ecma262/#sec-toint32.
 func (v *Value) Int32() int32 {
-	panic("not implemented")
+	return int32(C.ValueToInt32(v.ptr))
 }
 
 // Integer perform the equivalent of `Number(value)` in JS and convert the result to an integer.
