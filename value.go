@@ -48,7 +48,7 @@ func (v *Value) Int32() int32 {
 // Negative values are rounded up, positive values are rounded down. NaN is converted to 0.
 // Infinite values yield undefined results.
 func (v *Value) Integer() int64 {
-	panic("not implemented")
+	return int64(C.ValueToInteger(v.ptr))
 }
 
 // Number perform the equivalent of `Number(value)` in JS.

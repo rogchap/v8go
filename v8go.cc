@@ -238,6 +238,11 @@ int32_t ValueToInt32(ValuePtr ptr) {
   return value->Int32Value(ctx->ptr.Get(iso)).ToChecked();
 }
 
+int64_t ValueToInteger(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->IntegerValue(ctx->ptr.Get(iso)).ToChecked();
+}
+
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   String::Utf8Value utf8(iso, value);

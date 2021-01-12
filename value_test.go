@@ -138,6 +138,41 @@ func TestValueInt32(t *testing.T) {
 	}
 }
 
+func TestValueInteger(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected int64
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", -1},
+		{"'1'", 1},
+		{"'a'", 0},
+		{"[1]", 1},
+		{"[1,1]", 0},
+		{"Infinity", 1<<63 - 1},
+		{"Number.MAX_SAFE_INTEGER", 1<<53 - 1},
+		{"Number.MIN_SAFE_INTEGER", -(1<<53 - 1)},
+		{"Number.NaN", 0},
+		{"9_007_199_254_740_991", 1<<53 - 1},
+		{"-9_007_199_254_740_991", -(1<<53 - 1)},
+		{"9_223_372_036_854_775_810", 1<<63 - 1}, // does not overflow, pinned at 2^64 -1
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if i64 := val.Integer(); i64 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i64)
+			}
+		})
+	}
+}
+
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
