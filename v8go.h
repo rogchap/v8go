@@ -55,7 +55,7 @@ int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);
 int64_t ValueToInteger(ValuePtr ptr);
 double ValueToNumber(ValuePtr ptr);
-// const char* ValueToDetailString(ValuePtr ptr);
+const char* ValueToDetailString(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
 int ValueIsNullOrUndefined(ValuePtr ptr);

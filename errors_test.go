@@ -7,7 +7,7 @@ import (
 	"rogchap.com/v8go"
 )
 
-func TestFormatting(t *testing.T) {
+func TestErrorFormatting(t *testing.T) {
 	t.Parallel()
 	tests := [...]struct {
 		name            string

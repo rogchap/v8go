@@ -4,6 +4,8 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"fmt"
+	"io"
 	"runtime"
 	"unsafe"
 )
@@ -11,6 +13,23 @@ import (
 // Value represents all Javascript values and objects
 type Value struct {
 	ptr C.ValuePtr
+}
+
+// Format implements the fmt.Formatter interface to provide a custom formatter
+// primarily to output the detail string (for debugging) with `%+v` verb.
+func (v *Value) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			io.WriteString(s, v.DetailString())
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, v.String())
+	case 'q':
+		fmt.Fprintf(s, "%q", v.String())
+	}
 }
 
 // ArrayIndex attempts to converts a string to an array index. Returns ok false if conversion fails.
@@ -35,7 +54,9 @@ func (v *Value) Boolean() bool {
 
 // DetailString provide a string representation of this value usable for debugging.
 func (v *Value) DetailString() string {
-	panic("not implemented")
+	s := C.ValueToDetailString(v.ptr)
+	defer C.free(unsafe.Pointer(s))
+	return C.GoString(s)
 }
 
 // Int32 perform the equivalent of `Number(value)` in JS and convert the result to a

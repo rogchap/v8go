@@ -1,6 +1,7 @@
 package v8go_test
 
 import (
+	"fmt"
 	"math"
 	"reflect"
 	"runtime"
@@ -8,6 +9,40 @@ import (
 
 	"rogchap.com/v8go"
 )
+
+func TestValueFormatting(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source          string
+		defaultVerb     string
+		defaultVerbFlag string
+		stringVerb      string
+		quoteVerb       string
+	}{
+		{"new Object()", "[object Object]", "#<Object>", "[object Object]", `"[object Object]"`},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if s := fmt.Sprintf("%v", val); s != tt.defaultVerb {
+				t.Errorf("incorrect format for %%v: %s", s)
+			}
+			if s := fmt.Sprintf("%+v", val); s != tt.defaultVerbFlag {
+				t.Errorf("incorrect format for %%+v: %s", s)
+			}
+			if s := fmt.Sprintf("%s", val); s != tt.stringVerb {
+				t.Errorf("incorrect format for %%s: %s", s)
+			}
+			if s := fmt.Sprintf("%q", val); s != tt.quoteVerb {
+				t.Errorf("incorrect format for %%q: %s", s)
+			}
+		})
+	}
+}
 
 func TestValueString(t *testing.T) {
 	t.Parallel()
@@ -29,6 +64,33 @@ func TestValueString(t *testing.T) {
 			t.Parallel()
 			result, _ := ctx.RunScript(tt.source, "test.js")
 			str := result.String()
+			if str != tt.out {
+				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
+			}
+		})
+	}
+}
+
+func TestValueDetailString(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		name   string
+		source string
+		out    string
+	}{
+		{"Number", `13 * 2`, "26"},
+		{"String", `"a string"`, "a string"},
+		{"Object", `let obj = {}; obj`, "#<Object>"},
+		{"Function", `let fn = function(){}; fn`, "function(){}"},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, _ := ctx.RunScript(tt.source, "test.js")
+			str := result.DetailString()
 			if str != tt.out {
 				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
 			}

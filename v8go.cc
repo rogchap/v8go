@@ -248,6 +248,13 @@ double ValueToNumber(ValuePtr ptr) {
   return value->NumberValue(ctx->ptr.Get(iso)).ToChecked();
 }
 
+const char* ValueToDetailString(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  String::Utf8Value ds(
+      iso, value->ToDetailString(ctx->ptr.Get(iso)).ToLocalChecked());
+  return CopyString(ds);
+}
+
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   String::Utf8Value utf8(iso, value);
