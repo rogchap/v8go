@@ -282,6 +282,30 @@ func TestValueNumber(t *testing.T) {
 	}
 }
 
+func TestValueUint32(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected uint32
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", 1<<32 - 1}, // overflow
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if u32 := val.Uint32(); u32 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, u32)
+			}
+		})
+	}
+}
+
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()

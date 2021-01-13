@@ -261,6 +261,11 @@ const char* ValueToString(ValuePtr ptr) {
   return CopyString(utf8);
 }
 
+uint32_t ValueToUint32(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->Uint32Value(ctx->ptr.Get(iso)).ToChecked();
+}
+
 int ValueIsUndefined(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsUndefined();

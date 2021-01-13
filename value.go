@@ -43,7 +43,8 @@ func (v *Value) ArrayIndex() (idx uint32, ok bool) {
 }
 
 // BigInt perform the equivalent of `BigInt(value)` in JS.
-func (v *Value) BigInt() struct{} { // *BigInt
+func (v *Value) bigInt() struct{} { // *BigInt
+	//TODO(rogchap): implement and export public API
 	panic("not implemented")
 }
 
@@ -77,7 +78,9 @@ func (v *Value) Number() float64 {
 	return float64(C.ValueToNumber(v.ptr))
 }
 
-func (v *Value) Object() struct{} { // *Object
+// Object perform the equivalent of Object(value) in JS.
+func (v *Value) object() struct{} { // *Object
+	//TODO(rogchap): implement and export public API
 	panic("not implemented")
 }
 
@@ -92,8 +95,8 @@ func (v *Value) String() string {
 
 // Uint32 perform the equivalent of `Number(value)` in JS and convert the result to an
 // unsigned 32-bit integer by performing the steps in https://tc39.es/ecma262/#sec-touint32.
-func Uint32() uint32 {
-	panic("not implemented")
+func (v *Value) Uint32() uint32 {
+	return uint32(C.ValueToUint32(v.ptr))
 }
 
 // IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
