@@ -53,7 +53,7 @@ func (v *Value) Integer() int64 {
 
 // Number perform the equivalent of `Number(value)` in JS.
 func (v *Value) Number() float64 {
-	panic("not implemented")
+	return float64(C.ValueToNumber(v.ptr))
 }
 
 func (v *Value) Object() struct{} { // *Object

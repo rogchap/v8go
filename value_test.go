@@ -1,6 +1,7 @@
 package v8go_test
 
 import (
+	"math"
 	"reflect"
 	"runtime"
 	"testing"
@@ -114,6 +115,8 @@ func TestValueInt32(t *testing.T) {
 		{"1", 1},
 		{"-1", -1},
 		{"'1'", 1},
+		{"1.5", 1},
+		{"-1.5", -1},
 		{"'a'", 0},
 		{"[1]", 1},
 		{"[1,1]", 0},
@@ -149,6 +152,8 @@ func TestValueInteger(t *testing.T) {
 		{"1", 1},
 		{"-1", -1},
 		{"'1'", 1},
+		{"1.5", 1},
+		{"-1.5", -1},
 		{"'a'", 0},
 		{"[1]", 1},
 		{"[1,1]", 0},
@@ -168,6 +173,48 @@ func TestValueInteger(t *testing.T) {
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			if i64 := val.Integer(); i64 != tt.expected {
 				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i64)
+			}
+		})
+	}
+}
+
+func TestValueNumber(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected float64
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", -1},
+		{"'1'", 1},
+		{"1.5", 1.5},
+		{"-1.5", -1.5},
+		{"'a'", math.NaN()},
+		{"[1]", 1},
+		{"[1,1]", math.NaN()},
+		{"Infinity", math.Inf(0)},
+		{"Number.MAX_VALUE", 1.7976931348623157e+308},
+		{"Number.MIN_VALUE", 5e-324},
+		{"Number.MAX_SAFE_INTEGER", 1<<53 - 1},
+		{"Number.NaN", math.NaN()},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			f64 := val.Number()
+			if math.IsNaN(tt.expected) {
+				if !math.IsNaN(f64) {
+					t.Errorf("unexpected value: expected NaN, got %v", f64)
+				}
+				return
+			}
+			if f64 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, f64)
 			}
 		})
 	}
