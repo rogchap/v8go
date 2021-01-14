@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.4.0] - 2021-01-14
+
 ### Added
 - Value methods for checking value kind (is string, number, array etc)
 - C formatting via `clang-format` to aid future development
@@ -15,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Use g++ (default for cgo) for linux builds of the static v8 lib
 
-## [v0.3.0]
+## [v0.3.0] - 2020-12-18
 
 ### Added
 - Support for Windows via [MSYS2](https://www.msys2.org/). Thanks to [@neptoess](https://github.com/neptoess)
