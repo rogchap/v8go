@@ -216,10 +216,54 @@ void ValueDispose(ValuePtr ptr) {
   delete static_cast<m_value*>(ptr);
 }
 
+const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  MaybeLocal<Uint32> array_index = value->ToArrayIndex(ctx->ptr.Get(iso));
+  if (array_index.IsEmpty()) {
+    return nullptr;
+  }
+
+  uint32_t* idx = new uint32_t;
+  *idx = array_index.ToLocalChecked()->Value();
+  return idx;
+}
+
+int ValueToBoolean(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->BooleanValue(iso);
+}
+
+int32_t ValueToInt32(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->Int32Value(ctx->ptr.Get(iso)).ToChecked();
+}
+
+int64_t ValueToInteger(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->IntegerValue(ctx->ptr.Get(iso)).ToChecked();
+}
+
+double ValueToNumber(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->NumberValue(ctx->ptr.Get(iso)).ToChecked();
+}
+
+const char* ValueToDetailString(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  String::Utf8Value ds(
+      iso, value->ToDetailString(ctx->ptr.Get(iso)).ToLocalChecked());
+  return CopyString(ds);
+}
+
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   String::Utf8Value utf8(iso, value);
   return CopyString(utf8);
+}
+
+uint32_t ValueToUint32(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  return value->Uint32Value(ctx->ptr.Get(iso)).ToChecked();
 }
 
 int ValueIsUndefined(ValuePtr ptr) {

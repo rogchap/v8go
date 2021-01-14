@@ -1,6 +1,8 @@
 package v8go_test
 
 import (
+	"fmt"
+	"math"
 	"reflect"
 	"runtime"
 	"testing"
@@ -8,10 +10,44 @@ import (
 	"rogchap.com/v8go"
 )
 
+func TestValueFormatting(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source          string
+		defaultVerb     string
+		defaultVerbFlag string
+		stringVerb      string
+		quoteVerb       string
+	}{
+		{"new Object()", "[object Object]", "#<Object>", "[object Object]", `"[object Object]"`},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if s := fmt.Sprintf("%v", val); s != tt.defaultVerb {
+				t.Errorf("incorrect format for %%v: %s", s)
+			}
+			if s := fmt.Sprintf("%+v", val); s != tt.defaultVerbFlag {
+				t.Errorf("incorrect format for %%+v: %s", s)
+			}
+			if s := fmt.Sprintf("%s", val); s != tt.stringVerb {
+				t.Errorf("incorrect format for %%s: %s", s)
+			}
+			if s := fmt.Sprintf("%q", val); s != tt.quoteVerb {
+				t.Errorf("incorrect format for %%q: %s", s)
+			}
+		})
+	}
+}
+
 func TestValueString(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
-	var tests = [...]struct {
+	tests := [...]struct {
 		name   string
 		source string
 		out    string
@@ -29,7 +65,242 @@ func TestValueString(t *testing.T) {
 			result, _ := ctx.RunScript(tt.source, "test.js")
 			str := result.String()
 			if str != tt.out {
-				t.Errorf("unespected result: expected %q, got %q", tt.out, str)
+				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
+			}
+		})
+	}
+}
+
+func TestValueDetailString(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		name   string
+		source string
+		out    string
+	}{
+		{"Number", `13 * 2`, "26"},
+		{"String", `"a string"`, "a string"},
+		{"Object", `let obj = {}; obj`, "#<Object>"},
+		{"Function", `let fn = function(){}; fn`, "function(){}"},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			result, _ := ctx.RunScript(tt.source, "test.js")
+			str := result.DetailString()
+			if str != tt.out {
+				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
+			}
+		})
+	}
+}
+
+func TestValueBoolean(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source string
+		out    bool
+	}{
+		{"true", true},
+		{"false", false},
+		{"1", true},
+		{"0", false},
+		{"null", false},
+		{"undefined", false},
+		{"''", false},
+		{"'foo'", true},
+		{"() => {}", true},
+		{"{}", false},
+		{"{foo:'bar'}", true},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if b := val.Boolean(); b != tt.out {
+				t.Errorf("unexpected value: expected %v, got %v", tt.out, b)
+			}
+		})
+	}
+}
+
+func TestValueArrayIndex(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source string
+		idx    uint32
+		ok     bool
+	}{
+		{"1", 1, true},
+		{"0", 0, true},
+		{"-1", 0, false},
+		{"'1'", 1, true},
+		{"'-1'", 0, false},
+		{"'a'", 0, false},
+		{"[1]", 1, true},
+		{"['1']", 1, true},
+		{"[1, 1]", 0, false},
+		{"{}", 0, false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			idx, ok := val.ArrayIndex()
+			if ok != tt.ok {
+				t.Errorf("unexpected ok: expected %v, got %v", tt.ok, ok)
+			}
+			if idx != tt.idx {
+				t.Errorf("unexpected array index: expected %v, got %v", tt.idx, idx)
+			}
+		})
+	}
+}
+
+func TestValueInt32(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected int32
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", -1},
+		{"'1'", 1},
+		{"1.5", 1},
+		{"-1.5", -1},
+		{"'a'", 0},
+		{"[1]", 1},
+		{"[1,1]", 0},
+		{"Infinity", 0},
+		{"Number.MAX_SAFE_INTEGER", -1},
+		{"Number.MIN_SAFE_INTEGER", 1},
+		{"Number.NaN", 0},
+		{"2_147_483_647", 1<<31 - 1},
+		{"-2_147_483_648", -1 << 31},
+		{"2_147_483_648", -1 << 31}, // overflow
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if i32 := val.Int32(); i32 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i32)
+			}
+		})
+	}
+}
+
+func TestValueInteger(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected int64
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", -1},
+		{"'1'", 1},
+		{"1.5", 1},
+		{"-1.5", -1},
+		{"'a'", 0},
+		{"[1]", 1},
+		{"[1,1]", 0},
+		{"Infinity", 1<<63 - 1},
+		{"Number.MAX_SAFE_INTEGER", 1<<53 - 1},
+		{"Number.MIN_SAFE_INTEGER", -(1<<53 - 1)},
+		{"Number.NaN", 0},
+		{"9_007_199_254_740_991", 1<<53 - 1},
+		{"-9_007_199_254_740_991", -(1<<53 - 1)},
+		{"9_223_372_036_854_775_810", 1<<63 - 1}, // does not overflow, pinned at 2^64 -1
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if i64 := val.Integer(); i64 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i64)
+			}
+		})
+	}
+}
+
+func TestValueNumber(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected float64
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", -1},
+		{"'1'", 1},
+		{"1.5", 1.5},
+		{"-1.5", -1.5},
+		{"'a'", math.NaN()},
+		{"[1]", 1},
+		{"[1,1]", math.NaN()},
+		{"Infinity", math.Inf(0)},
+		{"Number.MAX_VALUE", 1.7976931348623157e+308},
+		{"Number.MIN_VALUE", 5e-324},
+		{"Number.MAX_SAFE_INTEGER", 1<<53 - 1},
+		{"Number.NaN", math.NaN()},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			f64 := val.Number()
+			if math.IsNaN(tt.expected) {
+				if !math.IsNaN(f64) {
+					t.Errorf("unexpected value: expected NaN, got %v", f64)
+				}
+				return
+			}
+			if f64 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, f64)
+			}
+		})
+	}
+}
+
+func TestValueUint32(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	tests := [...]struct {
+		source   string
+		expected uint32
+	}{
+		{"0", 0},
+		{"1", 1},
+		{"-1", 1<<32 - 1}, // overflow
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			if u32 := val.Uint32(); u32 != tt.expected {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, u32)
 			}
 		})
 	}
@@ -38,7 +309,7 @@ func TestValueString(t *testing.T) {
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	var tests = []struct {
+	tests := [...]struct {
 		source string
 		assert func(*v8go.Value) bool
 	}{

@@ -4,6 +4,8 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"fmt"
+	"io"
 	"runtime"
 	"unsafe"
 )
@@ -13,13 +15,88 @@ type Value struct {
 	ptr C.ValuePtr
 }
 
-// String will return the string representation of the value. Primitive values
+// Format implements the fmt.Formatter interface to provide a custom formatter
+// primarily to output the detail string (for debugging) with `%+v` verb.
+func (v *Value) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			io.WriteString(s, v.DetailString())
+			return
+		}
+		fallthrough
+	case 's':
+		io.WriteString(s, v.String())
+	case 'q':
+		fmt.Fprintf(s, "%q", v.String())
+	}
+}
+
+// ArrayIndex attempts to converts a string to an array index. Returns ok false if conversion fails.
+func (v *Value) ArrayIndex() (idx uint32, ok bool) {
+	arrayIdx := C.ValueToArrayIndex(v.ptr)
+	defer C.free(unsafe.Pointer(arrayIdx))
+	if arrayIdx == nil {
+		return 0, false
+	}
+	return uint32(*arrayIdx), true
+}
+
+// BigInt perform the equivalent of `BigInt(value)` in JS.
+func (v *Value) bigInt() struct{} { // *BigInt
+	//TODO(rogchap): implement and export public API
+	panic("not implemented")
+}
+
+// Boolean perform the equivalent of `Boolean(value)` in JS. This can never fail.
+func (v *Value) Boolean() bool {
+	return C.ValueToBoolean(v.ptr) != 0
+}
+
+// DetailString provide a string representation of this value usable for debugging.
+func (v *Value) DetailString() string {
+	s := C.ValueToDetailString(v.ptr)
+	defer C.free(unsafe.Pointer(s))
+	return C.GoString(s)
+}
+
+// Int32 perform the equivalent of `Number(value)` in JS and convert the result to a
+// signed 32-bit integer by performing the steps in https://tc39.es/ecma262/#sec-toint32.
+func (v *Value) Int32() int32 {
+	return int32(C.ValueToInt32(v.ptr))
+}
+
+// Integer perform the equivalent of `Number(value)` in JS and convert the result to an integer.
+// Negative values are rounded up, positive values are rounded down. NaN is converted to 0.
+// Infinite values yield undefined results.
+func (v *Value) Integer() int64 {
+	return int64(C.ValueToInteger(v.ptr))
+}
+
+// Number perform the equivalent of `Number(value)` in JS.
+func (v *Value) Number() float64 {
+	return float64(C.ValueToNumber(v.ptr))
+}
+
+// Object perform the equivalent of Object(value) in JS.
+func (v *Value) object() struct{} { // *Object
+	//TODO(rogchap): implement and export public API
+	panic("not implemented")
+}
+
+// String perform the equivalent of `String(value)` in JS. Primitive values
 // are returned as-is, objects will return `[object Object]` and functions will
 // print their definition.
 func (v *Value) String() string {
 	s := C.ValueToString(v.ptr)
 	defer C.free(unsafe.Pointer(s))
 	return C.GoString(s)
+}
+
+// Uint32 perform the equivalent of `Number(value)` in JS and convert the result to an
+// unsigned 32-bit integer by performing the steps in https://tc39.es/ecma262/#sec-touint32.
+func (v *Value) Uint32() uint32 {
+	return uint32(C.ValueToUint32(v.ptr))
 }
 
 // IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
