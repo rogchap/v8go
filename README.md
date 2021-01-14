@@ -3,6 +3,7 @@
 [![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
 [![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
 [![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
+[![#v8go Slack Channel](https://img.shields.io/badge/slack-%23v8go-4A154B?logo=slack)](https://gophers.slack.com/channels/v8go)
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
@@ -81,6 +82,11 @@ case <- time.After(200 * time.Milliseconds):
 ## Documentation
 
 Go Reference: https://pkg.go.dev/rogchap.com/v8go
+
+### Support
+
+If you would like to ask questions about this library or want to keep up-to-date with the latest changes and releases,
+please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on Gophers Slack. [Click here to join the Gophers Slack community!](https://invite.slack.golangbridge.org/)
 
 ## V8 dependency
 
