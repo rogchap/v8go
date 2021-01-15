@@ -309,7 +309,7 @@ func TestValueUint32(t *testing.T) {
 
 func TestValueBigInt(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	iso, _ := v8go.NewIsolate()
 
 	x, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
 
@@ -330,6 +330,7 @@ func TestValueBigInt(t *testing.T) {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
 			t.Parallel()
+			ctx, _ := v8go.NewContext(iso)
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			b := val.BigInt()
 			if b == nil && tt.expected != nil {
