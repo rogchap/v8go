@@ -332,8 +332,12 @@ func TestValueBigInt(t *testing.T) {
 			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			b := val.BigInt()
-			if (b == nil && tt.expected != nil) || (b != nil && tt.expected == nil) {
+			if b == nil && tt.expected != nil {
 				t.Errorf("uexpected <nil> value")
+				return
+			}
+			if b != nil && tt.expected == nil {
+				t.Errorf("expected <nil>, but got value: %v", b)
 				return
 			}
 			if b.Cmp(tt.expected) != 0 {
