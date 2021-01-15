@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Support for the BigInt value to the big.Int Go type
+
 ## [v0.4.0] - 2021-01-14
 
 ### Added

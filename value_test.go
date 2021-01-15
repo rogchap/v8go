@@ -3,6 +3,7 @@ package v8go_test
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"reflect"
 	"runtime"
 	"testing"
@@ -304,6 +305,43 @@ func TestValueUint32(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValueBigInt(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+
+	x, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
+
+	tests := [...]struct {
+		source   string
+		expected *big.Int
+	}{
+		{"BigInt(0)", &big.Int{}},
+		{"-1n", big.NewInt(-1)},
+		{"new BigInt(1)", nil}, // bad syntax
+		{"BigInt(Number.MAX_SAFE_INTEGER)", big.NewInt(1<<53 - 1)},
+		{"BigInt(Number.MIN_SAFE_INTEGER)", new(big.Int).Neg(big.NewInt(1<<53 - 1))},
+		{"BigInt(Number.MAX_SAFE_INTEGER) * 2n", big.NewInt(1<<54 - 2)},
+		{"BigInt(Number.MAX_SAFE_INTEGER) * 4096n", x},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			b := val.BigInt()
+			if (b == nil && tt.expected != nil) || (b != nil && tt.expected == nil) {
+				t.Errorf("uexpected <nil> value")
+				return
+			}
+			if b.Cmp(tt.expected) != 0 {
+				t.Errorf("unexpected value: expected %v, got %v", tt.expected, b)
+			}
+		})
+	}
+
 }
 
 func TestValueIsXXX(t *testing.T) {

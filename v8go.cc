@@ -4,6 +4,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 #include <sstream>
 #include <string>
 
@@ -264,6 +265,21 @@ const char* ValueToString(ValuePtr ptr) {
 uint32_t ValueToUint32(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->Uint32Value(ctx->ptr.Get(iso)).ToChecked();
+}
+
+ValueBigInt ValueToBigInt(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  MaybeLocal<BigInt> bint = value->ToBigInt(ctx->ptr.Get(iso));
+  if (bint.IsEmpty()) {
+    return {nullptr, 0};
+  }
+
+  int word_count = bint.ToLocalChecked()->WordCount();
+  int sign_bit = 0;
+  uint64_t* words = new uint64_t[word_count];
+  bint.ToLocalChecked()->ToWordsArray(&sign_bit, &word_count, words);
+  ValueBigInt rtn = {words, word_count, sign_bit};
+  return rtn;
 }
 
 int ValueIsUndefined(ValuePtr ptr) {

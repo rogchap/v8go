@@ -36,6 +36,12 @@ typedef struct {
   size_t number_of_detached_contexts;
 } IsolateHStatistics;
 
+typedef struct {
+  const uint64_t* word_array;
+  int word_count;
+  int sign_bit;
+} ValueBigInt;
+
 extern void Init();
 extern IsolatePtr NewIsolate();
 extern void IsolateDispose(IsolatePtr ptr);
@@ -57,6 +63,7 @@ int64_t ValueToInteger(ValuePtr ptr);
 double ValueToNumber(ValuePtr ptr);
 const char* ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
+extern ValueBigInt ValueToBigInt(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
 int ValueIsNullOrUndefined(ValuePtr ptr);
