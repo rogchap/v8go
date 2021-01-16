@@ -6,6 +6,7 @@ import "C"
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"runtime"
 	"unsafe"
 )
@@ -43,9 +44,28 @@ func (v *Value) ArrayIndex() (idx uint32, ok bool) {
 }
 
 // BigInt perform the equivalent of `BigInt(value)` in JS.
-func (v *Value) bigInt() struct{} { // *BigInt
-	//TODO(rogchap): implement and export public API
-	panic("not implemented")
+func (v *Value) BigInt() *big.Int {
+	if v == nil {
+		return nil
+	}
+	bint := C.ValueToBigInt(v.ptr)
+	defer C.free(unsafe.Pointer(bint.word_array))
+	if bint.word_array == nil {
+		return nil
+	}
+	words := (*[1 << 30]big.Word)(unsafe.Pointer(bint.word_array))[:bint.word_count:bint.word_count]
+
+	abs := make([]big.Word, len(words))
+	copy(abs, words)
+
+	b := &big.Int{}
+	b.SetBits(abs)
+
+	if bint.sign_bit == 1 {
+		b.Neg(b)
+	}
+
+	return b
 }
 
 // Boolean perform the equivalent of `Boolean(value)` in JS. This can never fail.
