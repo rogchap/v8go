@@ -14,6 +14,18 @@ import (
 // Value represents all Javascript values and objects
 type Value struct {
 	ptr C.ValuePtr
+	ctx *Context
+}
+
+func NewValue(iso *Isolate, val interface{}) (*Value, error) {
+	switch v := val.(type) {
+	case int32:
+		return &Value{
+			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
+		}, nil
+	default:
+		return nil, fmt.Errorf("value: unsupported value type %T", v)
+	}
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
@@ -176,7 +188,7 @@ func (v *Value) IsFunction() bool {
 
 // IsObject returns true if this value is an object.
 func (v *Value) IsObject() bool {
-	return C.ValueIsObject(v.ptr) != 0
+	return v.ctx != nil && C.ValueIsObject(v.ptr) != 0
 }
 
 // IsBigInt returns true if this value is a bigint.
@@ -200,7 +212,7 @@ func (v *Value) IsNumber() bool {
 // IsExternal returns true if this value is an `External` object.
 func (v *Value) IsExternal() bool {
 	// TODO(rogchap): requires test case
-	return C.ValueIsExternal(v.ptr) != 0
+	return v.ctx != nil && C.ValueIsExternal(v.ptr) != 0
 }
 
 // IsInt32 returns true if this value is a 32-bit signed integer.

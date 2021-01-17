@@ -23,8 +23,14 @@ typedef struct {
 
 typedef struct {
   Persistent<Value> ptr;
+  Isolate* iso;
   m_ctx* ctx_ptr;
 } m_value;
+
+typedef struct {
+  Persistent<ObjectTemplate> ptr;
+  Isolate* iso;
+} m_object_template;
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -136,18 +142,66 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
                             hs.number_of_detached_contexts()};
 }
 
-/********** Context **********/
+/********** ObjectTemplate **********/
 
-ContextPtr NewContext(IsolatePtr ptr) {
-  Isolate* iso = static_cast<Isolate*>(ptr);
+#define LOCAL_OBJECT_TEMPLATE(ptr)                              \
+  m_object_template* ot = static_cast<m_object_template*>(ptr); \
+  Isolate* iso = ot->iso;                                       \
+  Locker locker(iso);                                           \
+  Isolate::Scope isolate_scope(iso);                            \
+  HandleScope handle_scope(iso);                                \
+  Local<ObjectTemplate> object_template = ot->ptr.Get(iso);
+
+ObjectTemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
+  m_object_template* ot = new m_object_template;
+  ot->iso = iso;
+  ot->ptr.Reset(iso, ObjectTemplate::New(iso));
+  return static_cast<ObjectTemplatePtr>(ot);
+}
+
+void ObjectTemplateDispose(ObjectTemplatePtr ptr) {
+  delete static_cast<m_object_template*>(ptr);
+}
+
+void ObjectTemplateSet(ObjectTemplatePtr ptr,
+                       const char* name,
+                       ValuePtr val_ptr,
+                       int attributes) {
+  LOCAL_OBJECT_TEMPLATE(ptr);
+
+  Local<String> prop_name =
+      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = static_cast<m_value*>(val_ptr);
+  object_template->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
+}
+
+/********** Context **********/
+
+ContextPtr NewContext(IsolatePtr iso_ptr,
+                      ObjectTemplatePtr global_template_ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  Local<ObjectTemplate> global_template;
+  if (global_template_ptr != nullptr) {
+    m_object_template* ob =
+        static_cast<m_object_template*>(global_template_ptr);
+    global_template = ob->ptr.Get(iso);
+  } else {
+    global_template = ObjectTemplate::New(iso);
+  }
+
   iso->SetCaptureStackTraceForUncaughtExceptions(true);
 
   m_ctx* ctx = new m_ctx;
-  ctx->ptr.Reset(iso, Context::New(iso));
+  ctx->ptr.Reset(iso, Context::New(iso, nullptr, global_template));
   ctx->iso = iso;
   return static_cast<ContextPtr>(ctx);
 }
@@ -182,6 +236,7 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     return rtn;
   }
   m_value* val = new m_value;
+  val->iso = iso;
   val->ctx_ptr = ctx;
   val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
@@ -206,12 +261,25 @@ void ContextDispose(ContextPtr ptr) {
 #define LOCAL_VALUE(ptr)                           \
   m_value* val = static_cast<m_value*>(ptr);       \
   m_ctx* ctx = val->ctx_ptr;                       \
-  Isolate* iso = ctx->iso;                         \
+  Isolate* iso = val->iso;                         \
   Locker locker(iso);                              \
   Isolate::Scope isolate_scope(iso);               \
   HandleScope handle_scope(iso);                   \
   Context::Scope context_scope(ctx->ptr.Get(iso)); \
   Local<Value> value = val->ptr.Get(iso);
+
+ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ptr.Reset(iso, Persistent<Value>(iso, Integer::New(iso, v)));
+  return static_cast<ValuePtr>(val);
+}
+
 
 void ValueDispose(ValuePtr ptr) {
   delete static_cast<m_value*>(ptr);

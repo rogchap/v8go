@@ -80,3 +80,7 @@ func (i *Isolate) finalizer() {
 func (i *Isolate) Close() {
 	i.finalizer()
 }
+
+func (i *Isolate) apply(opts *contextOptions) {
+	opts.iso = i
+}

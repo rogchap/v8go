@@ -10,6 +10,7 @@ extern "C" {
 typedef void* IsolatePtr;
 typedef void* ContextPtr;
 typedef void* ValuePtr;
+typedef void* ObjectTemplatePtr;
 
 typedef struct {
   const char* msg;
@@ -48,12 +49,21 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern ContextPtr NewContext(IsolatePtr prt);
+extern ContextPtr NewContext(IsolatePtr iso_ptr,
+                             ObjectTemplatePtr global_template_ptr);
 extern void ContextDispose(ContextPtr ptr);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);
 
+extern ObjectTemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
+extern void ObjectTemplateDispose(ObjectTemplatePtr ptr);
+extern void ObjectTemplateSet(ObjectTemplatePtr ptr,
+                              const char* name,
+                              ValuePtr val_ptr,
+                              int attributes);
+
+extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern void ValueDispose(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);

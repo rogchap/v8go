@@ -12,27 +12,45 @@ import (
 // Context is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
 type Context struct {
-	iso *Isolate
 	ptr C.ContextPtr
+	iso *Isolate
 }
 
-// NewContext creates a new JavaScript context for a given isoltate;
-// if isolate is `nil` than a new isolate will be created.
-func NewContext(iso *Isolate) (*Context, error) {
-	if iso == nil {
+type contextOptions struct {
+	iso   *Isolate
+	gTmpl *ObjectTemplate
+}
+
+// ContextOption sets options such as Isolate and Global Template to the NewContext
+type ContextOption interface {
+	apply(*contextOptions)
+}
+
+// NewContext creates a new JavaScript context; if no Isolate is passed as a
+// ContextOption than a new Isolate will be created.
+func NewContext(opt ...ContextOption) (*Context, error) {
+	opts := contextOptions{}
+	for _, o := range opt {
+		if o != nil {
+			o.apply(&opts)
+		}
+	}
+
+	if opts.iso == nil {
 		var err error
-		iso, err = NewIsolate()
+		opts.iso, err = NewIsolate()
 		if err != nil {
 			return nil, fmt.Errorf("context: failed to create new Isolate: %v", err)
 		}
 	}
 
-	// TODO: [RC] does the isolate need to track all the contexts created?
-	// any script run against the context should make sure the VM has not been
-	// terninated
+	if opts.gTmpl == nil {
+		opts.gTmpl = &ObjectTemplate{}
+	}
+
 	ctx := &Context{
-		iso: iso,
-		ptr: C.NewContext(iso.ptr),
+		iso: opts.iso,
+		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr),
 	}
 	runtime.SetFinalizer(ctx, (*Context).finalizer)
 	// TODO: [RC] catch any C++ exceptions and return as error
@@ -56,7 +74,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cOrigin))
 
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
-	return getValue(rtn), getError(rtn)
+	return getValue(c, rtn), getError(rtn)
 }
 
 // Close will dispose the context and free the memory.
@@ -70,11 +88,11 @@ func (c *Context) finalizer() {
 	runtime.SetFinalizer(c, nil)
 }
 
-func getValue(rtn C.RtnValue) *Value {
+func getValue(ctx *Context, rtn C.RtnValue) *Value {
 	if rtn.value == nil {
 		return nil
 	}
-	v := &Value{rtn.value}
+	v := &Value{rtn.value, ctx}
 	runtime.SetFinalizer(v, (*Value).finalizer)
 	return v
 }
