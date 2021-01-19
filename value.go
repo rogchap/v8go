@@ -17,14 +17,83 @@ type Value struct {
 	ctx *Context
 }
 
+// NewValue will create a primitive value. Supported values types to create are:
+//   string -> V8::String
+//   int32 -> V8::Integer
+// 	 uint32 -> V8::Integer
+//	 bool -> V8::Boolean
+//   int64 -> V8::BigInt
+//   uint64 -> V8::BigInt
+//	 bool -> V8::Boolean
+// 	 *big.Int -> V8::BigInt
 func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	switch v := val.(type) {
+	case string:
+		cstr := C.CString(v)
+		defer C.free(unsafe.Pointer(cstr))
+		return &Value{
+			ptr: C.NewValueString(iso.ptr, cstr),
+		}, nil
 	case int32:
 		return &Value{
 			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
 		}, nil
+	case uint32:
+		return &Value{
+			ptr: C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v)),
+		}, nil
+	case int64:
+		return &Value{
+			ptr: C.NewValueBigInt(iso.ptr, C.longlong(v)),
+		}, nil
+	case uint64:
+		return &Value{
+			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.ulonglong(v)),
+		}, nil
+	case bool:
+		var b int
+		if v {
+			b = 1
+		}
+		return &Value{
+			ptr: C.NewValueBoolean(iso.ptr, C.int(b)),
+		}, nil
+	case float64:
+		return &Value{
+			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
+		}, nil
+	case *big.Int:
+		if v.IsInt64() {
+			return &Value{
+				ptr: C.NewValueBigInt(iso.ptr, C.longlong(v.Int64())),
+			}, nil
+		}
+
+		if v.IsUint64() {
+			return &Value{
+				ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.ulonglong(v.Uint64())),
+			}, nil
+		}
+
+		var sign, count int
+		if v.Sign() == -1 {
+			sign = 1
+		}
+		bits := v.Bits()
+		count = len(bits)
+
+		words := make([]C.ulonglong, count, count)
+		for idx, word := range bits {
+			words[idx] = C.ulonglong(word)
+		}
+
+		fmt.Printf("words = %+v\n", words)
+
+		return &Value{
+			ptr: C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0]),
+		}, nil
 	default:
-		return nil, fmt.Errorf("value: unsupported value type %T", v)
+		return nil, fmt.Errorf("value: unsupported value type `%T`", v)
 	}
 }
 

@@ -58,12 +58,20 @@ extern RtnValue RunScript(ContextPtr ctx_ptr,
 
 extern ObjectTemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern void ObjectTemplateDispose(ObjectTemplatePtr ptr);
-extern void ObjectTemplateSet(ObjectTemplatePtr ptr,
+extern void ObjectTemplateSetValue(ObjectTemplatePtr ptr,
                               const char* name,
                               ValuePtr val_ptr,
                               int attributes);
+extern void ObjectTemplateSetObjectTemplate(ObjectTemplatePtr ptr, const char* name, ObjectTemplatePtr obj_ptr, int attributes);
 
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
+extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
+extern ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v);
+extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
+extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
+extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
+extern ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v);
+extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_count, const uint64_t* words);
 extern void ValueDispose(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
