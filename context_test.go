@@ -74,3 +74,39 @@ func BenchmarkContext(b *testing.B) {
 		ctx.Close()
 	}
 }
+
+func ExampleContext() {
+	ctx, _ := v8go.NewContext()
+	ctx.RunScript("const add = (a, b) => a + b", "math.js")
+	ctx.RunScript("const result = add(3, 4)", "main.js")
+	val, _ := ctx.RunScript("result", "value.js")
+	fmt.Println(val)
+	// Output:
+	// 7
+}
+
+func ExampleContext_isolate() {
+	iso, _ := v8go.NewIsolate()
+	ctx1, _ := v8go.NewContext(iso)
+	ctx1.RunScript("const foo = 'bar'", "context_one.js")
+	val, _ := ctx1.RunScript("foo", "foo.js")
+	fmt.Println(val)
+
+	ctx2, _ := v8go.NewContext(iso)
+	_, err := ctx2.RunScript("foo", "context_two.js")
+	fmt.Println(err)
+	// Output:
+	// bar
+	// ReferenceError: foo is not defined
+}
+
+func ExampleContext_globalTemplate() {
+	iso, _ := v8go.NewIsolate()
+	obj, _ := v8go.NewObjectTemplate(iso)
+	obj.Set("version", "v1.0.0", 0)
+	ctx, _ := v8go.NewContext(iso, obj)
+	val, _ := ctx.RunScript("version", "main.js")
+	fmt.Println(val)
+	// Output:
+	// v1.0.0
+}
