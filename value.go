@@ -44,11 +44,11 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		}, nil
 	case int64:
 		return &Value{
-			ptr: C.NewValueBigInt(iso.ptr, C.longlong(v)),
+			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v)),
 		}, nil
 	case uint64:
 		return &Value{
-			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.ulonglong(v)),
+			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v)),
 		}, nil
 	case bool:
 		var b int
@@ -65,13 +65,13 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	case *big.Int:
 		if v.IsInt64() {
 			return &Value{
-				ptr: C.NewValueBigInt(iso.ptr, C.longlong(v.Int64())),
+				ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v.Int64())),
 			}, nil
 		}
 
 		if v.IsUint64() {
 			return &Value{
-				ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.ulonglong(v.Uint64())),
+				ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v.Uint64())),
 			}, nil
 		}
 
@@ -82,9 +82,9 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		bits := v.Bits()
 		count = len(bits)
 
-		words := make([]C.ulonglong, count, count)
+		words := make([]C.uint64_t, count, count)
 		for idx, word := range bits {
-			words[idx] = C.ulonglong(word)
+			words[idx] = C.uint64_t(word)
 		}
 
 		fmt.Printf("words = %+v\n", words)
