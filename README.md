@@ -1,8 +1,10 @@
 # Execute JavaScript from Go
 
+<a href="https://github.com/rogchap/v8go/releases"><img src="https://img.shields.io/github/v/release/rogchap/v8go" alt="Github release"></a>
 [![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
 [![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
 [![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
+![V8 Build](https://github.com/rogchap/v8go/workflows/V8%20Build/badge.svg)
 [![#v8go Slack Channel](https://img.shields.io/badge/slack-%23v8go-4A154B?logo=slack)](https://gophers.slack.com/channels/v8go)
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
@@ -36,7 +38,7 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 }
 ```
 
-### Javascript errors
+### JavaScript errors
 
 ```go
 val, err := ctx.RunScript(src, filename)
@@ -88,16 +90,8 @@ Go Reference: https://pkg.go.dev/rogchap.com/v8go
 If you would like to ask questions about this library or want to keep up-to-date with the latest changes and releases,
 please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on Gophers Slack. [Click here to join the Gophers Slack community!](https://invite.slack.golangbridge.org/)
 
-## V8 dependency
+### Windows
 
-V8 version: 8.7.220.31
-
-In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
-are included for Linux and macOS ie. you *should not* require to build V8 yourself.
-
-V8 requires 64-bit, therefore will not work on 32-bit systems. 
-
-## Windows
 While no prebuilt static V8 library is included for Windows, MSYS2 provides a package containing
 a dynamically linked V8 library that works.
 
@@ -109,7 +103,51 @@ To set this up:
    you will need to copy the `snapshot_blob.bin` file from the Mingw-w64 bin folder to your program's
    working directory (which is typically wherever `main.go` is)
 
+V8 requires 64-bit on Windows, therefore will not work on 32-bit systems. 
+
+## V8 dependency
+
+V8 version: **8.7.220.31** (October 2020)
+
+In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
+are included for Linux and macOS ie. you *should not* require to build V8 yourself.
+
+Due to security concerns of binary blobs hiding malicious code, the V8 binary is built via CI *ONLY*.
+
+## Project Goals
+
+To provide a high quality, idiomatic, Go binding to the [V8 C++ API](https://v8.github.io/api/head/index.html).
+
+The API should match the original API as closely as possible, but with an API that Gophers (Go enthusiasts) expect. For
+example: using multiple return values to return both result and error from a function, rather than throwing an
+exception.
+
+This project also aims to keep up-to-date with the latest (stable) release of V8.
+
 ## Development
+
+### Upgrading the V8 binaries
+
+This process is non-trivial, and hopefully we can automate more of this in the future.
+
+1) Make sure to clone the projects submodules (ie. the V8 project): `git submodule update --init --recursive`
+1) Find the current stable release (`v8_version`) here: [https://omahaproxy.appspot.com](https://omahaproxy.appspot.com)
+1) Create a new git branch from `master` eg. `git checkout -b v8_7_upgrade`
+1) Enter the v8 folder and fetch all the latest git branches: `cd deps/v8 && git fetch`
+1) Find the right `branch-heads/**` to checkout, for example if the `v8_version` is 8.7.220.31 then you want to `git checkout
+branch-heads/8.7`. You can check all the `branch-heads` with `git branch --remotes | grep branch-heads/`
+1) Copy all the contents of `deps/v8/include` to `deps/include` making sure not to delete any of the `vendor.go` files,
+which are required for users that are using `go mod vendor`. If there are any new folders added, make sure to create new
+`vendor.go` files in each folder within `deps/include` and update `cgo.go`.
+1) Optionally build the V8 binary for your OS: `cd deps && ./build.py`. V8 is a large project, and building the binary
+can take up to 30 minutes. Once built all the tests should still pass via `go test -v .`
+1) Commit your changes, making sure that the git submodules have been updated to the new checksum for the version of V8.
+Make sure *NOT* to add your build of the binary, as this will be build via CI.
+1) Because the build is so long, this is not automatically triggered. Go to the [V8
+Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) Github Action, Select "Run workflow",
+and select your pushed branch eg. `v8_7_upgrade`.
+1) Once built, this should open 2 PRs against your branch to add the `libv8.a` for both macOS and linux; merge these PRs
+into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
 
 ### Formatting
 
