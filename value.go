@@ -27,52 +27,54 @@ type Value struct {
 //	 bool -> V8::Boolean
 // 	 *big.Int -> V8::BigInt
 func NewValue(iso *Isolate, val interface{}) (*Value, error) {
+	var rtnVal *Value
+
 	switch v := val.(type) {
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueString(iso.ptr, cstr),
-		}, nil
+		}
 	case int32:
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
-		}, nil
+		}
 	case uint32:
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v)),
-		}, nil
+		}
 	case int64:
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v)),
-		}, nil
+		}
 	case uint64:
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v)),
-		}, nil
+		}
 	case bool:
 		var b int
 		if v {
 			b = 1
 		}
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueBoolean(iso.ptr, C.int(b)),
-		}, nil
+		}
 	case float64:
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
-		}, nil
+		}
 	case *big.Int:
 		if v.IsInt64() {
-			return &Value{
+			rtnVal = &Value{
 				ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v.Int64())),
-			}, nil
+			}
 		}
 
 		if v.IsUint64() {
-			return &Value{
+			rtnVal = &Value{
 				ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v.Uint64())),
-			}, nil
+			}
 		}
 
 		var sign, count int
@@ -87,14 +89,15 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			words[idx] = C.uint64_t(word)
 		}
 
-		fmt.Printf("words = %+v\n", words)
-
-		return &Value{
+		rtnVal = &Value{
 			ptr: C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0]),
-		}, nil
+		}
 	default:
 		return nil, fmt.Errorf("value: unsupported value type `%T`", v)
 	}
+
+	runtime.SetFinalizer(rtnVal, (*Value).finalizer)
+	return rtnVal, nil
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
