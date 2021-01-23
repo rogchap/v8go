@@ -4,6 +4,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -20,13 +21,17 @@ type Value struct {
 // NewValue will create a primitive value. Supported values types to create are:
 //   string -> V8::String
 //   int32 -> V8::Integer
-// 	 uint32 -> V8::Integer
-//	 bool -> V8::Boolean
+//   uint32 -> V8::Integer
+//   bool -> V8::Boolean
 //   int64 -> V8::BigInt
 //   uint64 -> V8::BigInt
-//	 bool -> V8::Boolean
-// 	 *big.Int -> V8::BigInt
+//   bool -> V8::Boolean
+//   *big.Int -> V8::BigInt
 func NewValue(iso *Isolate, val interface{}) (*Value, error) {
+	if iso == nil {
+		return nil, errors.New("v8go: failed to create new Value: Isolate cannot be <nil>")
+	}
+
 	var rtnVal *Value
 
 	switch v := val.(type) {
@@ -93,7 +98,7 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			ptr: C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0]),
 		}
 	default:
-		return nil, fmt.Errorf("value: unsupported value type `%T`", v)
+		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
 	}
 
 	runtime.SetFinalizer(rtnVal, (*Value).finalizer)

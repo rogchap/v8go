@@ -40,7 +40,7 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 		var err error
 		opts.iso, err = NewIsolate()
 		if err != nil {
-			return nil, fmt.Errorf("context: failed to create new Isolate: %v", err)
+			return nil, fmt.Errorf("v8go: failed to create new Isolate: %v", err)
 		}
 	}
 

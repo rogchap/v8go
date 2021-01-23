@@ -66,7 +66,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		{
 			func() *v8go.ObjectTemplate {
 				gbl, _ := v8go.NewObjectTemplate(iso)
-				gbl.Set("foo", "bar", 0)
+				gbl.Set("foo", "bar")
 				return gbl
 			},
 			"foo",
@@ -83,9 +83,9 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		{
 			func() *v8go.ObjectTemplate {
 				foo, _ := v8go.NewObjectTemplate(iso)
-				foo.Set("bar", "baz", 0)
+				foo.Set("bar", "baz")
 				gbl, _ := v8go.NewObjectTemplate(iso)
-				gbl.Set("foo", foo, 0)
+				gbl.Set("foo", foo)
 				return gbl
 			},
 			"foo.bar",

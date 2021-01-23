@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - NewContext() API has been improved to handle optional global object, as well as optional Isolate
+- Package error messages are now prefixed with `v8go` rather than the struct name
 
 ## [v0.4.0] - 2021-01-14
 
