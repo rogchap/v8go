@@ -45,7 +45,7 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 	}
 
 	if opts.gTmpl == nil {
-		opts.gTmpl = &ObjectTemplate{}
+		opts.gTmpl = &ObjectTemplate{&template{}}
 	}
 
 	ctx := &Context{
