@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Support for the BigInt value to the big.Int Go type
+- Create Object Templates with primitive values, including other Object Templates
+- Configure Object Template as the global object of any new Context
+
+### Changed
+- NewContext() API has been improved to handle optional global object, as well as optional Isolate
+- Package error messages are now prefixed with `v8go` rather than the struct name
+
+### Changed
+- Upgraded V8 to 8.8.278.14
 
 ## [v0.4.0] - 2021-01-14
 

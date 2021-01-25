@@ -15,6 +15,94 @@ import (
 // Value represents all Javascript values and objects
 type Value struct {
 	ptr C.ValuePtr
+	ctx *Context
+}
+
+// NewValue will create a primitive value. Supported values types to create are:
+//   string -> V8::String
+//   int32 -> V8::Integer
+//   uint32 -> V8::Integer
+//   bool -> V8::Boolean
+//   int64 -> V8::BigInt
+//   uint64 -> V8::BigInt
+//   bool -> V8::Boolean
+//   *big.Int -> V8::BigInt
+func NewValue(iso *Isolate, val interface{}) (*Value, error) {
+	if iso == nil {
+		return nil, errors.New("v8go: failed to create new Value: Isolate cannot be <nil>")
+	}
+
+	var rtnVal *Value
+
+	switch v := val.(type) {
+	case string:
+		cstr := C.CString(v)
+		defer C.free(unsafe.Pointer(cstr))
+		rtnVal = &Value{
+			ptr: C.NewValueString(iso.ptr, cstr),
+		}
+	case int32:
+		rtnVal = &Value{
+			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
+		}
+	case uint32:
+		rtnVal = &Value{
+			ptr: C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v)),
+		}
+	case int64:
+		rtnVal = &Value{
+			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v)),
+		}
+	case uint64:
+		rtnVal = &Value{
+			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v)),
+		}
+	case bool:
+		var b int
+		if v {
+			b = 1
+		}
+		rtnVal = &Value{
+			ptr: C.NewValueBoolean(iso.ptr, C.int(b)),
+		}
+	case float64:
+		rtnVal = &Value{
+			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
+		}
+	case *big.Int:
+		if v.IsInt64() {
+			rtnVal = &Value{
+				ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v.Int64())),
+			}
+		}
+
+		if v.IsUint64() {
+			rtnVal = &Value{
+				ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v.Uint64())),
+			}
+		}
+
+		var sign, count int
+		if v.Sign() == -1 {
+			sign = 1
+		}
+		bits := v.Bits()
+		count = len(bits)
+
+		words := make([]C.uint64_t, count, count)
+		for idx, word := range bits {
+			words[idx] = C.uint64_t(word)
+		}
+
+		rtnVal = &Value{
+			ptr: C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0]),
+		}
+	default:
+		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
+	}
+
+	runtime.SetFinalizer(rtnVal, (*Value).finalizer)
+	return rtnVal, nil
 }
 
 // Format implements the fmt.Formatter interface to provide a custom formatter
@@ -180,7 +268,7 @@ func (v *Value) IsFunction() bool {
 
 // IsObject returns true if this value is an object.
 func (v *Value) IsObject() bool {
-	return C.ValueIsObject(v.ptr) != 0
+	return v.ctx != nil && C.ValueIsObject(v.ptr) != 0
 }
 
 // IsBigInt returns true if this value is a bigint.
@@ -204,7 +292,7 @@ func (v *Value) IsNumber() bool {
 // IsExternal returns true if this value is an `External` object.
 func (v *Value) IsExternal() bool {
 	// TODO(rogchap): requires test case
-	return C.ValueIsExternal(v.ptr) != 0
+	return v.ctx != nil && C.ValueIsExternal(v.ptr) != 0
 }
 
 // IsInt32 returns true if this value is a 32-bit signed integer.
