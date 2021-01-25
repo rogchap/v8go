@@ -282,6 +282,14 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
   return rtn;
 }
 
+ValuePtr ValueToObject(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  m_value* val = new m_value;
+  val->ctx_ptr = ctx;
+  val->ptr.Reset(iso, Persistent<Value>(iso, value.ToObject(ctx->ptr.Get(iso).ToLocalChecked()));
+  return static_cast<ValuePtr>(val);
+}
+
 int ValueIsUndefined(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsUndefined();

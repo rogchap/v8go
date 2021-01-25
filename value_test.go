@@ -348,7 +348,29 @@ func TestValueBigInt(t *testing.T) {
 			}
 		})
 	}
+}
 
+func TestValueObject(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+
+	tests := [...]struct {
+		source   string
+		expected func(obj *Object) bool
+	}{}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.source, func(t *testing.T) {
+			t.Parallel()
+			ctx, _ := v8go.NewContext(iso)
+			val, _ := ctx.RunScript(tt.source, "test.js")
+			obj := val.Object()
+			if !tt.expected(obj) {
+				t.Errorf("unexpected value: %v", obj)
+			}
+		})
+	}
 }
 
 func TestValueIsXXX(t *testing.T) {
