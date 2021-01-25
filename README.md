@@ -107,7 +107,7 @@ V8 requires 64-bit on Windows, therefore will not work on 32-bit systems.
 
 ## V8 dependency
 
-V8 version: **8.7.220.31** (October 2020)
+V8 version: **8.8.278.14** (January 2021)
 
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
 are included for Linux and macOS ie. you *should not* require to build V8 yourself.
@@ -130,7 +130,9 @@ This project also aims to keep up-to-date with the latest (stable) release of V8
 
 This process is non-trivial, and hopefully we can automate more of this in the future.
 
-1) Make sure to clone the projects submodules (ie. the V8 project): `git submodule update --init --recursive`
+1) Make sure to clone the projects submodules (ie. the V8's `depot_tools` project): `git submodule update --init --recursive`
+1) Add the `depot_tools` folder to your `PATH` eg: `export PATH=~/Development/rogchap/v8go/deps/depot_tools:$PATH`
+1) From the `deps` folder run `fetch v8`; you only need to do this once, if you don't already have the V8 source.
 1) Find the current stable release (`v8_version`) here: [https://omahaproxy.appspot.com](https://omahaproxy.appspot.com)
 1) Create a new git branch from `master` eg. `git checkout -b v8_7_upgrade`
 1) Enter the v8 folder and fetch all the latest git branches: `cd deps/v8 && git fetch`
