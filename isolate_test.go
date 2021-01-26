@@ -43,8 +43,8 @@ func TestGetHeapStatistics(t *testing.T) {
 
 	hs := iso.GetHeapStatistics()
 
-	if hs.NumberOfNativeContexts != 2 {
-		t.Error("expect NumberOfNativeContexts return 2, got", hs.NumberOfNativeContexts)
+	if hs.NumberOfNativeContexts != 3 {
+		t.Error("expect NumberOfNativeContexts return 3, got", hs.NumberOfNativeContexts)
 	}
 
 	if hs.NumberOfDetachedContexts != 0 {
