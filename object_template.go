@@ -3,6 +3,10 @@ package v8go
 // #include <stdlib.h>
 // #include "v8go.h"
 import "C"
+import (
+	"errors"
+	"runtime"
+)
 
 // PropertyAttribute are the attribute flags for a property on an Object.
 // Typical usage when setting an Object or TemplateObject property, and
@@ -29,10 +33,15 @@ type ObjectTemplate struct {
 // NewObjectTemplate creates a new ObjectTemplate.
 // The *ObjectTemplate can be used as a v8go.ContextOption to create a global object in a Context.
 func NewObjectTemplate(iso *Isolate) (*ObjectTemplate, error) {
-	tmpl, err := newTemplate(iso)
-	if err != nil {
-		return nil, err
+	if iso == nil {
+		return nil, errors.New("v8go: failed to create new ObjectTemplate: Isolate cannot be <nil>")
 	}
+
+	tmpl := &template{
+		ptr: C.NewObjectTemplate(iso.ptr),
+		iso: iso,
+	}
+	runtime.SetFinalizer(tmpl, (*template).finalizer)
 	return &ObjectTemplate{tmpl}, nil
 }
 

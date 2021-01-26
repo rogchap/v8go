@@ -28,9 +28,9 @@ typedef struct {
 } m_value;
 
 typedef struct {
-  Persistent<ObjectTemplate> ptr;
+  Persistent<Template> ptr;
   Isolate* iso;
-} m_object_template;
+} m_template;
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -148,57 +148,55 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
                             hs.number_of_detached_contexts()};
 }
 
-/********** ObjectTemplate **********/
+/********** Template **********/
 
-#define LOCAL_OBJECT_TEMPLATE(ptr)                              \
-  m_object_template* ot = static_cast<m_object_template*>(ptr); \
+#define LOCAL_TEMPLATE(ptr)                              \
+  m_template* ot = static_cast<m_template*>(ptr); \
   Isolate* iso = ot->iso;                                       \
   Locker locker(iso);                                           \
   Isolate::Scope isolate_scope(iso);                            \
   HandleScope handle_scope(iso);                                \
-  Local<ObjectTemplate> object_template = ot->ptr.Get(iso);
+  Local<Template> tmpl = ot->ptr.Get(iso);
 
-ObjectTemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
+void TemplateDispose(TemplatePtr ptr) {
+  delete static_cast<m_template*>(ptr);
+}
+
+void TemplateSetValue(TemplatePtr ptr, const char* name, ValuePtr val_ptr, int attributes) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<String> prop_name =
+      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = static_cast<m_value*>(val_ptr);
+  tmpl->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
+}
+
+void TemplateSetTemplate(TemplatePtr ptr, const char* name, TemplatePtr obj_ptr, int attributes) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<String> prop_name =
+      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
+  m_template* obj = static_cast<m_template*>(obj_ptr);
+  tmpl->Set(prop_name, obj->ptr.Get(iso), (PropertyAttribute)attributes);
+}
+
+/********** ObjectTemplate **********/
+
+TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
-  m_object_template* ot = new m_object_template;
+  m_template* ot = new m_template;
   ot->iso = iso;
   ot->ptr.Reset(iso, ObjectTemplate::New(iso));
-  return static_cast<ObjectTemplatePtr>(ot);
-}
-
-void ObjectTemplateDispose(ObjectTemplatePtr ptr) {
-  delete static_cast<m_object_template*>(ptr);
-}
-
-void ObjectTemplateSetValue(ObjectTemplatePtr ptr,
-                       const char* name,
-                       ValuePtr val_ptr,
-                       int attributes) {
-  LOCAL_OBJECT_TEMPLATE(ptr);
-
-  Local<String> prop_name =
-      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_value* val = static_cast<m_value*>(val_ptr);
-  object_template->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
-}
-
-void ObjectTemplateSetObjectTemplate(ObjectTemplatePtr ptr, const char* name, ObjectTemplatePtr obj_ptr, int attributes) {
-  LOCAL_OBJECT_TEMPLATE(ptr);
-
-  Local<String> prop_name =
-      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_object_template* obj = static_cast<m_object_template*>(obj_ptr);
-  object_template->Set(prop_name, obj->ptr.Get(iso), (PropertyAttribute)attributes);
+  return static_cast<TemplatePtr>(ot);
 }
 
 /********** Context **********/
 
-ContextPtr NewContext(IsolatePtr iso_ptr,
-                      ObjectTemplatePtr global_template_ptr) {
+ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
@@ -206,9 +204,8 @@ ContextPtr NewContext(IsolatePtr iso_ptr,
 
   Local<ObjectTemplate> global_template;
   if (global_template_ptr != nullptr) {
-    m_object_template* ob =
-        static_cast<m_object_template*>(global_template_ptr);
-    global_template = ob->ptr.Get(iso);
+    m_template* ob = static_cast<m_template*>(global_template_ptr);
+    global_template = ob->ptr.Get(iso).As<ObjectTemplate>();
   } else {
     global_template = ObjectTemplate::New(iso);
   }

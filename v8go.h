@@ -10,7 +10,7 @@ extern "C" {
 typedef void* IsolatePtr;
 typedef void* ContextPtr;
 typedef void* ValuePtr;
-typedef void* ObjectTemplatePtr;
+typedef void* TemplatePtr;
 
 typedef struct {
   const char* msg;
@@ -49,20 +49,15 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern ContextPtr NewContext(IsolatePtr iso_ptr,
-                             ObjectTemplatePtr global_template_ptr);
+extern ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr);
 extern void ContextDispose(ContextPtr ptr);
-extern RtnValue RunScript(ContextPtr ctx_ptr,
-                          const char* source,
-                          const char* origin);
+extern RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
 
-extern ObjectTemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
-extern void ObjectTemplateDispose(ObjectTemplatePtr ptr);
-extern void ObjectTemplateSetValue(ObjectTemplatePtr ptr,
-                              const char* name,
-                              ValuePtr val_ptr,
-                              int attributes);
-extern void ObjectTemplateSetObjectTemplate(ObjectTemplatePtr ptr, const char* name, ObjectTemplatePtr obj_ptr, int attributes);
+extern void TemplateDispose(TemplatePtr ptr);
+extern void TemplateSetValue(TemplatePtr ptr, const char* name, ValuePtr val_ptr, int attributes);
+extern void TemplateSetTemplate(TemplatePtr ptr, const char* name, TemplatePtr obj_ptr, int attributes);
+
+extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);

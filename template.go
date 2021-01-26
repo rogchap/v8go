@@ -12,21 +12,8 @@ import (
 )
 
 type template struct {
-	ptr C.ObjectTemplatePtr
+	ptr C.TemplatePtr
 	iso *Isolate
-}
-
-func newTemplate(iso *Isolate) (*template, error) {
-	if iso == nil {
-		return nil, errors.New("v8go: failed to create new Template: Isolate cannot be <nil>")
-	}
-
-	ob := &template{
-		ptr: C.NewObjectTemplate(iso.ptr),
-		iso: iso,
-	}
-	runtime.SetFinalizer(ob, (*template).finalizer)
-	return ob, nil
 }
 
 // Set adds a property to each instance created by this template.
@@ -48,14 +35,14 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 		if err != nil {
 			return fmt.Errorf("v8go: unable to create new value: %v", err)
 		}
-		C.ObjectTemplateSetValue(t.ptr, cname, newVal.ptr, C.int(attrs))
+		C.TemplateSetValue(t.ptr, cname, newVal.ptr, C.int(attrs))
 	case *ObjectTemplate:
-		C.ObjectTemplateSetObjectTemplate(t.ptr, cname, v.ptr, C.int(attrs))
+		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 	case *Value:
 		if v.IsObject() || v.IsExternal() {
 			return errors.New("v8go: unsupported property: value type must be a primitive or use a template")
 		}
-		C.ObjectTemplateSetValue(t.ptr, cname, v.ptr, C.int(attrs))
+		C.TemplateSetValue(t.ptr, cname, v.ptr, C.int(attrs))
 	default:
 		return fmt.Errorf("v8go: unsupported property type `%T`, must be one of string, int32, uint32, int64, uint64, float64, *big.Int, *v8go.Value, *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
 	}
@@ -64,7 +51,7 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 }
 
 func (o *template) finalizer() {
-	C.ObjectTemplateDispose(o.ptr)
+	C.TemplateDispose(o.ptr)
 	o.ptr = nil
 	runtime.SetFinalizer(o, nil)
 }
