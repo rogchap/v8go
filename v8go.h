@@ -58,6 +58,7 @@ extern void TemplateSetValue(TemplatePtr ptr, const char* name, ValuePtr val_ptr
 extern void TemplateSetTemplate(TemplatePtr ptr, const char* name, TemplatePtr obj_ptr, int attributes);
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
+extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, void* callback);
 
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);

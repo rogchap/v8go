@@ -38,6 +38,8 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 		C.TemplateSetValue(t.ptr, cname, newVal.ptr, C.int(attrs))
 	case *ObjectTemplate:
 		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
+	case *FunctionTemplate:
+		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 	case *Value:
 		if v.IsObject() || v.IsExternal() {
 			return errors.New("v8go: unsupported property: value type must be a primitive or use a template")

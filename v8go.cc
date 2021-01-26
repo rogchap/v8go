@@ -111,7 +111,18 @@ void Init() {
 IsolatePtr NewIsolate() {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
-  return static_cast<IsolatePtr>(Isolate::New(params));
+  Isolate* iso = Isolate::New(params);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  // Create a Context for internal use
+  m_ctx* ctx = new m_ctx;
+  ctx->ptr.Reset(iso, Context::New(iso));
+  ctx->iso = iso;
+  iso->SetData(0, ctx);
+
+  return static_cast<IsolatePtr>(iso);
 }
 
 void IsolateDispose(IsolatePtr ptr) {
@@ -119,6 +130,10 @@ void IsolateDispose(IsolatePtr ptr) {
     return;
   }
   Isolate* iso = static_cast<Isolate*>(ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+  ctx->ptr.Reset();
+  delete ctx;
+
   iso->Dispose();
 }
 
@@ -191,6 +206,49 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   m_template* ot = new m_template;
   ot->iso = iso;
   ot->ptr.Reset(iso, ObjectTemplate::New(iso));
+  return static_cast<TemplatePtr>(ot);
+}
+/********** FunctionTemplate **********/
+
+static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
+    Isolate* iso_ptr = info.GetIsolate();
+    ISOLATE_SCOPE(iso_ptr);
+    m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+
+    Local<Array> cbData = info.Data().As<Array>();
+    void* callback = cbData->Get(ctx->ptr.Get(iso), 0).ToLocalChecked().As<External>()->Value();
+
+    int args_count = info.Length();
+
+    ValuePtr args[args_count];
+    for (int i = 0; i < args_count; i++) {
+      m_value* val = new m_value;
+      val->iso = iso;
+      val->ctx_ptr = ctx;
+      val->ptr.Reset(iso, Persistent<Value>(iso, info[i]));
+      args[i] = static_cast<ValuePtr>(val);
+    }
+
+    void goFunctionCallback(void* callback, const ValuePtr* args, int args_count);
+    goFunctionCallback(callback, args, args_count);
+}
+
+TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, void* callback) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  Local<Array> cbData = Array::New(iso, 1);
+  Maybe<bool> set = cbData->Set(local_ctx, 0, External::New(iso, callback));
+
+  m_template* ot = new m_template;
+  ot->iso = iso;
+  ot->ptr.Reset(iso, FunctionTemplate::New(iso, FunctionTemplateCallback, cbData));
   return static_cast<TemplatePtr>(ot);
 }
 
@@ -338,16 +396,11 @@ ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
 
 ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_count, const uint64_t* words) {
   ISOLATE_SCOPE(iso_ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+
   m_value* val = new m_value;
   val->iso = iso;
-
-  // V8::BigInt::NewFromWords requires a context, which is different from all the other V8::Primitive types
-  // It seems that the implementation just gets the Isolate from the Context and nothing else, so this function
-  // should really only need the Isolate.
-  // We'll have to create a temp context to hold the Isolate to create the BigInt.
-  Local<Context> ctx = Context::New(iso);
-
-  MaybeLocal<BigInt> bigint = BigInt::NewFromWords(ctx, sign_bit, word_count, words);
+  MaybeLocal<BigInt> bigint = BigInt::NewFromWords(ctx->ptr.Get(iso), sign_bit, word_count, words);
   val->ptr.Reset(iso, Persistent<Value>(iso, bigint.ToLocalChecked()));
   return static_cast<ValuePtr>(val);
 }
