@@ -496,7 +496,7 @@ func (v *Value) IsModuleNamespaceObject() bool {
 }
 
 func (v *Value) finalizer() {
-	C.ValueDispose(v.ptr)
+	C.ValueFree(v.ptr)
 	v.ptr = nil
 	runtime.SetFinalizer(v, nil)
 }

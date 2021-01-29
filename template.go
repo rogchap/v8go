@@ -53,7 +53,7 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 }
 
 func (o *template) finalizer() {
-	C.TemplateDispose(o.ptr)
+	C.TemplateFree(o.ptr)
 	o.ptr = nil
 	runtime.SetFinalizer(o, nil)
 }

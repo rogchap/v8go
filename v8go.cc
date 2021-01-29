@@ -23,8 +23,8 @@ typedef struct {
 
 typedef struct {
   Persistent<Value> ptr;
+  Persistent<Context> ctx;
   Isolate* iso;
-  m_ctx* ctx_ptr;
 } m_value;
 
 typedef struct {
@@ -116,6 +116,8 @@ IsolatePtr NewIsolate() {
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
+  iso->SetCaptureStackTraceForUncaughtExceptions(true);
+
   // Create a Context for internal use
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, Context::New(iso));
@@ -173,7 +175,7 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
   HandleScope handle_scope(iso);                                \
   Local<Template> tmpl = ot->ptr.Get(iso);
 
-void TemplateDispose(TemplatePtr ptr) {
+void TemplateFree(TemplatePtr ptr) {
   delete static_cast<m_template*>(ptr);
 }
 
@@ -216,24 +218,32 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
 
     Local<Array> cbData = info.Data().As<Array>();
-    void* callback = cbData->Get(ctx->ptr.Get(iso), 0).ToLocalChecked().As<External>()->Value();
+    int callback_ref = cbData->Get(ctx->ptr.Get(iso), 0).ToLocalChecked().As<Integer>()->Value();
+
+    Local<Context> local_ctx = iso->GetCurrentContext();
+    int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
 
     int args_count = info.Length();
-
     ValuePtr args[args_count];
     for (int i = 0; i < args_count; i++) {
       m_value* val = new m_value;
       val->iso = iso;
-      val->ctx_ptr = ctx;
+      val->ctx.Reset(iso, local_ctx);
       val->ptr.Reset(iso, Persistent<Value>(iso, info[i]));
       args[i] = static_cast<ValuePtr>(val);
     }
 
-    void goFunctionCallback(void* callback, const ValuePtr* args, int args_count);
-    goFunctionCallback(callback, args, args_count);
+    ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* args, int args_count);
+    ValuePtr val_ptr = goFunctionCallback(ctx_ref, callback_ref, args, args_count);
+    if (val_ptr != nullptr) {
+        m_value* val = static_cast<m_value*>(val_ptr);
+        info.GetReturnValue().Set(val->ptr.Get(iso));
+    } else {
+        info.GetReturnValue().SetUndefined();
+    }
 }
 
-TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, void* callback) {
+TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
@@ -244,7 +254,7 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, void* callback) {
   Context::Scope context_scope(local_ctx);
 
   Local<Array> cbData = Array::New(iso, 1);
-  Maybe<bool> set = cbData->Set(local_ctx, 0, External::New(iso, callback));
+  Maybe<bool> set = cbData->Set(local_ctx, 0, Integer::New(iso, callback_ref));
 
   m_template* ot = new m_template;
   ot->iso = iso;
@@ -254,7 +264,7 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, void* callback) {
 
 /********** Context **********/
 
-ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr) {
+ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr, int ref) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
@@ -268,12 +278,25 @@ ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr) {
     global_template = ObjectTemplate::New(iso);
   }
 
-  iso->SetCaptureStackTraceForUncaughtExceptions(true);
+  Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
+  local_ctx->SetEmbedderData(1, Integer::New(iso, ref)); 
 
   m_ctx* ctx = new m_ctx;
-  ctx->ptr.Reset(iso, Context::New(iso, nullptr, global_template));
+  ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
   return static_cast<ContextPtr>(ctx);
+}
+
+void ContextFree(ContextPtr ptr) {
+  if (ptr == nullptr) {
+    return;
+  }
+  m_ctx* ctx = static_cast<m_ctx*>(ptr);
+  if (ctx == nullptr) {
+    return;
+  }
+  ctx->ptr.Reset();
+  delete ctx;
 }
 
 RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
@@ -307,35 +330,24 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   }
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx_ptr = ctx;
+  val->ctx.Reset(iso, local_ctx);
   val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
   rtn.value = static_cast<ValuePtr>(val);
   return rtn;
 }
 
-void ContextDispose(ContextPtr ptr) {
-  if (ptr == nullptr) {
-    return;
-  }
-  m_ctx* ctx = static_cast<m_ctx*>(ptr);
-  if (ctx == nullptr) {
-    return;
-  }
-  ctx->ptr.Reset();
-  delete ctx;
-}
 
 /********** Value **********/
 
 #define LOCAL_VALUE(ptr)                           \
   m_value* val = static_cast<m_value*>(ptr);       \
-  m_ctx* ctx = val->ctx_ptr;                       \
   Isolate* iso = val->iso;                         \
   Locker locker(iso);                              \
   Isolate::Scope isolate_scope(iso);               \
   HandleScope handle_scope(iso);                   \
-  Context::Scope context_scope(ctx->ptr.Get(iso)); \
+  Local<Context> local_ctx = val->ctx.Get(iso);                       \
+  Context::Scope context_scope(local_ctx); \
   Local<Value> value = val->ptr.Get(iso);
 
 ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
@@ -405,13 +417,17 @@ ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_coun
   return static_cast<ValuePtr>(val);
 }
 
-void ValueDispose(ValuePtr ptr) {
-  delete static_cast<m_value*>(ptr);
+void ValueFree(ValuePtr ptr) {
+  if (ptr == nullptr) {
+      return;
+  }
+  m_value* val = static_cast<m_value*>(ptr);
+  delete val;
 }
 
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  MaybeLocal<Uint32> array_index = value->ToArrayIndex(ctx->ptr.Get(iso));
+  MaybeLocal<Uint32> array_index = value->ToArrayIndex(local_ctx);
   if (array_index.IsEmpty()) {
     return nullptr;
   }
@@ -428,23 +444,23 @@ int ValueToBoolean(ValuePtr ptr) {
 
 int32_t ValueToInt32(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->Int32Value(ctx->ptr.Get(iso)).ToChecked();
+  return value->Int32Value(local_ctx).ToChecked();
 }
 
 int64_t ValueToInteger(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->IntegerValue(ctx->ptr.Get(iso)).ToChecked();
+  return value->IntegerValue(local_ctx).ToChecked();
 }
 
 double ValueToNumber(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->NumberValue(ctx->ptr.Get(iso)).ToChecked();
+  return value->NumberValue(local_ctx).ToChecked();
 }
 
 const char* ValueToDetailString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   String::Utf8Value ds(
-      iso, value->ToDetailString(ctx->ptr.Get(iso)).ToLocalChecked());
+      iso, value->ToDetailString(local_ctx).ToLocalChecked());
   return CopyString(ds);
 }
 
@@ -456,12 +472,12 @@ const char* ValueToString(ValuePtr ptr) {
 
 uint32_t ValueToUint32(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->Uint32Value(ctx->ptr.Get(iso)).ToChecked();
+  return value->Uint32Value(local_ctx).ToChecked();
 }
 
 ValueBigInt ValueToBigInt(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  MaybeLocal<BigInt> bint = value->ToBigInt(ctx->ptr.Get(iso));
+  MaybeLocal<BigInt> bint = value->ToBigInt(local_ctx);
   if (bint.IsEmpty()) {
     return {nullptr, 0};
   }

@@ -6,12 +6,28 @@ import "C"
 import (
 	"fmt"
 	"runtime"
+	"sync"
 	"unsafe"
 )
+
+// Due to the limitations of passing pointers to C from Go we need to create
+// a registry so that we can lookup the Context from any given callback from V8.
+// This is similar to what is described here: https://github.com/golang/go/wiki/cgo#function-variables
+// To make sure we can still GC *Context we register the context only when we are
+// running a script inside the context and then deregister.
+type ctxRef struct {
+	ctx      *Context
+	refCount int
+}
+
+var ctxMutex sync.RWMutex
+var ctxRegistry = make(map[int]*ctxRef)
+var ctxSeq = 0
 
 // Context is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
 type Context struct {
+	ref int
 	ptr C.ContextPtr
 	iso *Isolate
 }
@@ -48,9 +64,15 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 		opts.gTmpl = &ObjectTemplate{&template{}}
 	}
 
+	ctxMutex.Lock()
+	ctxSeq++
+	ref := ctxSeq
+	ctxMutex.Unlock()
+
 	ctx := &Context{
+		ref: ref,
+		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
-		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr),
 	}
 	runtime.SetFinalizer(ctx, (*Context).finalizer)
 	// TODO: [RC] catch any C++ exceptions and return as error
@@ -73,7 +95,10 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
+	c.register()
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
+	c.deregister()
+
 	return getValue(c, rtn), getError(rtn)
 }
 
@@ -83,9 +108,43 @@ func (c *Context) Close() {
 }
 
 func (c *Context) finalizer() {
-	C.ContextDispose(c.ptr)
+	C.ContextFree(c.ptr)
 	c.ptr = nil
 	runtime.SetFinalizer(c, nil)
+}
+
+func (c *Context) register() {
+	ctxMutex.Lock()
+	r := ctxRegistry[c.ref]
+	if r == nil {
+		r = &ctxRef{ctx: c}
+		ctxRegistry[c.ref] = r
+	}
+	r.refCount++
+	ctxMutex.Unlock()
+}
+
+func (c *Context) deregister() {
+	ctxMutex.Lock()
+	defer ctxMutex.Unlock()
+	r := ctxRegistry[c.ref]
+	if r == nil {
+		return
+	}
+	r.refCount--
+	if r.refCount <= 0 {
+		delete(ctxRegistry, c.ref)
+	}
+}
+
+func getContext(ref int) *Context {
+	ctxMutex.RLock()
+	defer ctxMutex.RUnlock()
+	r := ctxRegistry[ref]
+	if r == nil {
+		return nil
+	}
+	return r.ctx
 }
 
 func getValue(ctx *Context, rtn C.RtnValue) *Value {

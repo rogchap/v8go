@@ -12,7 +12,12 @@ import (
 type FunctionCallback func(info *FunctionCallbackInfo) *Value
 
 type FunctionCallbackInfo struct {
+	ctx  *Context
 	args []*Value
+}
+
+func (i *FunctionCallbackInfo) Context() *Context {
+	return i.ctx
 }
 
 func (i *FunctionCallbackInfo) Args() []*Value {
@@ -28,8 +33,10 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 		return nil, errors.New("v8go: failed to create new FunctionTemplate: Isolate cannot be <nil>")
 	}
 
+	cbref := iso.registerCallback(callback)
+
 	tmpl := &template{
-		ptr: C.NewFunctionTemplate(iso.ptr, unsafe.Pointer(&callback)),
+		ptr: C.NewFunctionTemplate(iso.ptr, C.int(cbref)),
 		iso: iso,
 	}
 	runtime.SetFinalizer(tmpl, (*template).finalizer)
@@ -37,23 +44,24 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 }
 
 //export goFunctionCallback
-func goFunctionCallback(callback unsafe.Pointer, args *C.ValuePtr, args_count int) {
-	callbackFunc := *(*FunctionCallback)(callback)
+func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, args_count int) C.ValuePtr {
+	ctx := getContext(ctxref)
 
-	//TODO: This will need access to the Context to be able to create return values
 	info := &FunctionCallbackInfo{
+		ctx:  ctx,
 		args: make([]*Value, args_count),
 	}
 
 	argv := (*[1 << 30]C.ValuePtr)(unsafe.Pointer(args))[:args_count:args_count]
 	for i, v := range argv {
-		//TODO(rogchap): We must pass the current context and add this to the value struct
 		val := &Value{ptr: v}
 		runtime.SetFinalizer(val, (*Value).finalizer)
 		info.args[i] = val
 	}
 
-	rtnVal := callbackFunc(info)
-	//TODO: deal with the rtnVal
-	_ = rtnVal
+	callbackFunc := ctx.iso.getCallback(cbref)
+	if val := callbackFunc(info); val != nil {
+		return val.ptr
+	}
+	return nil
 }

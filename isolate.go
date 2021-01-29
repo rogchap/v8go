@@ -4,7 +4,6 @@ package v8go
 import "C"
 
 import (
-	"runtime"
 	"sync"
 )
 
@@ -15,6 +14,10 @@ var v8once sync.Once
 // with many V8 contexts for execution.
 type Isolate struct {
 	ptr C.IsolatePtr
+
+	cbMutex sync.RWMutex
+	cbSeq   int
+	cbs     map[int]FunctionCallback
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -35,14 +38,18 @@ type HeapStatistics struct {
 // NewIsolate creates a new V8 isolate. Only one thread may access
 // a given isolate at a time, but different threads may access
 // different isolates simultaneously.
+// When an isolate is no longer used its resources should be freed
+// by calling iso.Dispose().
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
 func NewIsolate() (*Isolate, error) {
 	v8once.Do(func() {
 		C.Init()
 	})
-	iso := &Isolate{C.NewIsolate()}
-	runtime.SetFinalizer(iso, (*Isolate).finalizer)
+	iso := &Isolate{
+		ptr: C.NewIsolate(),
+		cbs: make(map[int]FunctionCallback),
+	}
 	// TODO: [RC] catch any C++ exceptions and return as error
 	return iso, nil
 }
@@ -72,17 +79,32 @@ func (i *Isolate) GetHeapStatistics() HeapStatistics {
 	}
 }
 
-func (i *Isolate) finalizer() {
+// Dispose will dispose the Isolate VM; subsequent calls will panic.
+func (i *Isolate) Dispose() {
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil
-	runtime.SetFinalizer(i, nil)
 }
 
-// Close will dispose the Isolate VM; subsequent calls will panic
+// Close is Deprecated. Use `iso.Dispose()`.
 func (i *Isolate) Close() {
-	i.finalizer()
+	i.Dispose()
 }
 
 func (i *Isolate) apply(opts *contextOptions) {
 	opts.iso = i
+}
+
+func (i *Isolate) registerCallback(cb FunctionCallback) int {
+	i.cbMutex.Lock()
+	i.cbSeq++
+	ref := i.cbSeq
+	i.cbs[ref] = cb
+	i.cbMutex.Unlock()
+	return ref
+}
+
+func (i *Isolate) getCallback(ref int) FunctionCallback {
+	i.cbMutex.RLock()
+	defer i.cbMutex.RUnlock()
+	return i.cbs[ref]
 }
