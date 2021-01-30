@@ -49,13 +49,23 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr, int ref);
+extern ContextPtr NewContext(IsolatePtr iso_ptr,
+                             TemplatePtr global_template_ptr,
+                             int ref);
 extern void ContextFree(ContextPtr ptr);
-extern RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
+extern RtnValue RunScript(ContextPtr ctx_ptr,
+                          const char* source,
+                          const char* origin);
 
 extern void TemplateFree(TemplatePtr ptr);
-extern void TemplateSetValue(TemplatePtr ptr, const char* name, ValuePtr val_ptr, int attributes);
-extern void TemplateSetTemplate(TemplatePtr ptr, const char* name, TemplatePtr obj_ptr, int attributes);
+extern void TemplateSetValue(TemplatePtr ptr,
+                             const char* name,
+                             ValuePtr val_ptr,
+                             int attributes);
+extern void TemplateSetTemplate(TemplatePtr ptr,
+                                const char* name,
+                                TemplatePtr obj_ptr,
+                                int attributes);
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
@@ -67,7 +77,10 @@ extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
 extern ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v);
-extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_count, const uint64_t* words);
+extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
+                                        int sign_bit,
+                                        int word_count,
+                                        const uint64_t* words);
 extern void ValueFree(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);

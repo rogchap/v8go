@@ -4,6 +4,7 @@ package v8go
 import "C"
 
 import (
+	"runtime"
 	"sync"
 )
 
@@ -50,6 +51,7 @@ func NewIsolate() (*Isolate, error) {
 		ptr: C.NewIsolate(),
 		cbs: make(map[int]FunctionCallback),
 	}
+	runtime.SetFinalizer(iso, (*Isolate).finalizer)
 	// TODO: [RC] catch any C++ exceptions and return as error
 	return iso, nil
 }
@@ -81,13 +83,21 @@ func (i *Isolate) GetHeapStatistics() HeapStatistics {
 
 // Dispose will dispose the Isolate VM; subsequent calls will panic.
 func (i *Isolate) Dispose() {
-	C.IsolateDispose(i.ptr)
-	i.ptr = nil
+	i.finalizer()
 }
 
 // Close is Deprecated. Use `iso.Dispose()`.
 func (i *Isolate) Close() {
 	i.Dispose()
+}
+
+func (i *Isolate) finalizer() {
+	defer runtime.SetFinalizer(i, nil)
+	if i.ptr == nil {
+		return
+	}
+	C.IsolateDispose(i.ptr)
+	i.ptr = nil
 }
 
 func (i *Isolate) apply(opts *contextOptions) {
