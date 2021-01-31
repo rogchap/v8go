@@ -197,6 +197,16 @@ void ObjectTemplateSetObjectTemplate(ObjectTemplatePtr ptr, const char* name, Ob
 
 /********** Context **********/
 
+#define LOCAL_CONTEXT(ctx_ptr) \
+  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr); \
+  Isolate* iso = ctx->iso; \
+  Locker locker(iso); \
+  Isolate::Scope isolate_scope(iso); \
+  HandleScope handle_scope(iso); \
+  TryCatch try_catch(iso); \
+  Local<Context> local_ctx = ctx->ptr.Get(iso); \
+  Context::Scope context_scope(local_ctx); \
+
 ContextPtr NewContext(IsolatePtr iso_ptr,
                       ObjectTemplatePtr global_template_ptr) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
@@ -222,15 +232,7 @@ ContextPtr NewContext(IsolatePtr iso_ptr,
 }
 
 RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
-  Isolate* iso = ctx->iso;
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-  TryCatch try_catch(iso);
-
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
-  Context::Scope context_scope(local_ctx);
+  LOCAL_CONTEXT(ctx_ptr);
 
   Local<String> src =
       String::NewFromUtf8(iso, source, NewStringType::kNormal).ToLocalChecked();
@@ -245,7 +247,7 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  MaybeLocal<v8::Value> result = script.ToLocalChecked()->Run(local_ctx);
+  MaybeLocal<Value> result = script.ToLocalChecked()->Run(local_ctx);
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
@@ -258,6 +260,36 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   rtn.value = static_cast<ValuePtr>(val);
   return rtn;
 }
+
+RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
+  LOCAL_CONTEXT(ctx_ptr);
+  RtnValue rtn = {nullptr, nullptr};
+
+  MaybeLocal<Value> result = JSON::Parse(local_ctx, String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocalChecked());
+  if (result.IsEmpty()) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx_ptr = ctx;
+  val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+
+  rtn.value = static_cast<ValuePtr>(val);
+  return rtn;
+}
+
+const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
+    LOCAL_CONTEXT(ctx_ptr);
+    m_value* val = static_cast<m_value*>(val_ptr);
+    MaybeLocal<String> str = JSON::Stringify(local_ctx, val->ptr.Get(iso));
+    if (str.IsEmpty()) {
+        return nullptr;
+    }
+    String::Utf8Value json(iso, str.ToLocalChecked());
+    return CopyString(json);
+}
+
 
 void ContextDispose(ContextPtr ptr) {
   if (ptr == nullptr) {

@@ -77,6 +77,23 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	return getValue(c, rtn), getError(rtn)
 }
 
+// JSONParse tries to parse the string and returns it as *Value if successful.
+// error will be of type `JSError` of not nil.
+func (c *Context) JSONParse(str string) (*Value, error) {
+	cstr := C.CString(str)
+	defer C.free(unsafe.Pointer(cstr))
+
+	rtn := C.JSONParse(c.ptr, cstr)
+	return getValue(c, rtn), getError(rtn)
+}
+
+// JSONStringify tries to stringify the JSON-serializable object value and returns it as string.
+func (c *Context) JSONStringify(val *Value) string {
+	str := C.JSONStringify(c.ptr, val.ptr)
+	defer C.free(unsafe.Pointer(str))
+	return C.GoString(str)
+}
+
 // Close will dispose the context and free the memory.
 func (c *Context) Close() {
 	c.finalizer()

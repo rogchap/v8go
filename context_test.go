@@ -110,3 +110,23 @@ func ExampleContext_globalTemplate() {
 	// Output:
 	// v1.0.0
 }
+
+func ExampleContext_parse() {
+	ctx, _ := v8go.NewContext()
+	val, _ := ctx.JSONParse(`{"foo": "bar"}`)
+	fmt.Println(val)
+	// Output:
+	// [object Object]
+}
+
+func ExampleContext_stringify() {
+	ctx, _ := v8go.NewContext()
+	val, _ := ctx.JSONParse(`{
+		"a": 1,
+		"b": "foo"
+	}`)
+	jsonStr := ctx.JSONStringify(val)
+	fmt.Println(jsonStr)
+	// Output:
+	// {"a":1,"b":"foo"}
+}
