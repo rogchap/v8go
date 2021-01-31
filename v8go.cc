@@ -702,6 +702,19 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   return value->IsModuleNamespaceObject();
 }
 
+/********** Object **********/
+
+#define LOCAL_OBJECT(ptr)                           \
+    LOCAL_VALUE(ptr) \
+    Local<Object> obj = value.As<Object>() \
+
+void ObjectSet(ValuePtr ptr, const char* name, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  Local<String> key = String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = static_cast<m_value*>(val_ptr);
+  obj->Set(ctx->ptr.Get(iso), key, val->ptr.Get(iso));
+}
+
 /********** Version **********/
 
 const char* Version() {

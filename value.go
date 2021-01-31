@@ -18,6 +18,14 @@ type Value struct {
 	ctx *Context
 }
 
+type valuer interface {
+	value() *Value
+}
+
+func (v *Value) value() *Value {
+	return v
+}
+
 // NewValue will create a primitive value. Supported values types to create are:
 //   string -> V8::String
 //   int32 -> V8::Integer
@@ -190,8 +198,8 @@ func (v *Value) Number() float64 {
 // Object perform the equivalent of Object(value) in JS.
 // To just cast this value as an Object use AsObject() instead.
 func (v *Value) Object() *Object {
-	valPtr := C.ValueToObject(v.ptr)
-	val := &Value{valPtr}
+	ptr := C.ValueToObject(v.ptr)
+	val := &Value{ptr}
 	runtime.SetFinalizer(val, (*Value).finalizer)
 	return &Object{val}
 }

@@ -138,6 +138,8 @@ int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
+extern void ObjectSet(ValuePtr ptr, const char* name, ValuePtr val_ptr) {
+
 const char* Version();
 
 #ifdef __cplusplus
