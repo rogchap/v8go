@@ -40,6 +40,9 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 	if iso == nil {
 		return nil, errors.New("v8go: failed to create new FunctionTemplate: Isolate cannot be <nil>")
 	}
+	if callback == nil {
+		return nil, errors.New("v8go: failed to create new FunctionTemplate: FunctionCallback cannot be <nil>")
+	}
 
 	cbref := iso.registerCallback(callback)
 

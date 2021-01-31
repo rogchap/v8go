@@ -52,6 +52,26 @@ func TestGetHeapStatistics(t *testing.T) {
 	}
 }
 
+func TestCallbackRegistry(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	cb := func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }
+
+	cb0 := iso.GetCallback(0)
+	if cb0 != nil {
+		t.Error("expected callback function to be <nil>")
+	}
+	ref1 := iso.RegisterCallback(cb)
+	if ref1 != 1 {
+		t.Errorf("expected callback ref == 1, got %d", ref1)
+	}
+	cb1 := iso.GetCallback(1)
+	if fmt.Sprintf("%p", cb1) != fmt.Sprintf("%p", cb) {
+		t.Errorf("unexpected callback function; want %p, got %p", cb, cb1)
+	}
+}
+
 func BenchmarkIsolateInitialization(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {

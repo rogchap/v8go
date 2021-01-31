@@ -11,8 +11,24 @@ import (
 )
 
 func TestFunctionTemplate(t *testing.T) {
-	//TODO: write proper tests
+	t.Parallel()
 
+	if _, err := v8go.NewFunctionTemplate(nil, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+
+	iso, _ := v8go.NewIsolate()
+	if _, err := v8go.NewFunctionTemplate(iso, nil); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+
+	fn, err := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil })
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if fn == nil {
+		t.Error("expected FunctionTemplate, but got <nil>")
+	}
 }
 
 func ExampleFunctionTemplate() {
