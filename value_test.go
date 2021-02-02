@@ -333,8 +333,6 @@ func TestValueBigInt(t *testing.T) {
 			ctx, _ := v8go.NewContext(iso)
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			b := val.BigInt()
-			fmt.Printf("b = %+v\n", b)
-			fmt.Printf("tt = %+v\n", tt)
 			if b == nil && tt.expected != nil {
 				t.Errorf("uexpected <nil> value")
 				return

@@ -43,12 +43,32 @@ func TestGetHeapStatistics(t *testing.T) {
 
 	hs := iso.GetHeapStatistics()
 
-	if hs.NumberOfNativeContexts != 2 {
-		t.Error("expect NumberOfNativeContexts return 2, got", hs.NumberOfNativeContexts)
+	if hs.NumberOfNativeContexts != 3 {
+		t.Error("expect NumberOfNativeContexts return 3, got", hs.NumberOfNativeContexts)
 	}
 
 	if hs.NumberOfDetachedContexts != 0 {
 		t.Error("expect NumberOfDetachedContexts return 0, got", hs.NumberOfDetachedContexts)
+	}
+}
+
+func TestCallbackRegistry(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	cb := func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }
+
+	cb0 := iso.GetCallback(0)
+	if cb0 != nil {
+		t.Error("expected callback function to be <nil>")
+	}
+	ref1 := iso.RegisterCallback(cb)
+	if ref1 != 1 {
+		t.Errorf("expected callback ref == 1, got %d", ref1)
+	}
+	cb1 := iso.GetCallback(1)
+	if fmt.Sprintf("%p", cb1) != fmt.Sprintf("%p", cb) {
+		t.Errorf("unexpected callback function; want %p, got %p", cb, cb1)
 	}
 }
 
