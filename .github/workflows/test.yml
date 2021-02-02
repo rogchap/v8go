@@ -12,17 +12,17 @@ jobs:
     name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
     strategy:
       matrix:
-        go-version: [1.12.17, 1.15.6]
+        go-version: [1.12.17, 1.15.7]
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Go Test
       run: go test -v -coverprofile c.out ./...
     - name: Upload coverage to Codecov
