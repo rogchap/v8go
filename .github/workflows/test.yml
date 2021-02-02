@@ -34,6 +34,7 @@ jobs:
         files: ./c.out
         env_vars: OS,GO
     - name: Scan and upload FOSSA data
-      uses: fossa-contrib/fossa-action@v1
-      with:
-        fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
+      run: |
+        curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+        fossa init
+        fossa analyze
