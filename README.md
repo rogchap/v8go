@@ -1,7 +1,8 @@
 # Execute JavaScript from Go
 
 <a href="https://github.com/rogchap/v8go/releases"><img src="https://img.shields.io/github/v/release/rogchap/v8go" alt="Github release"></a>
-[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
+[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frogchap%2Fv8go.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Frogchap%2Fv8go?ref=badge_shield)
+
 [![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
 [![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
 ![V8 Build](https://github.com/rogchap/v8go/workflows/V8%20Build/badge.svg)
@@ -161,3 +162,7 @@ Go has `go fmt`, C has `clang-format`. Any changes to the `v8go.h|cc` should be 
 ---
 
 V8 Gopher image based on original artwork from the amazing [Renee French](http://reneefrench.blogspot.com).
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Frogchap%2Fv8go.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Frogchap%2Fv8go?ref=badge_large)
