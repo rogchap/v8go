@@ -33,4 +33,3 @@ jobs:
       with:
         files: ./c.out
         env_vars: OS,GO
-        verbose: true
