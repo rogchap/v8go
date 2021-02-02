@@ -33,3 +33,7 @@ jobs:
       with:
         files: ./c.out
         env_vars: OS,GO
+    - name: Scan and upload FOSSA data
+      uses: fossa-contrib/fossa-action@v1
+      with:
+        fossa-api-key: ${{ secrets.FOSSA_API_KEY }}
