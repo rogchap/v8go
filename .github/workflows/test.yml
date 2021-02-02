@@ -24,4 +24,13 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v1
     - name: Go Test
-      run: go test -v -cover ./...
+      run: go test -v -coverprofile c.out ./...
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      env:
+        OS: ${{ matrix.platform }}
+        GO: ${{ matrix.go-version }}
+      with:
+        files: ./c.out
+        env_vars: OS,GO
+        verbose: true
