@@ -366,7 +366,7 @@ RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
   }
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx_ptr = ctx;
+  val->ctx.Reset(iso, local_ctx);
   val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
   rtn.value = static_cast<ValuePtr>(val);
