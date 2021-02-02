@@ -23,14 +23,14 @@ typedef struct {
 
 typedef struct {
   Persistent<Value> ptr;
+  Persistent<Context> ctx;
   Isolate* iso;
-  m_ctx* ctx_ptr;
 } m_value;
 
 typedef struct {
-  Persistent<ObjectTemplate> ptr;
+  Persistent<Template> ptr;
   Isolate* iso;
-} m_object_template;
+} m_template;
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -93,11 +93,11 @@ extern "C" {
 
 /********** Isolate **********/
 
-#define ISOLATE_SCOPE(iso_ptr) \
+#define ISOLATE_SCOPE(iso_ptr)                   \
   Isolate* iso = static_cast<Isolate*>(iso_ptr); \
-  Locker locker(iso); \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso); \
+  Locker locker(iso);                            \
+  Isolate::Scope isolate_scope(iso);             \
+  HandleScope handle_scope(iso);
 
 void Init() {
 #ifdef _WIN32
@@ -111,7 +111,20 @@ void Init() {
 IsolatePtr NewIsolate() {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
-  return static_cast<IsolatePtr>(Isolate::New(params));
+  Isolate* iso = Isolate::New(params);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  iso->SetCaptureStackTraceForUncaughtExceptions(true);
+
+  // Create a Context for internal use
+  m_ctx* ctx = new m_ctx;
+  ctx->ptr.Reset(iso, Context::New(iso));
+  ctx->iso = iso;
+  iso->SetData(0, ctx);
+
+  return static_cast<IsolatePtr>(iso);
 }
 
 void IsolateDispose(IsolatePtr ptr) {
@@ -119,6 +132,10 @@ void IsolateDispose(IsolatePtr ptr) {
     return;
   }
   Isolate* iso = static_cast<Isolate*>(ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+  ctx->ptr.Reset();
+  delete ctx;
+
   iso->Dispose();
 }
 
@@ -148,51 +165,110 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
                             hs.number_of_detached_contexts()};
 }
 
+/********** Template **********/
+
+#define LOCAL_TEMPLATE(ptr)                       \
+  m_template* ot = static_cast<m_template*>(ptr); \
+  Isolate* iso = ot->iso;                         \
+  Locker locker(iso);                             \
+  Isolate::Scope isolate_scope(iso);              \
+  HandleScope handle_scope(iso);                  \
+  Local<Template> tmpl = ot->ptr.Get(iso);
+
+void TemplateFree(TemplatePtr ptr) {
+  delete static_cast<m_template*>(ptr);
+}
+
+void TemplateSetValue(TemplatePtr ptr,
+                      const char* name,
+                      ValuePtr val_ptr,
+                      int attributes) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<String> prop_name =
+      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = static_cast<m_value*>(val_ptr);
+  tmpl->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
+}
+
+void TemplateSetTemplate(TemplatePtr ptr,
+                         const char* name,
+                         TemplatePtr obj_ptr,
+                         int attributes) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<String> prop_name =
+      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
+  m_template* obj = static_cast<m_template*>(obj_ptr);
+  tmpl->Set(prop_name, obj->ptr.Get(iso), (PropertyAttribute)attributes);
+}
+
 /********** ObjectTemplate **********/
 
-#define LOCAL_OBJECT_TEMPLATE(ptr)                              \
-  m_object_template* ot = static_cast<m_object_template*>(ptr); \
-  Isolate* iso = ot->iso;                                       \
-  Locker locker(iso);                                           \
-  Isolate::Scope isolate_scope(iso);                            \
-  HandleScope handle_scope(iso);                                \
-  Local<ObjectTemplate> object_template = ot->ptr.Get(iso);
-
-ObjectTemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
+TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
-  m_object_template* ot = new m_object_template;
+  m_template* ot = new m_template;
   ot->iso = iso;
   ot->ptr.Reset(iso, ObjectTemplate::New(iso));
-  return static_cast<ObjectTemplatePtr>(ot);
+  return static_cast<TemplatePtr>(ot);
+}
+/********** FunctionTemplate **********/
+
+static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
+  Isolate* iso_ptr = info.GetIsolate();
+  ISOLATE_SCOPE(iso_ptr);
+
+  // This callback function can be called from any Context, which we only know
+  // at runtime. We extract the Context reference from the embedder data so that
+  // we can use the context registry to match the Context on the Go side
+  Local<Context> local_ctx = iso->GetCurrentContext();
+  int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
+
+  int callback_ref = info.Data().As<Integer>()->Value();
+
+  int args_count = info.Length();
+  ValuePtr args[args_count];
+  for (int i = 0; i < args_count; i++) {
+    m_value* val = new m_value;
+    val->iso = iso;
+    val->ctx.Reset(iso, local_ctx);
+    val->ptr.Reset(iso, Persistent<Value>(iso, info[i]));
+    args[i] = static_cast<ValuePtr>(val);
+  }
+
+  ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* args,
+                              int args_count);
+  ValuePtr val_ptr =
+      goFunctionCallback(ctx_ref, callback_ref, args, args_count);
+  if (val_ptr != nullptr) {
+    m_value* val = static_cast<m_value*>(val_ptr);
+    info.GetReturnValue().Set(val->ptr.Get(iso));
+  } else {
+    info.GetReturnValue().SetUndefined();
+  }
 }
 
-void ObjectTemplateDispose(ObjectTemplatePtr ptr) {
-  delete static_cast<m_object_template*>(ptr);
-}
+TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
 
-void ObjectTemplateSetValue(ObjectTemplatePtr ptr,
-                       const char* name,
-                       ValuePtr val_ptr,
-                       int attributes) {
-  LOCAL_OBJECT_TEMPLATE(ptr);
+  // (rogchap) We only need to store one value, callback_ref, into the
+  // C++ callback function data, but if we needed to store more items we could
+  // use an V8::Array; this would require the internal context from
+  // iso->GetData(0)
+  Local<Integer> cbData = Integer::New(iso, callback_ref);
 
-  Local<String> prop_name =
-      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_value* val = static_cast<m_value*>(val_ptr);
-  object_template->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
-}
-
-void ObjectTemplateSetObjectTemplate(ObjectTemplatePtr ptr, const char* name, ObjectTemplatePtr obj_ptr, int attributes) {
-  LOCAL_OBJECT_TEMPLATE(ptr);
-
-  Local<String> prop_name =
-      String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_object_template* obj = static_cast<m_object_template*>(obj_ptr);
-  object_template->Set(prop_name, obj->ptr.Get(iso), (PropertyAttribute)attributes);
+  m_template* ot = new m_template;
+  ot->iso = iso;
+  ot->ptr.Reset(iso,
+                FunctionTemplate::New(iso, FunctionTemplateCallback, cbData));
+  return static_cast<TemplatePtr>(ot);
 }
 
 /********** Context **********/
@@ -208,7 +284,8 @@ void ObjectTemplateSetObjectTemplate(ObjectTemplatePtr ptr, const char* name, Ob
   Context::Scope context_scope(local_ctx); \
 
 ContextPtr NewContext(IsolatePtr iso_ptr,
-                      ObjectTemplatePtr global_template_ptr) {
+                      TemplatePtr global_template_ptr,
+                      int ref) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
@@ -216,19 +293,36 @@ ContextPtr NewContext(IsolatePtr iso_ptr,
 
   Local<ObjectTemplate> global_template;
   if (global_template_ptr != nullptr) {
-    m_object_template* ob =
-        static_cast<m_object_template*>(global_template_ptr);
-    global_template = ob->ptr.Get(iso);
+    m_template* ob = static_cast<m_template*>(global_template_ptr);
+    global_template = ob->ptr.Get(iso).As<ObjectTemplate>();
   } else {
     global_template = ObjectTemplate::New(iso);
   }
 
-  iso->SetCaptureStackTraceForUncaughtExceptions(true);
+  // For function callbacks we need a reference to the context, but because of
+  // the complexities of C -> Go function pointers, we store a reference to the
+  // context as a simple integer identifier; this can then be used on the Go
+  // side to lookup the context in the context registry. We use slot 1 as slot 0
+  // has special meaning for the Chrome debugger.
+  Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
+  local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
 
   m_ctx* ctx = new m_ctx;
-  ctx->ptr.Reset(iso, Context::New(iso, nullptr, global_template));
+  ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
   return static_cast<ContextPtr>(ctx);
+}
+
+void ContextFree(ContextPtr ptr) {
+  if (ptr == nullptr) {
+    return;
+  }
+  m_ctx* ctx = static_cast<m_ctx*>(ptr);
+  if (ctx == nullptr) {
+    return;
+  }
+  ctx->ptr.Reset();
+  delete ctx;
 }
 
 RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
@@ -254,7 +348,7 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   }
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx_ptr = ctx;
+  val->ctx.Reset(iso, local_ctx);
   val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
   rtn.value = static_cast<ValuePtr>(val);
@@ -290,29 +384,20 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
     return CopyString(json);
 }
 
-
-void ContextDispose(ContextPtr ptr) {
-  if (ptr == nullptr) {
-    return;
-  }
-  m_ctx* ctx = static_cast<m_ctx*>(ptr);
-  if (ctx == nullptr) {
-    return;
-  }
-  ctx->ptr.Reset();
-  delete ctx;
-}
-
 /********** Value **********/
 
-#define LOCAL_VALUE(ptr)                           \
-  m_value* val = static_cast<m_value*>(ptr);       \
-  m_ctx* ctx = val->ctx_ptr;                       \
-  Isolate* iso = val->iso;                         \
-  Locker locker(iso);                              \
-  Isolate::Scope isolate_scope(iso);               \
-  HandleScope handle_scope(iso);                   \
-  Context::Scope context_scope(ctx->ptr.Get(iso)); \
+#define LOCAL_VALUE(ptr)                               \
+  m_value* val = static_cast<m_value*>(ptr);           \
+  Isolate* iso = val->iso;                             \
+  Locker locker(iso);                                  \
+  Isolate::Scope isolate_scope(iso);                   \
+  HandleScope handle_scope(iso);                       \
+  Local<Context> local_ctx = val->ctx.Get(iso);        \
+  if (local_ctx.IsEmpty()) {                           \
+    m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0)); \
+    local_ctx = ctx->ptr.Get(iso);                     \
+  }                                                    \
+  Context::Scope context_scope(local_ctx);             \
   Local<Value> value = val->ptr.Get(iso);
 
 ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
@@ -335,7 +420,8 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(iso, String::NewFromUtf8(iso, v).ToLocalChecked()));
+  val->ptr.Reset(iso, Persistent<Value>(
+                          iso, String::NewFromUtf8(iso, v).ToLocalChecked()));
   return static_cast<ValuePtr>(val);
 }
 
@@ -371,29 +457,32 @@ ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
   return static_cast<ValuePtr>(val);
 }
 
-ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_count, const uint64_t* words) {
+ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
+                                 int sign_bit,
+                                 int word_count,
+                                 const uint64_t* words) {
   ISOLATE_SCOPE(iso_ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+
   m_value* val = new m_value;
   val->iso = iso;
-
-  // V8::BigInt::NewFromWords requires a context, which is different from all the other V8::Primitive types
-  // It seems that the implementation just gets the Isolate from the Context and nothing else, so this function
-  // should really only need the Isolate.
-  // We'll have to create a temp context to hold the Isolate to create the BigInt.
-  Local<Context> ctx = Context::New(iso);
-
-  MaybeLocal<BigInt> bigint = BigInt::NewFromWords(ctx, sign_bit, word_count, words);
+  MaybeLocal<BigInt> bigint =
+      BigInt::NewFromWords(ctx->ptr.Get(iso), sign_bit, word_count, words);
   val->ptr.Reset(iso, Persistent<Value>(iso, bigint.ToLocalChecked()));
   return static_cast<ValuePtr>(val);
 }
 
-void ValueDispose(ValuePtr ptr) {
-  delete static_cast<m_value*>(ptr);
+void ValueFree(ValuePtr ptr) {
+  if (ptr == nullptr) {
+    return;
+  }
+  m_value* val = static_cast<m_value*>(ptr);
+  delete val;
 }
 
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  MaybeLocal<Uint32> array_index = value->ToArrayIndex(ctx->ptr.Get(iso));
+  MaybeLocal<Uint32> array_index = value->ToArrayIndex(local_ctx);
   if (array_index.IsEmpty()) {
     return nullptr;
   }
@@ -410,23 +499,22 @@ int ValueToBoolean(ValuePtr ptr) {
 
 int32_t ValueToInt32(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->Int32Value(ctx->ptr.Get(iso)).ToChecked();
+  return value->Int32Value(local_ctx).ToChecked();
 }
 
 int64_t ValueToInteger(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->IntegerValue(ctx->ptr.Get(iso)).ToChecked();
+  return value->IntegerValue(local_ctx).ToChecked();
 }
 
 double ValueToNumber(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->NumberValue(ctx->ptr.Get(iso)).ToChecked();
+  return value->NumberValue(local_ctx).ToChecked();
 }
 
 const char* ValueToDetailString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  String::Utf8Value ds(
-      iso, value->ToDetailString(ctx->ptr.Get(iso)).ToLocalChecked());
+  String::Utf8Value ds(iso, value->ToDetailString(local_ctx).ToLocalChecked());
   return CopyString(ds);
 }
 
@@ -438,12 +526,12 @@ const char* ValueToString(ValuePtr ptr) {
 
 uint32_t ValueToUint32(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  return value->Uint32Value(ctx->ptr.Get(iso)).ToChecked();
+  return value->Uint32Value(local_ctx).ToChecked();
 }
 
 ValueBigInt ValueToBigInt(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  MaybeLocal<BigInt> bint = value->ToBigInt(ctx->ptr.Get(iso));
+  MaybeLocal<BigInt> bint = value->ToBigInt(local_ctx);
   if (bint.IsEmpty()) {
     return {nullptr, 0};
   }

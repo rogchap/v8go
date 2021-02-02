@@ -10,7 +10,7 @@ extern "C" {
 typedef void* IsolatePtr;
 typedef void* ContextPtr;
 typedef void* ValuePtr;
-typedef void* ObjectTemplatePtr;
+typedef void* TemplatePtr;
 
 typedef struct {
   const char* msg;
@@ -50,21 +50,27 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
-                             ObjectTemplatePtr global_template_ptr);
-extern void ContextDispose(ContextPtr ptr);
+                             TemplatePtr global_template_ptr,
+                             int ref);
+extern void ContextFree(ContextPtr ptr);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
 const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
 
-extern ObjectTemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
-extern void ObjectTemplateDispose(ObjectTemplatePtr ptr);
-extern void ObjectTemplateSetValue(ObjectTemplatePtr ptr,
-                              const char* name,
-                              ValuePtr val_ptr,
-                              int attributes);
-extern void ObjectTemplateSetObjectTemplate(ObjectTemplatePtr ptr, const char* name, ObjectTemplatePtr obj_ptr, int attributes);
+extern void TemplateFree(TemplatePtr ptr);
+extern void TemplateSetValue(TemplatePtr ptr,
+                             const char* name,
+                             ValuePtr val_ptr,
+                             int attributes);
+extern void TemplateSetTemplate(TemplatePtr ptr,
+                                const char* name,
+                                TemplatePtr obj_ptr,
+                                int attributes);
+
+extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
+extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
@@ -73,8 +79,11 @@ extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
 extern ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v);
-extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_count, const uint64_t* words);
-extern void ValueDispose(ValuePtr ptr);
+extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
+                                        int sign_bit,
+                                        int word_count,
+                                        const uint64_t* words);
+extern void ValueFree(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
