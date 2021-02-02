@@ -74,12 +74,14 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			rtnVal = &Value{
 				ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v.Int64())),
 			}
+			break
 		}
 
 		if v.IsUint64() {
 			rtnVal = &Value{
 				ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v.Uint64())),
 			}
+			break
 		}
 
 		var sign, count int

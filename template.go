@@ -52,8 +52,8 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 	return nil
 }
 
-func (o *template) finalizer() {
-	C.TemplateFree(o.ptr)
-	o.ptr = nil
-	runtime.SetFinalizer(o, nil)
+func (t *template) finalizer() {
+	C.TemplateFree(t.ptr)
+	t.ptr = nil
+	runtime.SetFinalizer(t, nil)
 }

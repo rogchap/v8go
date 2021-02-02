@@ -86,7 +86,7 @@ func (i *Isolate) Dispose() {
 	i.finalizer()
 }
 
-// Close is Deprecated. Use `iso.Dispose()`.
+// Deprecated: use `iso.Dispose()`.
 func (i *Isolate) Close() {
 	i.Dispose()
 }

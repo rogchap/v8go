@@ -55,15 +55,15 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 }
 
 //export goFunctionCallback
-func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, args_count int) C.ValuePtr {
+func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, argsCount int) C.ValuePtr {
 	ctx := getContext(ctxref)
 
 	info := &FunctionCallbackInfo{
 		ctx:  ctx,
-		args: make([]*Value, args_count),
+		args: make([]*Value, argsCount),
 	}
 
-	argv := (*[1 << 30]C.ValuePtr)(unsafe.Pointer(args))[:args_count:args_count]
+	argv := (*[1 << 30]C.ValuePtr)(unsafe.Pointer(args))[:argsCount:argsCount]
 	for i, v := range argv {
 		val := &Value{ptr: v}
 		runtime.SetFinalizer(val, (*Value).finalizer)

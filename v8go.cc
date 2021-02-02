@@ -221,14 +221,14 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   Isolate* iso_ptr = info.GetIsolate();
   ISOLATE_SCOPE(iso_ptr);
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
 
-  Local<Array> cbData = info.Data().As<Array>();
-  int callback_ref =
-      cbData->Get(ctx->ptr.Get(iso), 0).ToLocalChecked().As<Integer>()->Value();
-
+  // This callback function can be called from any Context, which we only know
+  // at runtime. We extract the Context reference from the embedder data so that
+  // we can use the context registry to match the Context on the Go side
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
+
+  int callback_ref = info.Data().As<Integer>()->Value();
 
   int args_count = info.Length();
   ValuePtr args[args_count];
@@ -258,12 +258,11 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
-  Context::Scope context_scope(local_ctx);
-
-  Local<Array> cbData = Array::New(iso, 1);
-  Maybe<bool> set = cbData->Set(local_ctx, 0, Integer::New(iso, callback_ref));
+  // (rogchap) We only need to store one value, callback_ref, into the
+  // C++ callback function data, but if we needed to store more items we could
+  // use an V8::Array; this would require the internal context from
+  // iso->GetData(0)
+  Local<Integer> cbData = Integer::New(iso, callback_ref);
 
   m_template* ot = new m_template;
   ot->iso = iso;
@@ -290,6 +289,11 @@ ContextPtr NewContext(IsolatePtr iso_ptr,
     global_template = ObjectTemplate::New(iso);
   }
 
+  // For function callbacks we need a reference to the context, but because of
+  // the complexities of C -> Go function pointers, we store a reference to the
+  // context as a simple integer identifier; this can then be used on the Go
+  // side to lookup the context in the context registry. We use slot 1 as slot 0
+  // has special meaning for the Chrome debugger.
   Local<Context> local_ctx = Context::New(iso, nullptr, global_template);
   local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
 
