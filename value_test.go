@@ -1,6 +1,7 @@
 package v8go_test
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/big"
@@ -459,6 +460,57 @@ func TestValueIsXXX(t *testing.T) {
 			if !tt.assert(val) {
 				t.Errorf("value is false for %s", runtime.FuncForPC(reflect.ValueOf(tt.assert).Pointer()).Name())
 			}
+		})
+	}
+}
+
+func TestValueMarshalJSON(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+
+	tests := [...]struct {
+		name     string
+		val      func() *v8go.Value
+		expected []byte
+	}{
+		{
+			"primitive",
+			func() *v8go.Value {
+				val, _ := v8go.NewValue(iso, int32(0))
+				return val
+			},
+			[]byte("0"),
+		},
+		{
+			"object",
+			func() *v8go.Value {
+				ctx, _ := v8go.NewContext(iso)
+				val, _ := ctx.RunScript("let foo = {a:1, b:2}; foo", "test.js")
+				return val
+			},
+			[]byte(`{"a":1,"b":2}`),
+		},
+		{
+			"objectFunc",
+			func() *v8go.Value {
+				ctx, _ := v8go.NewContext(iso)
+				val, _ := ctx.RunScript("let foo = {a:1, b:()=>{}}; foo", "test.js")
+				return val
+			},
+			[]byte(`{"a":1}`),
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			val := tt.val()
+			json, _ := val.MarshalJSON()
+			if !bytes.Equal(json, tt.expected) {
+				t.Errorf("unexpected JSON value: %s", string(json))
+			}
+
 		})
 	}
 }

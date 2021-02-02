@@ -502,3 +502,12 @@ func (v *Value) finalizer() {
 	v.ptr = nil
 	runtime.SetFinalizer(v, nil)
 }
+
+// MarshalJSON implements the json.Marshaler interface.
+func (v *Value) MarshalJSON() ([]byte, error) {
+	jsonStr, err := JSONStringify(nil, v)
+	if err != nil {
+		return nil, err
+	}
+	return []byte(jsonStr), nil
+}

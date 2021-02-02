@@ -273,15 +273,15 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
 
 /********** Context **********/
 
-#define LOCAL_CONTEXT(ctx_ptr) \
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr); \
-  Isolate* iso = ctx->iso; \
-  Locker locker(iso); \
-  Isolate::Scope isolate_scope(iso); \
-  HandleScope handle_scope(iso); \
-  TryCatch try_catch(iso); \
+#define LOCAL_CONTEXT(ctx_ptr)                  \
+  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);    \
+  Isolate* iso = ctx->iso;                      \
+  Locker locker(iso);                           \
+  Isolate::Scope isolate_scope(iso);            \
+  HandleScope handle_scope(iso);                \
+  TryCatch try_catch(iso);                      \
   Local<Context> local_ctx = ctx->ptr.Get(iso); \
-  Context::Scope context_scope(local_ctx); \
+  Context::Scope context_scope(local_ctx);
 
 ContextPtr NewContext(IsolatePtr iso_ptr,
                       TemplatePtr global_template_ptr,
@@ -359,7 +359,9 @@ RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
   LOCAL_CONTEXT(ctx_ptr);
   RtnValue rtn = {nullptr, nullptr};
 
-  MaybeLocal<Value> result = JSON::Parse(local_ctx, String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocalChecked());
+  MaybeLocal<Value> result = JSON::Parse(
+      local_ctx,
+      String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocalChecked());
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
@@ -374,14 +376,40 @@ RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
 }
 
 const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
-    LOCAL_CONTEXT(ctx_ptr);
-    m_value* val = static_cast<m_value*>(val_ptr);
-    MaybeLocal<String> str = JSON::Stringify(local_ctx, val->ptr.Get(iso));
-    if (str.IsEmpty()) {
-        return nullptr;
+  Isolate* iso;
+  Local<Context> local_ctx;
+
+  m_value* val = static_cast<m_value*>(val_ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
+
+  if (ctx != nullptr) {
+    iso = ctx->iso;
+  } else {
+    iso = val->iso;
+  }
+
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  if (ctx != nullptr) {
+    local_ctx = ctx->ptr.Get(iso);
+  } else {
+    local_ctx = val->ctx.Get(iso);
+    if (local_ctx.IsEmpty()) {
+      m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+      local_ctx = ctx->ptr.Get(iso);
     }
-    String::Utf8Value json(iso, str.ToLocalChecked());
-    return CopyString(json);
+  }
+
+  Context::Scope context_scope(local_ctx);
+
+  MaybeLocal<String> str = JSON::Stringify(local_ctx, val->ptr.Get(iso));
+  if (str.IsEmpty()) {
+    return nullptr;
+  }
+  String::Utf8Value json(iso, str.ToLocalChecked());
+  return CopyString(json);
 }
 
 /********** Value **********/

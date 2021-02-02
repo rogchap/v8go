@@ -3,13 +3,16 @@ package v8go
 // #include <stdlib.h>
 // #include "v8go.h"
 import "C"
-import "unsafe"
+import (
+	"errors"
+	"unsafe"
+)
 
 // JSONParse tries to parse the string and returns it as *Value if successful.
 // Any JS errors will be returned as `JSError`.
 func JSONParse(ctx *Context, str string) (*Value, error) {
 	if ctx == nil {
-		return nil, noContextErr
+		return nil, errors.New("v8go: Context is required")
 	}
 	cstr := C.CString(str)
 	defer C.free(unsafe.Pointer(cstr))
@@ -20,10 +23,13 @@ func JSONParse(ctx *Context, str string) (*Value, error) {
 
 // JSONStringify tries to stringify the JSON-serializable object value and returns it as string.
 func JSONStringify(ctx *Context, val *Value) (string, error) {
-	if ctx == nil {
-		return "", noContextErr
+	// If a nil context is passed we'll use the context/isolate that created the value.
+	var ctxPtr C.ContextPtr
+	if ctx != nil {
+		ctxPtr = ctx.ptr
 	}
-	str := C.JSONStringify(ctx.ptr, val.ptr)
+
+	str := C.JSONStringify(ctxPtr, val.ptr)
 	defer C.free(unsafe.Pointer(str))
 	return C.GoString(str), nil
 }

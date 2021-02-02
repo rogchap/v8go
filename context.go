@@ -4,14 +4,11 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
-	"errors"
 	"fmt"
 	"runtime"
 	"sync"
 	"unsafe"
 )
-
-var noContextErr = errors.New("v8go: valid Context is required")
 
 // Due to the limitations of passing pointers to C from Go we need to create
 // a registry so that we can lookup the Context from any given callback from V8.

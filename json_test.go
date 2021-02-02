@@ -6,7 +6,7 @@ import (
 	"rogchap.com/v8go"
 )
 
-func ExampleJSON_parse() {
+func ExampleJSONParse() {
 	ctx, _ := v8go.NewContext()
 	val, _ := v8go.JSONParse(ctx, `{"foo": "bar"}`)
 	fmt.Println(val)
@@ -14,7 +14,7 @@ func ExampleJSON_parse() {
 	// [object Object]
 }
 
-func ExampleJSON_stringify() {
+func ExampleJSONStringify() {
 	ctx, _ := v8go.NewContext()
 	val, _ := v8go.JSONParse(ctx, `{
 		"a": 1,
