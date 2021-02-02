@@ -1,10 +1,32 @@
 package v8go_test
 
 import (
+	"errors"
 	"fmt"
+	"testing"
 
 	"rogchap.com/v8go"
 )
+
+func TestJSONParse(t *testing.T) {
+	t.Parallel()
+
+	if _, err := v8go.JSONParse(nil, "{}"); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+	ctx, _ := v8go.NewContext()
+	_, err := v8go.JSONParse(ctx, "{")
+	if err == nil {
+		t.Error("expected error but got <nil>")
+		return
+	}
+
+	var jserr *v8go.JSError
+	if !errors.As(err, &jserr) {
+		t.Errorf("expected error to be of type JSError, got: %T", err)
+	}
+
+}
 
 func ExampleJSONParse() {
 	ctx, _ := v8go.NewContext()
