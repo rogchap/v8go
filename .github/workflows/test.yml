@@ -33,6 +33,8 @@ jobs:
       with:
         files: ./c.out
         env_vars: OS,GO
+    - name: Add GOPATH to GITHUB_ENV
+      run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
     - name: Scan and upload FOSSA data
       run: |
         curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
