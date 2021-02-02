@@ -12,16 +12,32 @@ jobs:
     name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
     strategy:
       matrix:
-        go-version: [1.12.17, 1.15.6]
+        go-version: [1.12.17, 1.15.7]
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     
     steps:
     - name: Install Go
-      uses: actions/setup-go@v1
+      uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
     - name: Go Test
-      run: go test -v -cover ./...
+      run: go test -v -coverprofile c.out ./...
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      env:
+        OS: ${{ matrix.platform }}
+        GO: ${{ matrix.go-version }}
+      with:
+        files: ./c.out
+        env_vars: OS,GO
+    - name: Add GOPATH to GITHUB_ENV
+      run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
+    - name: Scan and upload FOSSA data
+      run: |
+        curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
+        fossa analyze
+      env:
+        FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
