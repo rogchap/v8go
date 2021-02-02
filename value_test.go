@@ -499,6 +499,11 @@ func TestValueMarshalJSON(t *testing.T) {
 			},
 			[]byte(`{"a":1}`),
 		},
+		{
+			"nil",
+			func() *v8go.Value { return nil },
+			[]byte(""),
+		},
 	}
 
 	for _, tt := range tests {

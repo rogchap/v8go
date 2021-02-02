@@ -28,6 +28,7 @@ func TestObjectTemplate(t *testing.T) {
 	val, _ := v8go.NewValue(iso, "bar")
 	objVal, _ := v8go.NewObjectTemplate(iso)
 	bigbigint, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
+	bigbignegint, _ := new(big.Int).SetString("-36893488147419099136", 10)
 
 	tests := [...]struct {
 		name  string
@@ -40,7 +41,9 @@ func TestObjectTemplate(t *testing.T) {
 		{"u64", uint64(1)},
 		{"float64", float64(1)},
 		{"bigint", big.NewInt(1)},
+		{"biguint", new(big.Int).SetUint64(1 << 63)},
 		{"bigbigint", bigbigint},
+		{"bigbignegint", bigbignegint},
 		{"bool", true},
 		{"val", val},
 		{"obj", objVal},
