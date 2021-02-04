@@ -61,6 +61,33 @@ func TestJSExceptions(t *testing.T) {
 	}
 }
 
+func TestContextRegistry(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := v8go.NewContext()
+	ctxref := ctx.Ref()
+
+	c1 := v8go.GetContext(ctxref)
+	if c1 != nil {
+		t.Error("expected context to be <nil>")
+	}
+
+	ctx.Register()
+	c2 := v8go.GetContext(ctxref)
+	if c2 == nil {
+		t.Error("expected context, but got <nil>")
+	}
+	if c2 != ctx {
+		t.Errorf("contexts should match %p != %p", c2, ctx)
+	}
+	ctx.Deregister()
+
+	c3 := v8go.GetContext(ctxref)
+	if c3 != nil {
+		t.Error("expected context to be <nil>")
+	}
+}
+
 func BenchmarkContext(b *testing.B) {
 	b.ReportAllocs()
 	vm, _ := v8go.NewIsolate()

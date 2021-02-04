@@ -5,6 +5,8 @@
 [![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
 [![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
 ![V8 Build](https://github.com/rogchap/v8go/workflows/V8%20Build/badge.svg)
+[![codecov](https://codecov.io/gh/rogchap/v8go/branch/master/graph/badge.svg?token=VHZwzGm3dV)](https://codecov.io/gh/rogchap/v8go)
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git.svg?type=shield)](https://app.fossa.com/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git?ref=badge_shield)
 [![#v8go Slack Channel](https://img.shields.io/badge/slack-%23v8go-4A154B?logo=slack)](https://gophers.slack.com/channels/v8go)
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
@@ -123,6 +125,10 @@ example: using multiple return values to return both result and error from a fun
 exception.
 
 This project also aims to keep up-to-date with the latest (stable) release of V8.
+
+## License
+
+[![FOSSA Status](https://app.fossa.com/api/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git.svg?type=large)](https://app.fossa.com/projects/custom%2B22862%2Fgit%40github.com%3Arogchap%2Fv8go.git?ref=badge_large)
 
 ## Development
 
