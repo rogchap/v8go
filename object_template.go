@@ -45,6 +45,7 @@ func NewObjectTemplate(iso *Isolate) (*ObjectTemplate, error) {
 	return &ObjectTemplate{tmpl}, nil
 }
 
+// NewInstance creates a new Object based on the template.
 func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context cannot be <nil>")

@@ -2,15 +2,30 @@ package v8go_test
 
 import (
 	"fmt"
+	"testing"
 
 	"rogchap.com/v8go"
 )
 
+func TestObjectSet(t *testing.T) {
+
+}
+
+func TestObjectGet(t *testing.T) {
+
+}
+
+func TestObjectHas(t *testing.T) {
+
+}
+
+func TestObjectDelete(t *testing.T) {
+
+}
+
 func ExampleObject_global() {
 	iso, _ := v8go.NewIsolate()
-	obj, _ := v8go.NewObjectTemplate(iso)
-	obj.Set("version", "v1.0.0")
-	ctx, _ := v8go.NewContext(iso, obj)
+	ctx, _ := v8go.NewContext(iso)
 	global := ctx.Global()
 
 	console, _ := v8go.NewObjectTemplate(iso)

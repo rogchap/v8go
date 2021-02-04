@@ -446,6 +446,7 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
   Locker locker(iso);                                  \
   Isolate::Scope isolate_scope(iso);                   \
   HandleScope handle_scope(iso);                       \
+  TryCatch try_catch(iso);                      \
   Local<Context> local_ctx = val->ctx.Get(iso);        \
   if (local_ctx.IsEmpty()) {                           \
     m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0)); \
@@ -882,11 +883,11 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
     LOCAL_VALUE(ptr) \
     Local<Object> obj = value.As<Object>() \
 
-void ObjectSet(ValuePtr ptr, const char* name, ValuePtr val_ptr) {
+void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
-  Local<String> key = String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   m_value* prop_val = static_cast<m_value*>(val_ptr);
-  Maybe<bool> set = obj->Set(local_ctx, key, prop_val->ptr.Get(iso));
+  Maybe<bool> set = obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso));
 }
 
 void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
@@ -895,6 +896,42 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
   Maybe<bool> set = obj->Set(local_ctx, idx, prop_val->ptr.Get(iso));
 }
 
+RtnValue ObjectGet(ValuePtr ptr, const char* key) {
+  LOCAL_OBJECT(ptr);
+  RtnValue rtn = {nullptr, nullptr};
+
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  MaybeLocal<Value> result = obj->Get(local_ctx, key_val);
+  if (result.IsEmpty()) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx.Reset(iso, local_ctx);
+  val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+
+  rtn.value = static_cast<ValuePtr>(val);
+  return rtn;
+}
+
+RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+  RtnValue rtn = {nullptr, nullptr};
+
+  MaybeLocal<Value> result = obj->Get(local_ctx, idx);
+  if (result.IsEmpty()) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx.Reset(iso, local_ctx);
+  val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+
+  rtn.value = static_cast<ValuePtr>(val);
+  return rtn;
+}
 
 /********** Version **********/
 
