@@ -102,6 +102,20 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	return getValue(c, rtn), getError(rtn)
 }
 
+// Global returns the global proxy object.
+// Global proxy object is a thin wrapper whose prototype points to actual
+// context's global object with the properties like Object, etc. This is
+// done that way for security reasons.
+// Please note that changes to global proxy object prototype most probably
+// would break the VM — V8 expects only global object as a prototype of
+// global proxy object.
+func (c *Context) Global() *Object {
+	valPtr := C.ContextGlobal(c.ptr)
+	v := &Value{valPtr, c}
+	runtime.SetFinalizer(v, (*Value).finalizer)
+	return &Object{v}
+}
+
 // Close will dispose the context and free the memory.
 func (c *Context) Close() {
 	c.finalizer()

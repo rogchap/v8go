@@ -18,7 +18,9 @@ type Value struct {
 	ctx *Context
 }
 
-type valuer interface {
+// Valuer is an interface that reperesents anything that extends from a Value
+// eg. Object, Array, Date etc
+type Valuer interface {
 	value() *Value
 }
 
@@ -201,7 +203,7 @@ func (v *Value) Number() float64 {
 // To just cast this value as an Object use AsObject() instead.
 func (v *Value) Object() *Object {
 	ptr := C.ValueToObject(v.ptr)
-	val := &Value{ptr}
+	val := &Value{ptr, v.ctx}
 	runtime.SetFinalizer(val, (*Value).finalizer)
 	return &Object{val}
 }

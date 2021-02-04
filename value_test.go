@@ -355,7 +355,7 @@ func TestValueObject(t *testing.T) {
 
 	tests := [...]struct {
 		source   string
-		expected func(obj *Object) bool
+		expected func(obj *v8go.Object) bool
 	}{}
 
 	for _, tt := range tests {

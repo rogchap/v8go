@@ -23,7 +23,6 @@ func TestJSONParse(t *testing.T) {
 	if _, ok := err.(*v8go.JSError); !ok {
 		t.Errorf("expected error to be of type JSError, got: %T", err)
 	}
-
 }
 
 func ExampleJSONParse() {

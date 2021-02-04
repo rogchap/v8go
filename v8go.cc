@@ -216,6 +216,23 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   ot->ptr.Reset(iso, ObjectTemplate::New(iso));
   return static_cast<TemplatePtr>(ot);
 }
+
+ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
+  LOCAL_TEMPLATE(ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  MaybeLocal<Object> obj = obj_tmpl->NewInstance(local_ctx);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx.Reset(iso, local_ctx);
+  val->ptr.Reset(iso, Persistent<Value>(iso, obj.ToLocalChecked()));
+  return static_cast<ValuePtr>(val);
+}
+
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
@@ -412,6 +429,15 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
   return CopyString(json);
 }
 
+ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
+  LOCAL_CONTEXT(ctx_ptr);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx.Reset(iso, local_ctx);
+  val->ptr.Reset(iso, Persistent<Value>(iso, local_ctx->Global()));
+  return static_cast<ValuePtr>(val);
+}
+
 /********** Value **********/
 
 #define LOCAL_VALUE(ptr)                               \
@@ -574,10 +600,10 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 
 ValuePtr ValueToObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  m_value* val = new m_value;
-  val->ctx_ptr = ctx;
-  val->ptr.Reset(iso, Persistent<Value>(iso, value.ToObject(ctx->ptr.Get(iso).ToLocalChecked()));
-  return static_cast<ValuePtr>(val);
+  m_value* new_val = new m_value;
+  new_val->ctx.Reset(iso, local_ctx);
+  new_val->ptr.Reset(iso, Persistent<Value>(iso, value->ToObject(local_ctx).ToLocalChecked()));
+  return static_cast<ValuePtr>(new_val);
 }
 
 int ValueIsUndefined(ValuePtr ptr) {
@@ -859,9 +885,16 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
 void ObjectSet(ValuePtr ptr, const char* name, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   Local<String> key = String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_value* val = static_cast<m_value*>(val_ptr);
-  obj->Set(ctx->ptr.Get(iso), key, val->ptr.Get(iso));
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+  Maybe<bool> set = obj->Set(local_ctx, key, prop_val->ptr.Get(iso));
 }
+
+void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+  Maybe<bool> set = obj->Set(local_ctx, idx, prop_val->ptr.Get(iso));
+}
+
 
 /********** Version **********/
 
