@@ -906,12 +906,12 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx.Reset(iso, local_ctx);
-  val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx.Reset(iso, local_ctx);
+  new_val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
-  rtn.value = static_cast<ValuePtr>(val);
+  rtn.value = static_cast<ValuePtr>(new_val);
   return rtn;
 }
 
@@ -924,12 +924,12 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx.Reset(iso, local_ctx);
-  val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx.Reset(iso, local_ctx);
+  new_val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
-  rtn.value = static_cast<ValuePtr>(val);
+  rtn.value = static_cast<ValuePtr>(new_val);
   return rtn;
 }
 
