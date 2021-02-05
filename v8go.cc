@@ -887,13 +887,13 @@ void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   m_value* prop_val = static_cast<m_value*>(val_ptr);
-  Maybe<bool> set = obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso));
+  obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
 
 void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   m_value* prop_val = static_cast<m_value*>(val_ptr);
-  Maybe<bool> set = obj->Set(local_ctx, idx, prop_val->ptr.Get(iso));
+  obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
 RtnValue ObjectGet(ValuePtr ptr, const char* key) {
@@ -931,6 +931,28 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
 
   rtn.value = static_cast<ValuePtr>(new_val);
   return rtn;
+}
+
+int ObjectHas(ValuePtr ptr, const char* key) {
+  LOCAL_OBJECT(ptr);
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  return obj->Has(local_ctx, key_val).ToChecked();
+}
+
+int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+  return obj->Has(local_ctx, idx).ToChecked();
+}
+
+int ObjectDelete(ValuePtr ptr, const char* key) {
+  LOCAL_OBJECT(ptr);
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  return obj->Delete(local_ctx, key_val).ToChecked();
+}
+
+int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+  return obj->Delete(local_ctx, idx).ToChecked();
 }
 
 /********** Version **********/

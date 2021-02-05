@@ -156,6 +156,10 @@ extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
 extern RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx);
+int ObjectHas(ValuePtr ptr, const char* key);
+int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
+int ObjectDelete(ValuePtr ptr, const char* key);
+int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
 
 const char* Version();
 
