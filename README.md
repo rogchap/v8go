@@ -20,7 +20,7 @@ import "rogchap.com/v8go"
 ### Running a script
 
 ```go
-ctx, _ := v8go.NewContext(nil) // creates a new V8 context with a new Isolate aka VM
+ctx, _ := v8go.NewContext() // creates a new V8 context with a new Isolate aka VM
 ctx.RunScript("const add = (a, b) => a + b", "math.js") // executes a script on the global context
 ctx.RunScript("const result = add(3, 4)", "main.js") // any functions previously added to the context can be called
 val, _ := ctx.RunScript("result", "value.js") // return a value in JavaScript back to Go
@@ -30,13 +30,42 @@ fmt.Printf("addition result: %s", val)
 ### One VM, many contexts
 
 ```go
-vm, _ := v8go.NewIsolate() // creates a new JavaScript VM
-ctx1, _ := v8go.NewContext(vm) // new context within the VM
+iso, _ := v8go.NewIsolate() // creates a new JavaScript VM
+ctx1, _ := v8go.NewContext(iso) // new context within the VM
 ctx1.RunScript("const multiply = (a, b) => a * b", "math.js")
 
-ctx2, _ := v8go.NewContext(vm) // another context on the same VM
+ctx2, _ := v8go.NewContext(iso) // another context on the same VM
 if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
   // this will error as multiply is not defined in this context
+}
+```
+
+### JavaScript function with Go callback
+
+```go
+iso, _ := v8go.NewIsolate() // create a new VM
+// a template that represents a JS function
+printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+    fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
+    return nil // you can return a value back to the JS caller if required
+})
+global, _ := v8go.NewObjectTemplate(iso) // a template that represents a JS Object
+global.Set("print", printfn) // sets the "print" property of the Object to our function
+ctx, _ := v8go.NewContext(iso, global) // new Context with the global Object set to our object template
+ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
+```
+
+### Update a JavaScript object from Go
+
+```go
+ctx, _ := v8go.NewContext() // new context with a default VM
+obj := ctx.Global() // get the global object from the context
+obj.Set("version", "v1.0.0") // set the property "version" on the object
+val, _ := ctx.RunScript("version", "version.js") // global object will have the property set within the JS VM
+fmt.Printf("version: %s", val)
+
+if obj.Has("version") { // check if a property exists on the object
+    obj.Delete("version") // remove the property from the object
 }
 ```
 
@@ -58,7 +87,6 @@ if err != nil {
 ### Terminate long running scripts
 
 ```go
-
 vals := make(chan *v8go.Value, 1)
 errs := make(chan error, 1)
 
@@ -85,7 +113,7 @@ case <- time.After(200 * time.Milliseconds):
 
 ## Documentation
 
-Go Reference: https://pkg.go.dev/rogchap.com/v8go
+Go Reference & more examples: https://pkg.go.dev/rogchap.com/v8go
 
 ### Support
 

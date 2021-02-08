@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.0] - 2021-02-08
+
 ### Added
 - Support for the BigInt value to the big.Int Go type
 - Create Object Templates with primitive values, including other Object Templates
@@ -13,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Function Templates with callbacks to Go
 - Value to Object type, including Get/Set/Has/Delete methods
 - Get Global Object from the Context
-- Convert a Object Template to an instance of an Object
+- Convert an Object Template to an instance of an Object
 
 ### Changed
 - NewContext() API has been improved to handle optional global object, as well as optional Isolate
