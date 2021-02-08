@@ -602,6 +602,7 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 ValuePtr ValueToObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   m_value* new_val = new m_value;
+  new_val->iso = iso;
   new_val->ctx.Reset(iso, local_ctx);
   new_val->ptr.Reset(iso, Persistent<Value>(iso, value->ToObject(local_ctx).ToLocalChecked()));
   return static_cast<ValuePtr>(new_val);
