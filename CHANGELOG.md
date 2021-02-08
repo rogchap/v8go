@@ -11,12 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create Object Templates with primitive values, including other Object Templates
 - Configure Object Template as the global object of any new Context
 - Function Templates with callbacks to Go
+- Value to Object type, including Get/Set/Has/Delete methods
+- Get Global Object from the Context
+- Convert a Object Template to an instance of an Object
 
 ### Changed
 - NewContext() API has been improved to handle optional global object, as well as optional Isolate
 - Package error messages are now prefixed with `v8go` rather than the struct name
 - Deprecated `iso.Close()` in favor of `iso.Dispose()` to keep consistancy with the C++ API
 - Upgraded V8 to 8.8.278.14
+- Licence BSD 3-Clause (same as V8 and Go)
 
 ## [v0.4.0] - 2021-01-14
 
