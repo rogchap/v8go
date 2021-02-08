@@ -351,6 +351,19 @@ func TestValueBigInt(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValueObject(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := v8go.NewContext()
+	val, _ := ctx.RunScript("1", "")
+	if _, err := val.AsObject(); err == nil {
+		t.Error("Expected error but got <nil>")
+	}
+	if obj := val.Object(); obj.String() != "1" {
+		t.Errorf("unexpected object value: %v", obj)
+	}
 
 }
 

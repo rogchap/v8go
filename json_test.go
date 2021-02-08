@@ -27,7 +27,15 @@ func TestJSONParse(t *testing.T) {
 	if _, ok := err.(*v8go.JSError); !ok {
 		t.Errorf("expected error to be of type JSError, got: %T", err)
 	}
+}
 
+func TestJSONStringify(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := v8go.NewContext()
+	if _, err := v8go.JSONStringify(ctx, nil); err == nil {
+		t.Error("expected error but got <nil>")
+	}
 }
 
 func ExampleJSONParse() {

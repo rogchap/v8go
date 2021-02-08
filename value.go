@@ -22,6 +22,16 @@ type Value struct {
 	ctx *Context
 }
 
+// Valuer is an interface that reperesents anything that extends from a Value
+// eg. Object, Array, Date etc
+type Valuer interface {
+	value() *Value
+}
+
+func (v *Value) value() *Value {
+	return v
+}
+
 // NewValue will create a primitive value. Supported values types to create are:
 //   string -> V8::String
 //   int32 -> V8::Integer
@@ -194,9 +204,12 @@ func (v *Value) Number() float64 {
 }
 
 // Object perform the equivalent of Object(value) in JS.
-func (v *Value) object() struct{} { // *Object
-	//TODO(rogchap): implement and export public API
-	panic("not implemented")
+// To just cast this value as an Object use AsObject() instead.
+func (v *Value) Object() *Object {
+	ptr := C.ValueToObject(v.ptr)
+	val := &Value{ptr, v.ctx}
+	runtime.SetFinalizer(val, (*Value).finalizer)
+	return &Object{val}
 }
 
 // String perform the equivalent of `String(value)` in JS. Primitive values
@@ -499,6 +512,16 @@ func (v *Value) IsWasmModuleObject() bool {
 func (v *Value) IsModuleNamespaceObject() bool {
 	// TODO(rogchap): requires test case
 	return C.ValueIsModuleNamespaceObject(v.ptr) != 0
+}
+
+// AsObject will cast the value to the Object type. If the value is not an Object
+// then an error is returned. Use `value.Object()` to do the JS equivalent of `Object(value)`.
+func (v *Value) AsObject() (*Object, error) {
+	if !v.IsObject() {
+		return nil, errors.New("value: unable to cast to Object; value is not an Object")
+	}
+
+	return &Object{v}, nil
 }
 
 func (v *Value) finalizer() {
