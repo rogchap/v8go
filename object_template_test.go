@@ -117,3 +117,20 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		})
 	}
 }
+
+func TestObjectTemplateNewInstance(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	tmpl, _ := v8go.NewObjectTemplate(iso)
+	if _, err := tmpl.NewInstance(nil); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+
+	tmpl.Set("foo", "bar")
+	ctx, _ := v8go.NewContext(iso)
+	obj, _ := tmpl.NewInstance(ctx)
+	if foo, _ := obj.Get("foo"); foo.String() != "bar" {
+		t.Errorf("unexpected value for object property: %v", foo)
+	}
+
+}

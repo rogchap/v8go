@@ -220,6 +220,23 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   ot->ptr.Reset(iso, ObjectTemplate::New(iso));
   return static_cast<TemplatePtr>(ot);
 }
+
+ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
+  LOCAL_TEMPLATE(ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  MaybeLocal<Object> obj = obj_tmpl->NewInstance(local_ctx);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx.Reset(iso, local_ctx);
+  val->ptr.Reset(iso, Persistent<Value>(iso, obj.ToLocalChecked()));
+  return static_cast<ValuePtr>(val);
+}
+
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
@@ -416,6 +433,15 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
   return CopyString(json);
 }
 
+ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
+  LOCAL_CONTEXT(ctx_ptr);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx.Reset(iso, local_ctx);
+  val->ptr.Reset(iso, Persistent<Value>(iso, local_ctx->Global()));
+  return static_cast<ValuePtr>(val);
+}
+
 /********** Value **********/
 
 #define LOCAL_VALUE(ptr)                               \
@@ -424,6 +450,7 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
   Locker locker(iso);                                  \
   Isolate::Scope isolate_scope(iso);                   \
   HandleScope handle_scope(iso);                       \
+  TryCatch try_catch(iso);                      \
   Local<Context> local_ctx = val->ctx.Get(iso);        \
   if (local_ctx.IsEmpty()) {                           \
     m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0)); \
@@ -574,6 +601,15 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
   bint.ToLocalChecked()->ToWordsArray(&sign_bit, &word_count, words);
   ValueBigInt rtn = {words, word_count, sign_bit};
   return rtn;
+}
+
+ValuePtr ValueToObject(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx.Reset(iso, local_ctx);
+  new_val->ptr.Reset(iso, Persistent<Value>(iso, value->ToObject(local_ctx).ToLocalChecked()));
+  return static_cast<ValuePtr>(new_val);
 }
 
 int ValueIsUndefined(ValuePtr ptr) {
@@ -844,6 +880,84 @@ int ValueIsWasmModuleObject(ValuePtr ptr) {
 int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsModuleNamespaceObject();
+}
+
+/********** Object **********/
+
+#define LOCAL_OBJECT(ptr)                           \
+    LOCAL_VALUE(ptr) \
+    Local<Object> obj = value.As<Object>() \
+
+void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+  obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
+}
+
+void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+  obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
+}
+
+RtnValue ObjectGet(ValuePtr ptr, const char* key) {
+  LOCAL_OBJECT(ptr);
+  RtnValue rtn = {nullptr, nullptr};
+
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  MaybeLocal<Value> result = obj->Get(local_ctx, key_val);
+  if (result.IsEmpty()) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx.Reset(iso, local_ctx);
+  new_val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+
+  rtn.value = static_cast<ValuePtr>(new_val);
+  return rtn;
+}
+
+RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+  RtnValue rtn = {nullptr, nullptr};
+
+  MaybeLocal<Value> result = obj->Get(local_ctx, idx);
+  if (result.IsEmpty()) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx.Reset(iso, local_ctx);
+  new_val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+
+  rtn.value = static_cast<ValuePtr>(new_val);
+  return rtn;
+}
+
+int ObjectHas(ValuePtr ptr, const char* key) {
+  LOCAL_OBJECT(ptr);
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  return obj->Has(local_ctx, key_val).ToChecked();
+}
+
+int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+  return obj->Has(local_ctx, idx).ToChecked();
+}
+
+int ObjectDelete(ValuePtr ptr, const char* key) {
+  LOCAL_OBJECT(ptr);
+  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  return obj->Delete(local_ctx, key_val).ToChecked();
+}
+
+int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+  return obj->Delete(local_ctx, idx).ToChecked();
 }
 
 /********** Version **********/

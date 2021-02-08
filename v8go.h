@@ -62,6 +62,7 @@ extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* origin);
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
 const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
+extern ValuePtr ContextGlobal(ContextPtr ctx_ptr);
 
 extern void TemplateFree(TemplatePtr ptr);
 extern void TemplateSetValue(TemplatePtr ptr,
@@ -74,6 +75,8 @@ extern void TemplateSetTemplate(TemplatePtr ptr,
                                 int attributes);
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
+extern ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
+
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
@@ -97,6 +100,7 @@ double ValueToNumber(ValuePtr ptr);
 const char* ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
+extern ValuePtr ValueToObject(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
 int ValueIsNullOrUndefined(ValuePtr ptr);
@@ -151,6 +155,15 @@ int ValueIsSharedArrayBuffer(ValuePtr ptr);
 int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
+
+extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
+extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
+extern RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx);
+int ObjectHas(ValuePtr ptr, const char* key);
+int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
+int ObjectDelete(ValuePtr ptr, const char* key);
+int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
 
 const char* Version();
 
