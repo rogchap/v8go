@@ -27,7 +27,7 @@ func JSONParse(ctx *Context, str string) (*Value, error) {
 
 // JSONStringify tries to stringify the JSON-serializable object value and returns it as string.
 func JSONStringify(ctx *Context, val Valuer) (string, error) {
-	if val.value() == nil {
+	if val == nil || val.value() == nil {
 		return "", errors.New("v8go: Value is required")
 	}
 	// If a nil context is passed we'll use the context/isolate that created the value.

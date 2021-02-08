@@ -118,7 +118,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 	}
 }
 
-func TestObjectTemplateNewInstace(t *testing.T) {
+func TestObjectTemplateNewInstance(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
 	tmpl, _ := v8go.NewObjectTemplate(iso)

@@ -29,6 +29,15 @@ func TestJSONParse(t *testing.T) {
 	}
 }
 
+func TestJSONStringify(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := v8go.NewContext()
+	if _, err := v8go.JSONStringify(ctx, nil); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+}
+
 func ExampleJSONParse() {
 	ctx, _ := v8go.NewContext()
 	val, _ := v8go.JSONParse(ctx, `{"foo": "bar"}`)
