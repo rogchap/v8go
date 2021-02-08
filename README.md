@@ -44,17 +44,18 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 
 ```go
 iso, _ := v8go.NewIsolate() // create a new VM
-printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value { // A template that represents a JS function
-    fmt.Printf("%v", info.Args()) // When the JS function is called this Go callback will execute
-    return nil // You can return a value back to the JS caller if required
+// a template that represents a JS function
+printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+    fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
+    return nil // you can return a value back to the JS caller if required
 })
-global, _ := v8go.NewObjectTemplate(iso) // A template that represents a JS Object
-global.Set("print", printfn) // sets the "print" property of the object to our function
-ctx, _ := v8go.NewContext(iso, global) // new Context with the global object set to our object template
+global, _ := v8go.NewObjectTemplate(iso) // a template that represents a JS Object
+global.Set("print", printfn) // sets the "print" property of the Object to our function
+ctx, _ := v8go.NewContext(iso, global) // new Context with the global Object set to our object template
 ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
 ```
 
-## Update a JS Object from Go
+### Update a JavaScript object from Go
 
 ```go
 ctx, _ := v8go.NewContext() // new context with a default VM
