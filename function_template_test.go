@@ -52,18 +52,32 @@ func ExampleFunctionTemplate() {
 func ExampleFunctionTemplate_fetch() {
 	iso, _ := v8go.NewIsolate()
 	global, _ := v8go.NewObjectTemplate(iso)
+
 	fetchfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		args := info.Args()
 		url := args[0].String()
-		res, _ := http.Get(url)
-		body, _ := ioutil.ReadAll(res.Body)
-		val, _ := v8go.NewValue(iso, string(body))
-		return val
+
+		resolver, _ := v8go.NewPromiseResolver(info.Context())
+
+		go func() {
+			res, _ := http.Get(url)
+			body, _ := ioutil.ReadAll(res.Body)
+			val, _ := v8go.NewValue(iso, string(body))
+			resolver.Resolve(val)
+		}()
+		return resolver.GetPromise().Value
 	})
 	global.Set("fetch", fetchfn, v8go.ReadOnly)
+
 	ctx, _ := v8go.NewContext(iso, global)
 	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
-	fmt.Printf("%s\n", strings.Split(val.String(), "\n")[0])
+	prom, _ := val.AsPromise()
+
+	// wait for the promise to resolve
+	for prom.State() == v8go.Pending {
+		continue
+	}
+	fmt.Printf("%s\n", strings.Split(prom.Result().String(), "\n")[0])
 	// Output:
 	// <!DOCTYPE html>
 }

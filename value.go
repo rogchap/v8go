@@ -518,10 +518,17 @@ func (v *Value) IsModuleNamespaceObject() bool {
 // then an error is returned. Use `value.Object()` to do the JS equivalent of `Object(value)`.
 func (v *Value) AsObject() (*Object, error) {
 	if !v.IsObject() {
-		return nil, errors.New("value: unable to cast to Object; value is not an Object")
+		return nil, errors.New("v8go: value is not an Object")
 	}
 
 	return &Object{v}, nil
+}
+
+func (v *Value) AsPromise() (*Promise, error) {
+	if !v.IsPromise() {
+		return nil, errors.New("v8go: value is not a Promise")
+	}
+	return &Promise{&Object{v}}, nil
 }
 
 func (v *Value) finalizer() {

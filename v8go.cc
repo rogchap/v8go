@@ -450,7 +450,7 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
   Locker locker(iso);                                  \
   Isolate::Scope isolate_scope(iso);                   \
   HandleScope handle_scope(iso);                       \
-  TryCatch try_catch(iso);                      \
+  TryCatch try_catch(iso);                             \
   Local<Context> local_ctx = val->ctx.Get(iso);        \
   if (local_ctx.IsEmpty()) {                           \
     m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0)); \
@@ -608,7 +608,8 @@ ValuePtr ValueToObject(ValuePtr ptr) {
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx.Reset(iso, local_ctx);
-  new_val->ptr.Reset(iso, Persistent<Value>(iso, value->ToObject(local_ctx).ToLocalChecked()));
+  new_val->ptr.Reset(
+      iso, Persistent<Value>(iso, value->ToObject(local_ctx).ToLocalChecked()));
   return static_cast<ValuePtr>(new_val);
 }
 
@@ -884,13 +885,14 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
 
 /********** Object **********/
 
-#define LOCAL_OBJECT(ptr)                           \
-    LOCAL_VALUE(ptr) \
-    Local<Object> obj = value.As<Object>() \
+#define LOCAL_OBJECT(ptr) \
+  LOCAL_VALUE(ptr)        \
+  Local<Object> obj = value.As<Object>()
 
 void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   m_value* prop_val = static_cast<m_value*>(val_ptr);
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
@@ -905,7 +907,8 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
 
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   MaybeLocal<Value> result = obj->Get(local_ctx, key_val);
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -940,7 +943,8 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
 
 int ObjectHas(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   return obj->Has(local_ctx, key_val).ToChecked();
 }
 
@@ -951,13 +955,68 @@ int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
 
 int ObjectDelete(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   return obj->Delete(local_ctx, key_val).ToChecked();
 }
 
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
   return obj->Delete(local_ctx, idx).ToChecked();
+}
+
+/********** Promise **********/
+
+ValuePtr NewPromiseResolver(ContextPtr ctx_ptr) {
+  LOCAL_CONTEXT(ctx_ptr);
+  MaybeLocal<Promise::Resolver> resolver = Promise::Resolver::New(local_ctx);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx.Reset(iso, local_ctx);
+  val->ptr.Reset(iso, Persistent<Value>(iso, resolver.ToLocalChecked()));
+  return static_cast<ValuePtr>(val);
+}
+
+ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
+  Local<Promise> promise = resolver->GetPromise();
+  m_value* promise_val = new m_value;
+  promise_val->iso = iso;
+  promise_val->ctx.Reset(iso, local_ctx);
+  promise_val->ptr.Reset(iso, Persistent<Value>(iso, promise));
+  return static_cast<ValuePtr>(promise_val);
+}
+
+int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr) {
+  LOCAL_VALUE(ptr);
+  Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
+  m_value* resolve_val = static_cast<m_value*>(val_ptr);
+  return resolver->Resolve(local_ctx, resolve_val->ptr.Get(iso)).ToChecked();
+}
+
+int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr) {
+  LOCAL_VALUE(ptr);
+  Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
+  m_value* reject_val = static_cast<m_value*>(val_ptr);
+  return resolver->Reject(local_ctx, reject_val->ptr.Get(iso)).ToChecked();
+}
+
+int PromiseState(ValuePtr ptr) {
+  LOCAL_VALUE(ptr)
+  Local<Promise> promise = value.As<Promise>();
+  return promise->State();
+}
+
+ValuePtr PromiseResult(ValuePtr ptr) {
+  LOCAL_VALUE(ptr)
+  Local<Promise> promise = value.As<Promise>();
+  Local<Value> result = promise->Result();
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx.Reset(iso, local_ctx);
+  result_val->ptr.Reset(iso, Persistent<Value>(iso, result));
+  return static_cast<ValuePtr>(result_val);
 }
 
 /********** Version **********/
