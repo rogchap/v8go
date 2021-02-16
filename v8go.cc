@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "libplatform/libplatform.h"
 #include "v8.h"
@@ -21,19 +22,20 @@ auto default_platform = platform::NewDefaultPlatform();
 auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
 typedef struct {
-  Persistent<Context> ptr;
   Isolate* iso;
+  std::vector<ValuePtr> vals;
+  Persistent<Context> ptr;
 } m_ctx;
 
 typedef struct {
-  Persistent<Value> ptr;
-  Persistent<Context> ctx;
   Isolate* iso;
+  m_ctx* ctx;
+  Persistent<Value, CopyablePersistentTraits<Value>> ptr;
 } m_value;
 
 typedef struct {
-  Persistent<Template> ptr;
   Isolate* iso;
+  Persistent<Template> ptr;
 } m_template;
 
 const char* CopyString(std::string str) {
@@ -91,6 +93,28 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   }
 
   return rtn;
+}
+
+ValuePtr tracked_value(m_ctx* ctx, m_value* val) {
+  // (rogchap) we track values against a context so that when the context is
+  // closed (either manually or GC'd by Go) we can also release all the
+  // values associated with the context; previously the Go GC would not run
+  // quickly enough, as it has no understanding of the C memory allocation size.
+  // By doing so we hold pointers to all values that are created/returned to Go
+  // until the context is released; this is a compromise.
+  // Ideally we would be able to delete the value object and cancel the
+  // finalizer on the Go side, but we currently don't pass the Go ptr, but
+  // rather the C ptr. A potential future iteration would be to use an
+  // unordered_map, where we could do O(1) lookups for the value, but then know
+  // if the object has been finalized or not by being in the map or not. This
+  // would require some ref id for the value rather than passing the ptr between
+  // Go <--> C, which would be a significant change, as there are places where
+  // we get the context from the value, but if we then need the context to get
+  // the value, we would be in a circular bind.
+  ValuePtr val_ptr = static_cast<ValuePtr>(val);
+  ctx->vals.push_back(val_ptr);
+
+  return static_cast<ValuePtr>(val);
 }
 
 extern "C" {
@@ -232,9 +256,10 @@ ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
 
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx.Reset(iso, local_ctx);
-  val->ptr.Reset(iso, Persistent<Value>(iso, obj.ToLocalChecked()));
-  return static_cast<ValuePtr>(val);
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, obj.ToLocalChecked());
+  return tracked_value(ctx, val);
 }
 
 /********** FunctionTemplate **********/
@@ -248,6 +273,9 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   // we can use the context registry to match the Context on the Go side
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
+  ContextPtr goContext(int ctxref);
+  ContextPtr ctx_ptr = goContext(ctx_ref);
+  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
 
   int callback_ref = info.Data().As<Integer>()->Value();
 
@@ -256,9 +284,10 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   for (int i = 0; i < args_count; i++) {
     m_value* val = new m_value;
     val->iso = iso;
-    val->ctx.Reset(iso, local_ctx);
-    val->ptr.Reset(iso, Persistent<Value>(iso, info[i]));
-    args[i] = static_cast<ValuePtr>(val);
+    val->ctx = ctx;
+    val->ptr.Reset(
+        iso, Persistent<Value, CopyablePersistentTraits<Value>>(iso, info[i]));
+    args[i] = tracked_value(ctx, val);
   }
 
   ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* args,
@@ -343,6 +372,11 @@ void ContextFree(ContextPtr ptr) {
     return;
   }
   ctx->ptr.Reset();
+
+  for (ValuePtr val_ptr : ctx->vals) {
+    ValueFree(val_ptr);
+  }
+
   delete ctx;
 }
 
@@ -369,10 +403,11 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   }
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx.Reset(iso, local_ctx);
-  val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
 
-  rtn.value = static_cast<ValuePtr>(val);
+  rtn.value = tracked_value(ctx, val);
   return rtn;
 }
 
@@ -389,10 +424,11 @@ RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
   }
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx.Reset(iso, local_ctx);
-  val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
 
-  rtn.value = static_cast<ValuePtr>(val);
+  rtn.value = tracked_value(ctx, val);
   return rtn;
 }
 
@@ -416,8 +452,9 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
   if (ctx != nullptr) {
     local_ctx = ctx->ptr.Get(iso);
   } else {
-    local_ctx = val->ctx.Get(iso);
-    if (local_ctx.IsEmpty()) {
+    if (val->ctx != nullptr) {
+      local_ctx = val->ctx->ptr.Get(iso);
+    } else {
       m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
       local_ctx = ctx->ptr.Get(iso);
     }
@@ -436,34 +473,41 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
 ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
   LOCAL_CONTEXT(ctx_ptr);
   m_value* val = new m_value;
+
   val->iso = iso;
-  val->ctx.Reset(iso, local_ctx);
-  val->ptr.Reset(iso, Persistent<Value>(iso, local_ctx->Global()));
-  return static_cast<ValuePtr>(val);
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, local_ctx->Global());
+
+  return tracked_value(ctx, val);
 }
 
 /********** Value **********/
 
-#define LOCAL_VALUE(ptr)                               \
-  m_value* val = static_cast<m_value*>(ptr);           \
-  Isolate* iso = val->iso;                             \
-  Locker locker(iso);                                  \
-  Isolate::Scope isolate_scope(iso);                   \
-  HandleScope handle_scope(iso);                       \
+#define LOCAL_VALUE(ptr)                        \
+  m_value* val = static_cast<m_value*>(ptr);    \
+  Isolate* iso = val->iso;                      \
+  Locker locker(iso);                           \
+  Isolate::Scope isolate_scope(iso);            \
+  HandleScope handle_scope(iso);                \
   TryCatch try_catch(iso);                      \
-  Local<Context> local_ctx = val->ctx.Get(iso);        \
-  if (local_ctx.IsEmpty()) {                           \
-    m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0)); \
-    local_ctx = ctx->ptr.Get(iso);                     \
-  }                                                    \
-  Context::Scope context_scope(local_ctx);             \
+  m_ctx* ctx = val->ctx;                        \
+  Local<Context> local_ctx;                     \
+  if (ctx != nullptr) {                         \
+    local_ctx = ctx->ptr.Get(iso);              \
+  } else {                                      \
+    ctx = static_cast<m_ctx*>(iso->GetData(0)); \
+    local_ctx = ctx->ptr.Get(iso);              \
+  }                                             \
+  Context::Scope context_scope(local_ctx);      \
   Local<Value> value = val->ptr.Get(iso);
 
 ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(iso, Integer::New(iso, v)));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Integer::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
@@ -471,7 +515,8 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(iso, Integer::NewFromUnsigned(iso, v)));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Integer::NewFromUnsigned(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
@@ -479,8 +524,8 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(
-                          iso, String::NewFromUtf8(iso, v).ToLocalChecked()));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, String::NewFromUtf8(iso, v).ToLocalChecked());
   return static_cast<ValuePtr>(val);
 }
 
@@ -488,7 +533,8 @@ ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(iso, Boolean::New(iso, v)));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Boolean::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
@@ -496,7 +542,8 @@ ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(iso, Number::New(iso, v)));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Number::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
@@ -504,7 +551,8 @@ ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(iso, BigInt::New(iso, v)));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, BigInt::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
@@ -512,7 +560,8 @@ ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ptr.Reset(iso, Persistent<Value>(iso, BigInt::NewFromUnsigned(iso, v)));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, BigInt::NewFromUnsigned(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
@@ -527,7 +576,8 @@ ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
   val->iso = iso;
   MaybeLocal<BigInt> bigint =
       BigInt::NewFromWords(ctx->ptr.Get(iso), sign_bit, word_count, words);
-  val->ptr.Reset(iso, Persistent<Value>(iso, bigint.ToLocalChecked()));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, bigint.ToLocalChecked());
   return static_cast<ValuePtr>(val);
 }
 
@@ -536,6 +586,7 @@ void ValueFree(ValuePtr ptr) {
     return;
   }
   m_value* val = static_cast<m_value*>(ptr);
+  val->ptr.Reset();
   delete val;
 }
 
@@ -607,9 +658,10 @@ ValuePtr ValueToObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   m_value* new_val = new m_value;
   new_val->iso = iso;
-  new_val->ctx.Reset(iso, local_ctx);
-  new_val->ptr.Reset(iso, Persistent<Value>(iso, value->ToObject(local_ctx).ToLocalChecked()));
-  return static_cast<ValuePtr>(new_val);
+  new_val->ctx = ctx;
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, value->ToObject(local_ctx).ToLocalChecked());
+  return tracked_value(ctx, new_val);
 }
 
 int ValueIsUndefined(ValuePtr ptr) {
@@ -884,13 +936,14 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
 
 /********** Object **********/
 
-#define LOCAL_OBJECT(ptr)                           \
-    LOCAL_VALUE(ptr) \
-    Local<Object> obj = value.As<Object>() \
+#define LOCAL_OBJECT(ptr) \
+  LOCAL_VALUE(ptr)        \
+  Local<Object> obj = value.As<Object>()
 
 void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   m_value* prop_val = static_cast<m_value*>(val_ptr);
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
@@ -905,7 +958,8 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
 
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   MaybeLocal<Value> result = obj->Get(local_ctx, key_val);
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -913,10 +967,10 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   }
   m_value* new_val = new m_value;
   new_val->iso = iso;
-  new_val->ctx.Reset(iso, local_ctx);
+  new_val->ctx = ctx;
   new_val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
 
-  rtn.value = static_cast<ValuePtr>(new_val);
+  rtn.value = tracked_value(ctx, new_val);
   return rtn;
 }
 
@@ -931,16 +985,18 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
   }
   m_value* new_val = new m_value;
   new_val->iso = iso;
-  new_val->ctx.Reset(iso, local_ctx);
-  new_val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+  new_val->ctx = ctx;
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
 
-  rtn.value = static_cast<ValuePtr>(new_val);
+  rtn.value = tracked_value(ctx, new_val);
   return rtn;
 }
 
 int ObjectHas(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   return obj->Has(local_ctx, key_val).ToChecked();
 }
 
@@ -951,7 +1007,8 @@ int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
 
 int ObjectDelete(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
-  Local<String> key_val = String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val =
+      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   return obj->Delete(local_ctx, key_val).ToChecked();
 }
 

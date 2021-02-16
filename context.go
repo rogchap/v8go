@@ -116,11 +116,11 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 func (c *Context) Global() *Object {
 	valPtr := C.ContextGlobal(c.ptr)
 	v := &Value{valPtr, c}
-	runtime.SetFinalizer(v, (*Value).finalizer)
 	return &Object{v}
 }
 
 // Close will dispose the context and free the memory.
+// Access to any values assosiated with the context after calling Close may panic.
 func (c *Context) Close() {
 	c.finalizer()
 }
@@ -165,13 +165,17 @@ func getContext(ref int) *Context {
 	return r.ctx
 }
 
+//export goContext
+func goContext(ref int) C.ContextPtr {
+	ctx := getContext(ref)
+	return ctx.ptr
+}
+
 func getValue(ctx *Context, rtn C.RtnValue) *Value {
 	if rtn.value == nil {
 		return nil
 	}
-	v := &Value{rtn.value, ctx}
-	runtime.SetFinalizer(v, (*Value).finalizer)
-	return v
+	return &Value{rtn.value, ctx}
 }
 
 func getError(rtn C.RtnValue) error {
