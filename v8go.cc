@@ -114,7 +114,7 @@ ValuePtr tracked_value(m_ctx* ctx, m_value* val) {
   ValuePtr val_ptr = static_cast<ValuePtr>(val);
   ctx->vals.push_back(val_ptr);
 
-  return static_cast<ValuePtr>(val);
+  return val_ptr;
 }
 
 extern "C" {
