@@ -968,7 +968,7 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx = ctx;
-  new_val->ptr.Reset(iso, Persistent<Value>(iso, result.ToLocalChecked()));
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;
@@ -1024,9 +1024,9 @@ ValuePtr NewPromiseResolver(ContextPtr ctx_ptr) {
   MaybeLocal<Promise::Resolver> resolver = Promise::Resolver::New(local_ctx);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx.Reset(iso, local_ctx);
-  val->ptr.Reset(iso, Persistent<Value>(iso, resolver.ToLocalChecked()));
-  return static_cast<ValuePtr>(val);
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, resolver.ToLocalChecked());
+  return tracked_value(ctx, val);
 }
 
 ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
@@ -1035,9 +1035,9 @@ ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
   Local<Promise> promise = resolver->GetPromise();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
-  promise_val->ctx.Reset(iso, local_ctx);
-  promise_val->ptr.Reset(iso, Persistent<Value>(iso, promise));
-  return static_cast<ValuePtr>(promise_val);
+  promise_val->ctx = ctx;
+  promise_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
+  return tracked_value(ctx, promise_val);
 }
 
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr) {
@@ -1066,9 +1066,9 @@ ValuePtr PromiseResult(ValuePtr ptr) {
   Local<Value> result = promise->Result();
   m_value* result_val = new m_value;
   result_val->iso = iso;
-  result_val->ctx.Reset(iso, local_ctx);
-  result_val->ptr.Reset(iso, Persistent<Value>(iso, result));
-  return static_cast<ValuePtr>(result_val);
+  result_val->ctx = ctx;
+  result_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  return tracked_value(ctx, result_val);
 }
 
 /********** Version **********/
