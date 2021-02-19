@@ -92,6 +92,23 @@ func TestContextRegistry(t *testing.T) {
 	}
 }
 
+func TestMemoryLeak(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+
+	for i := 0; i < 6000; i++ {
+		ctx, _ := v8go.NewContext(iso)
+		obj := ctx.Global()
+		_ = obj.String()
+		_, _ = ctx.RunScript("2", "")
+		ctx.Close()
+	}
+	if n := iso.GetHeapStatistics().NumberOfNativeContexts; n >= 6000 {
+		t.Errorf("Context not being GC'd, got %d native contexts", n)
+	}
+}
+
 func BenchmarkContext(b *testing.B) {
 	b.ReportAllocs()
 	vm, _ := v8go.NewIsolate()

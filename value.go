@@ -208,7 +208,6 @@ func (v *Value) Number() float64 {
 func (v *Value) Object() *Object {
 	ptr := C.ValueToObject(v.ptr)
 	val := &Value{ptr, v.ctx}
-	runtime.SetFinalizer(val, (*Value).finalizer)
 	return &Object{val}
 }
 

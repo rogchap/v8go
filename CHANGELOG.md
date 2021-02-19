@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.5.1] - 2021-02-19
+
+### Fixed
+- Memory being held by Values after the associated Context is closed
+
 ## [v0.5.0] - 2021-02-08
 
 ### Added
