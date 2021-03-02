@@ -506,6 +506,7 @@ ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Integer::New(iso, v));
   return static_cast<ValuePtr>(val);
@@ -515,6 +516,7 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Integer::NewFromUnsigned(iso, v));
   return static_cast<ValuePtr>(val);
@@ -524,6 +526,7 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, String::NewFromUtf8(iso, v).ToLocalChecked());
   return static_cast<ValuePtr>(val);
@@ -533,6 +536,7 @@ ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Boolean::New(iso, v));
   return static_cast<ValuePtr>(val);
@@ -542,6 +546,7 @@ ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Number::New(iso, v));
   return static_cast<ValuePtr>(val);
@@ -551,6 +556,7 @@ ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, BigInt::New(iso, v));
   return static_cast<ValuePtr>(val);
@@ -560,6 +566,7 @@ ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
   ISOLATE_SCOPE(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, BigInt::NewFromUnsigned(iso, v));
   return static_cast<ValuePtr>(val);
@@ -574,6 +581,7 @@ ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
 
   m_value* val = new m_value;
   val->iso = iso;
+  val->ctx = nullptr;
   MaybeLocal<BigInt> bigint =
       BigInt::NewFromWords(ctx->ptr.Get(iso), sign_bit, word_count, words);
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -1069,6 +1077,58 @@ ValuePtr PromiseResult(ValuePtr ptr) {
   result_val->ctx = ctx;
   result_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
   return tracked_value(ctx, result_val);
+}
+
+/******** Exceptions *********/
+
+ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message) {
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = nullptr;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Exception::Error(msg));
+  return static_cast<ValuePtr>(val);
+}
+
+ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message) {
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = nullptr;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Exception::RangeError(msg));
+  return static_cast<ValuePtr>(val);
+}
+
+ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr, const char* message) {
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = nullptr;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Exception::ReferenceError(msg));
+  return static_cast<ValuePtr>(val);
+}
+
+ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message) {
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = nullptr;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Exception::SyntaxError(msg));
+  return static_cast<ValuePtr>(val);
+}
+
+ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message) {
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message, NewStringType::kNormal).ToLocalChecked();
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = nullptr;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Exception::TypeError(msg));
+  return static_cast<ValuePtr>(val);
 }
 
 /********** Version **********/

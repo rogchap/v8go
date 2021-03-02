@@ -173,6 +173,12 @@ int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseState(ValuePtr ptr);
 extern ValuePtr PromiseResult(ValuePtr ptr);
 
+extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
+extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
+extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr, const char* message);
+extern ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message);
+extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
+
 const char* Version();
 
 #ifdef __cplusplus
