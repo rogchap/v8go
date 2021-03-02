@@ -5,7 +5,6 @@
 package v8go_test
 
 import (
-	"fmt"
 	"testing"
 
 	"rogchap.com/v8go"
@@ -38,14 +37,11 @@ func TestPromise(t *testing.T) {
 	}
 
 	res2, _ := v8go.NewPromiseResolver(ctx)
-	val2 := v8go.Error(iso, "Bad Foo")
+	val2, _ := v8go.NewValue(iso, "Bad Foo")
 	res2.Reject(val2)
 
 	prom2 := res2.GetPromise()
 	if s := prom2.State(); s != v8go.Rejected {
 		t.Fatalf("unexpected state for Promise, want Rejected (2) got: %v", s)
 	}
-
-	fmt.Printf("prom2.Result() = %+v\n", prom2.Result())
-
 }

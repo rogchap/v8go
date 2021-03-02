@@ -1083,10 +1083,12 @@ ValuePtr PromiseResult(ValuePtr ptr) {
 
 ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message) {
   ISOLATE_SCOPE(iso_ptr);
-  Local<String> msg = String::NewFromUtf8(iso, message, NewStringType::kNormal).ToLocalChecked();
+  Local<String> msg = String::NewFromUtf8(iso, message).ToLocalChecked();
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = nullptr;
+  // TODO(rogchap): This currently causes a segfault, and I'm not sure why!
+  // Even a simple error with an empty string causes the error: Exception::Error(String::Empty(iso))
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Exception::Error(msg));
   return static_cast<ValuePtr>(val);
 }
