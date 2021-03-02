@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math/big"
 	"runtime"
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -57,7 +58,10 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 }
 
 func (t *template) finalizer() {
-	C.TemplateFree(t.ptr)
+	if atomic.LoadInt32(t.iso.disposed) != 1 {
+		C.TemplateFree(t.ptr)
+	}
+
 	t.ptr = nil
 	runtime.SetFinalizer(t, nil)
 }

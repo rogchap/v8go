@@ -10,6 +10,7 @@ import "C"
 import (
 	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 var v8once sync.Once
@@ -20,9 +21,10 @@ var v8once sync.Once
 type Isolate struct {
 	ptr C.IsolatePtr
 
-	cbMutex sync.RWMutex
-	cbSeq   int
-	cbs     map[int]FunctionCallback
+	cbMutex  sync.RWMutex
+	cbSeq    int
+	cbs      map[int]FunctionCallback
+	disposed *int32
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -52,8 +54,9 @@ func NewIsolate() (*Isolate, error) {
 		C.Init()
 	})
 	iso := &Isolate{
-		ptr: C.NewIsolate(),
-		cbs: make(map[int]FunctionCallback),
+		ptr:      C.NewIsolate(),
+		cbs:      make(map[int]FunctionCallback),
+		disposed: new(int32),
 	}
 	runtime.SetFinalizer(iso, (*Isolate).finalizer)
 	// TODO: [RC] catch any C++ exceptions and return as error
@@ -96,6 +99,7 @@ func (i *Isolate) Close() {
 }
 
 func (i *Isolate) finalizer() {
+	atomic.StoreInt32(i.disposed, 1)
 	defer runtime.SetFinalizer(i, nil)
 	if i.ptr == nil {
 		return

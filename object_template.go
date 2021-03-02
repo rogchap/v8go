@@ -56,7 +56,7 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 	}
 
 	valPtr := C.ObjectTemplateNewInstance(o.ptr, ctx.ptr)
-	return &Object{&Value{valPtr, ctx}}, nil
+	return &Object{&Value{valPtr, ctx, nil}}, nil
 }
 
 func (o *ObjectTemplate) apply(opts *contextOptions) {

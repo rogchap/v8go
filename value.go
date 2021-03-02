@@ -13,13 +13,15 @@ import (
 	"io"
 	"math/big"
 	"runtime"
+	"sync/atomic"
 	"unsafe"
 )
 
 // Value represents all Javascript values and objects
 type Value struct {
-	ptr C.ValuePtr
-	ctx *Context
+	ptr       C.ValuePtr
+	ctx       *Context
+	destroyed *int32
 }
 
 // Valuer is an interface that reperesents anything that extends from a Value
@@ -117,6 +119,8 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
 	}
 
+	rtnVal.destroyed = iso.disposed
+
 	runtime.SetFinalizer(rtnVal, (*Value).finalizer)
 	return rtnVal, nil
 }
@@ -207,7 +211,7 @@ func (v *Value) Number() float64 {
 // To just cast this value as an Object use AsObject() instead.
 func (v *Value) Object() *Object {
 	ptr := C.ValueToObject(v.ptr)
-	val := &Value{ptr, v.ctx}
+	val := &Value{ptr, v.ctx, nil}
 	return &Object{val}
 }
 
@@ -524,7 +528,11 @@ func (v *Value) AsObject() (*Object, error) {
 }
 
 func (v *Value) finalizer() {
-	C.ValueFree(v.ptr)
+	if atomic.LoadInt32(v.destroyed) != 1 {
+		C.ValueFree(v.ptr)
+	}
+
+	v.destroyed = nil
 	v.ptr = nil
 	runtime.SetFinalizer(v, nil)
 }

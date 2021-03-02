@@ -115,7 +115,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 // global proxy object.
 func (c *Context) Global() *Object {
 	valPtr := C.ContextGlobal(c.ptr)
-	v := &Value{valPtr, c}
+	v := &Value{valPtr, c, nil}
 	return &Object{v}
 }
 
@@ -175,7 +175,7 @@ func getValue(ctx *Context, rtn C.RtnValue) *Value {
 	if rtn.value == nil {
 		return nil
 	}
-	return &Value{rtn.value, ctx}
+	return &Value{rtn.value, ctx, nil}
 }
 
 func getError(rtn C.RtnValue) error {
