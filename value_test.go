@@ -364,6 +364,19 @@ func TestValueObject(t *testing.T) {
 	if obj := val.Object(); obj.String() != "1" {
 		t.Errorf("unexpected object value: %v", obj)
 	}
+}
+
+func TestValuePromise(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := v8go.NewContext()
+	val, _ := ctx.RunScript("1", "")
+	if _, err := val.AsPromise(); err == nil {
+		t.Error("Expected error but got <nil>")
+	}
+	if _, err := ctx.RunScript("new Promise(()=>{})", ""); err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
 
 }
 
