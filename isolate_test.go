@@ -77,6 +77,25 @@ func TestCallbackRegistry(t *testing.T) {
 	}
 }
 
+func TestIsolateDispose(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	if iso.GetHeapStatistics().TotalHeapSize == 0 {
+		t.Error("Isolate incorrectly allocated")
+	}
+
+	iso.Dispose()
+	// noop when called multiple times
+	iso.Dispose()
+	// deprecated
+	iso.Close()
+
+	if iso.GetHeapStatistics().TotalHeapSize != 0 {
+		t.Error("Isolate not disposed correctly")
+	}
+}
+
 func TestIsolateGarbageCollection(t *testing.T) {
 	t.Parallel()
 
