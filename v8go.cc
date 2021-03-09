@@ -160,9 +160,7 @@ void IsolateDispose(IsolatePtr ptr) {
     return;
   }
   Isolate* iso = static_cast<Isolate*>(ptr);
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
-  ctx->ptr.Reset();
-  delete ctx;
+  ContextFree(iso->GetData(0));
 
   iso->Dispose();
 }
@@ -502,71 +500,76 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
   Context::Scope context_scope(local_ctx);      \
   Local<Value> value = val->ptr.Get(iso);
 
+#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
+  ISOLATE_SCOPE(iso_ptr); \
+  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+
+
 ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
-  ISOLATE_SCOPE(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Integer::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
 ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
-  ISOLATE_SCOPE(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Integer::NewFromUnsigned(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
 ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
-  ISOLATE_SCOPE(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, String::NewFromUtf8(iso, v).ToLocalChecked());
-  return static_cast<ValuePtr>(val);
+  return tracked_value(ctx, val);
 }
 
 ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
-  ISOLATE_SCOPE(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Boolean::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
 ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v) {
-  ISOLATE_SCOPE(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Number::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
 ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v) {
-  ISOLATE_SCOPE(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, BigInt::New(iso, v));
   return static_cast<ValuePtr>(val);
 }
 
 ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
-  ISOLATE_SCOPE(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, BigInt::NewFromUnsigned(iso, v));
   return static_cast<ValuePtr>(val);
@@ -576,12 +579,11 @@ ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                  int sign_bit,
                                  int word_count,
                                  const uint64_t* words) {
-  ISOLATE_SCOPE(iso_ptr);
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
 
   m_value* val = new m_value;
   val->iso = iso;
-  val->ctx = nullptr;
+  val->ctx = ctx;
   MaybeLocal<BigInt> bigint =
       BigInt::NewFromWords(ctx->ptr.Get(iso), sign_bit, word_count, words);
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(

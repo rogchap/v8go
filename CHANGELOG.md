@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Promise resolver and promise result
 
+### Fixed
+- Go GC attempting to free C memory (via finalizer) of values after an Isolate is disposed causes a panic
+
 ## [v0.5.1] - 2021-02-19
 
 ### Fixed
