@@ -9,7 +9,6 @@ package v8go
 import "C"
 import (
 	"fmt"
-	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -78,7 +77,6 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
 	}
-	runtime.SetFinalizer(ctx, (*Context).finalizer)
 	// TODO: [RC] catch any C++ exceptions and return as error
 	return ctx, nil
 }
@@ -122,13 +120,8 @@ func (c *Context) Global() *Object {
 // Close will dispose the context and free the memory.
 // Access to any values assosiated with the context after calling Close may panic.
 func (c *Context) Close() {
-	c.finalizer()
-}
-
-func (c *Context) finalizer() {
 	C.ContextFree(c.ptr)
 	c.ptr = nil
-	runtime.SetFinalizer(c, nil)
 }
 
 func (c *Context) register() {

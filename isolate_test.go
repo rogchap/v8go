@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -74,6 +75,43 @@ func TestCallbackRegistry(t *testing.T) {
 	if fmt.Sprintf("%p", cb1) != fmt.Sprintf("%p", cb) {
 		t.Errorf("unexpected callback function; want %p, got %p", cb, cb1)
 	}
+}
+
+func TestIsolateDispose(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	if iso.GetHeapStatistics().TotalHeapSize == 0 {
+		t.Error("Isolate incorrectly allocated")
+	}
+
+	iso.Dispose()
+	// noop when called multiple times
+	iso.Dispose()
+	// deprecated
+	iso.Close()
+
+	if iso.GetHeapStatistics().TotalHeapSize != 0 {
+		t.Error("Isolate not disposed correctly")
+	}
+}
+
+func TestIsolateGarbageCollection(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	val, _ := v8go.NewValue(iso, "some string")
+	fmt.Println(val.String())
+
+	tmpl, _ := v8go.NewObjectTemplate(iso)
+	tmpl.Set("foo", "bar")
+	v8go.NewContext(iso, tmpl)
+
+	iso.Dispose()
+
+	runtime.GC()
+
+	time.Sleep(time.Second)
 }
 
 func BenchmarkIsolateInitialization(b *testing.B) {
