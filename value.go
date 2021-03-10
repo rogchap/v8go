@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"runtime"
 	"unsafe"
 )
 
@@ -117,7 +116,6 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
 	}
 
-	runtime.SetFinalizer(rtnVal, (*Value).finalizer)
 	return rtnVal, nil
 }
 
@@ -528,12 +526,6 @@ func (v *Value) AsPromise() (*Promise, error) {
 		return nil, errors.New("v8go: value is not a Promise")
 	}
 	return &Promise{&Object{v}}, nil
-}
-
-func (v *Value) finalizer() {
-	C.ValueFree(v.ptr)
-	v.ptr = nil
-	runtime.SetFinalizer(v, nil)
 }
 
 // MarshalJSON implements the json.Marshaler interface.

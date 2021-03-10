@@ -16,6 +16,21 @@ import (
 	"rogchap.com/v8go"
 )
 
+func TestValueNewBaseCases(t *testing.T) {
+	t.Parallel()
+	if _, err := v8go.NewValue(nil, ""); err == nil {
+		t.Error("expected error, but got <nil>")
+	}
+	iso, _ := v8go.NewIsolate()
+	if _, err := v8go.NewValue(iso, nil); err == nil {
+		t.Error("expected error, but got <nil>")
+	}
+	if _, err := v8go.NewValue(iso, struct{}{}); err == nil {
+		t.Error("expected error, but got <nil>")
+	}
+
+}
+
 func TestValueFormatting(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
