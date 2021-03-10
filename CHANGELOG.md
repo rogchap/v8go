@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Promise resolver and promise result
 
+### Changed
+- Upgrade to V8 8.9.255.20
+
 ### Fixed
 - Go GC attempting to free C memory (via finalizer) of values after an Isolate is disposed causes a panic
 
