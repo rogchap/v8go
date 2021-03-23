@@ -19,3 +19,19 @@ func TestVersion(t *testing.T) {
 		t.Errorf("version string is in the incorrect format: %s", v)
 	}
 }
+
+func TestSetFlag(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext()
+	if _, err := ctx.RunScript("a = 1", "default.js"); err != nil {
+		t.Errorf("expected <nil> error, but got: %v", err)
+	}
+	v8go.SetFlags("--use_strict")
+	if _, err := ctx.RunScript("b = 1", "use_strict.js"); err == nil {
+		t.Error("expected error but got <nil>")
+	}
+	v8go.SetFlags("--nouse_strict")
+	if _, err := ctx.RunScript("c = 1", "nouse_strict.js"); err != nil {
+		t.Errorf("expected <nil> error, but got: %v", err)
+	}
+}

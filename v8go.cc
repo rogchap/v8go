@@ -1148,9 +1148,13 @@ ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message) {
   return static_cast<ValuePtr>(val);
 }
 
-/********** Version **********/
+/********** v8::V8 **********/
 
 const char* Version() {
   return V8::GetVersion();
+}
+
+void SetFlags(const char* flags) {
+  V8::SetFlagsFromString(flags);
 }
 }

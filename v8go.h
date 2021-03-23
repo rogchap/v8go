@@ -181,6 +181,7 @@ extern ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
 
 const char* Version();
+extern void SetFlags(const char* flags);
 
 #ifdef __cplusplus
 }  // extern "C"
