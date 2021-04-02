@@ -90,7 +90,7 @@ func (c *Context) Isolate() (*Isolate, error) {
 
 // RunScript executes the source JavaScript; origin or filename provides a
 // reference for the script and used in the stack trace if there is an error.
-// error will be of type `JSError` of not nil.
+// error will be of type `*JSError` if not nil.
 func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
@@ -99,6 +99,22 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 
 	c.register()
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
+	c.deregister()
+
+	return getValue(c, rtn), getError(rtn)
+}
+
+// RunModule executes the source ES6 Module; origin or filename provides a
+// reference for the script and used in the stack trace if there is an error.
+// error will be of type `*JSError` if not nil.
+func (c *Context) RunModule(source string, origin string) (*Value, error) {
+	cSource := C.CString(source)
+	cOrigin := C.CString(origin)
+	defer C.free(unsafe.Pointer(cSource))
+	defer C.free(unsafe.Pointer(cOrigin))
+
+	c.register()
+	rtn := C.RunModule(c.ptr, cSource, cOrigin)
 	c.deregister()
 
 	return getValue(c, rtn), getError(rtn)

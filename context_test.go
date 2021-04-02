@@ -12,7 +12,7 @@ import (
 	"rogchap.com/v8go"
 )
 
-func TestContextExec(t *testing.T) {
+func TestContextRunScript(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
 	ctx.RunScript(`const add = (a, b) => a + b`, "add.js")
@@ -35,7 +35,7 @@ func TestContextExec(t *testing.T) {
 	}
 }
 
-func TestJSExceptions(t *testing.T) {
+func TestRunScriptJSExceptions(t *testing.T) {
 	t.Parallel()
 
 	tests := [...]struct {
@@ -64,6 +64,123 @@ func TestJSExceptions(t *testing.T) {
 		})
 	}
 }
+
+func TestContextRunModule(t *testing.T) {
+	t.Parallel()
+	ctx, _ := v8go.NewContext(nil)
+	val, err := ctx.RunModule(`export function add(a, b) { return a + b }`, "add.mjs")
+	if err != nil {
+		t.Errorf("RunModule returned an error: %+v", err)
+		return
+	}
+	if !val.IsModuleNamespaceObject() {
+		t.Errorf("RunModule returned an unexpected value: %+v", val.DetailString())
+		return
+	}
+	obj, _ := val.AsObject()
+	add, _ := obj.Get("add")
+	if !add.IsFunction() {
+		t.Errorf("expected to get exported 'add' function, got: %+v", add.DetailString())
+		return
+	}
+	fn, _ := add.AsFunction()
+	iso, _ := ctx.Isolate()
+	arg1, _ := v8go.NewValue(iso, int32(1))
+	resultValue, _ := fn.Call(arg1, arg1)
+	if resultValue.Int32() != 2 {
+		t.Errorf("expected 1 + 1 = 2, got: %v", resultValue.DetailString())
+	}
+}
+
+func TestRunModuleJSExceptions(t *testing.T) {
+	t.Parallel()
+
+	tests := [...]struct {
+		name   string
+		source string
+		origin string
+		err    string
+	}{
+		{"SyntaxError", "bad js syntax", "syntax.js", "SyntaxError: Unexpected identifier"},
+		{"ReferenceError", "add()", "add.js", "ReferenceError: add is not defined"},
+		{"import", "import { add } from 'dep.js'", "import.js", "import not supported"},
+	}
+
+	ctx, _ := v8go.NewContext(nil)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := ctx.RunModule(tt.source, tt.origin)
+			if err == nil {
+				t.Error("error expected but got <nil>")
+				return
+			}
+			if err.Error() != tt.err {
+				t.Errorf("expected %q, got %q", tt.err, err.Error())
+			}
+		})
+	}
+}
+
+
+// TestRunModuleTopLevelAwait verifies that top-level await works in modules.
+// It exercises a different module resolution control flow.
+func TestRunModuleTopLevelAwait(t *testing.T) {
+	v8go.SetFlags("--harmony_top_level_await")
+	defer v8go.SetFlags("--noharmony_top_level_await")
+
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewContext(iso)
+
+	t.Run("success", func(t *testing.T) {
+		val, err := ctx.RunModule(`
+function resolvePromise() {
+  return new Promise(resolve => {
+    resolve('resolved');
+  });
+}
+
+export async function asyncCall() {
+  return await resolvePromise();
+}
+
+await asyncCall();
+`, "")
+		if err != nil {
+			t.Errorf("%+v", err)
+		}
+		obj, _ := val.AsObject()
+		asyncCall, _ := obj.Get("asyncCall")
+		if !asyncCall.IsAsyncFunction() {
+			t.Errorf("expected async function, was: %v", asyncCall.DetailString())
+		}
+	})
+
+	t.Run("error", func(t *testing.T) {
+		_, err := ctx.RunModule(`
+function resolvePromise() {
+  return new Promise((resolve, reject) => {
+    reject('rejected');
+  });
+}
+
+export async function asyncCall() {
+  return await resolvePromise();
+}
+
+await asyncCall();
+`, "")
+		if err == nil {
+			t.Errorf("expected error, got none")
+		}
+		want := "rejected"
+		if got := err.Error(); got != want {
+			t.Errorf("want %s, got %s", want, got)
+		}
+	})
+}
+
 
 func TestContextRegistry(t *testing.T) {
 	t.Parallel()

@@ -414,6 +414,86 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   return rtn;
 }
 
+static MaybeLocal<Module> ResolveCallback(Local<Context> context,
+                                          Local<String> specifier,
+                                          Local<Module> referrer) {
+  Isolate* isolate = context->GetIsolate();
+  isolate->ThrowException(String::NewFromUtf8(isolate, "import not supported").ToLocalChecked());
+  return MaybeLocal<Module>();
+}
+
+RtnValue RunModule(ContextPtr ctx_ptr, const char* source, const char* origin) {
+  LOCAL_CONTEXT(ctx_ptr);
+
+  Local<String> src =
+      String::NewFromUtf8(iso, source, NewStringType::kNormal).ToLocalChecked();
+  Local<String> ogn =
+      String::NewFromUtf8(iso, origin, NewStringType::kNormal).ToLocalChecked();
+  RtnValue rtn = {nullptr, nullptr};
+
+  ScriptOrigin script_origin(ogn, 0, 0, false, -1, Local<Value>(), false, false, true);
+  ScriptCompiler::Source csrc(src, script_origin);
+  MaybeLocal<Module> mmodule = ScriptCompiler::CompileModule(iso, &csrc);
+  if (mmodule.IsEmpty()) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+
+  Local<Module> root_module = mmodule.ToLocalChecked();
+  if (!root_module->InstantiateModule(local_ctx, &ResolveCallback).FromMaybe(false)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+
+  Local<Value> result;
+  if (!root_module->Evaluate(local_ctx).ToLocal(&result)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+
+  // result is a Promise if the module has imports that need to be resolved
+  // OR has a top-level await. imports are not supported yet, but awaits are.
+  //
+  // If await was not used, the result is undefined, and the module's status
+  // should already be kEvaluated.
+  if (result->IsPromise()) {
+    // We have to wait. Just busy-loop and poll for completion.
+    Local<Promise> result_promise(Local<Promise>::Cast(result));
+    while (result_promise->State() == Promise::kPending) {
+      iso->PerformMicrotaskCheckpoint();
+    }
+    if (result_promise->State() == Promise::kRejected) {
+      if (!try_catch.HasCaught()) {
+        iso->ThrowException(result_promise->Result());
+      }
+      rtn.error = ExceptionError(try_catch, iso, local_ctx);
+      return rtn;
+    }
+  } else if (!result->IsUndefined()) {
+    // Verify the invariant that result is either a Promise or undefined.
+    RtnError err = {nullptr, nullptr, nullptr};
+    err.msg = CopyString("expected promise or undefined");
+    rtn.error = err;
+    return rtn;
+  }
+
+  // Verify that the module is now evaluated.
+  if (root_module->GetStatus() != Module::kEvaluated) {
+    RtnError err = {nullptr, nullptr, nullptr};
+    err.msg = CopyString("module not evaluated");
+    rtn.error = err;
+    return rtn;
+  }
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, root_module->GetModuleNamespace());
+
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
+}
+
 RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
   LOCAL_CONTEXT(ctx_ptr);
   RtnValue rtn = {nullptr, nullptr};
