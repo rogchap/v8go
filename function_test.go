@@ -25,7 +25,7 @@ func TestFunctionCall(t *testing.T) {
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	resultValue, err := fn.Call([]*v8go.Value{arg1, arg1})
+	resultValue, err := fn.Call([]v8go.Valuer{arg1, arg1})
 	failIf(t, err)
 
 	if resultValue.Int32() != 2 {

@@ -16,16 +16,15 @@ type Function struct {
 }
 
 // Call this JavaScript function with the given arguments.
-func (fn *Function) Call(args []*Value) (*Value, error) {
-	var rtn C.RtnValue
-	if len(args) == 0 {
-		rtn = C.FunctionCall(fn.ptr, C.int(0), (*C.ValuePtr)(nil))
-	} else {
-		cArgs := make([]C.ValuePtr, len(args))
+func (fn *Function) Call(args []Valuer) (*Value, error) {
+	var argptr *C.ValuePtr
+	if len(args) > 0 {
+		var cArgs = make([]C.ValuePtr, len(args))
 		for i, arg := range args {
-			cArgs[i] = arg.ptr
+			cArgs[i] = arg.value().ptr
 		}
-		rtn = C.FunctionCall(fn.ptr, C.int(len(args)), (*C.ValuePtr)(unsafe.Pointer(&cArgs[0])))
+		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
+	rtn := C.FunctionCall(fn.ptr, C.int(len(args)), argptr)
 	return getValue(fn.ctx, rtn), getError(rtn)
 }
