@@ -16,7 +16,7 @@ type Function struct {
 }
 
 // Call this JavaScript function with the given arguments.
-func (fn *Function) Call(args []Valuer) (*Value, error) {
+func (fn *Function) Call(args ...Valuer) (*Value, error) {
 	var argptr *C.ValuePtr
 	if len(args) > 0 {
 		var cArgs = make([]C.ValuePtr, len(args))

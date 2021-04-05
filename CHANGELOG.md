@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Promise resolver and promise result
+- Convert a Value to a Function and invoke it
 
 ### Changed
 - Upgrade to V8 8.9.255.20
