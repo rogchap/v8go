@@ -395,6 +395,24 @@ func TestValuePromise(t *testing.T) {
 
 }
 
+func TestValueFunction(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := v8go.NewContext()
+	val, _ := ctx.RunScript("1", "")
+	if _, err := val.AsFunction(); err == nil {
+		t.Error("Expected error but got <nil>")
+	}
+	val, err := ctx.RunScript("(a, b) => { return a + b; }", "")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if _, err := val.AsFunction(); err != nil {
+		t.Errorf("Expected success but got: %v", err)
+	}
+
+}
+
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
