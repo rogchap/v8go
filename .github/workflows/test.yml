@@ -39,10 +39,17 @@ jobs:
         env_vars: OS,GO
     - name: Add GOPATH to GITHUB_ENV
       run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
-    - name: Scan and upload FOSSA data
-      if: github.ref == 'refs/heads/master'
+    - name: Scan and upload FOSSA data (Linux/Mac)
+      if: github.ref == 'refs/heads/master' && matrix.platform != 'windows-latest'
       run: |
         curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
         fossa analyze
+      env:
+        FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+    - name: Scan and upload FOSSA data (Windows)
+      if: github.ref == 'refs/heads/master' && matrix.platform == 'windows-latest'
+      run: |
+        Set-ExecutionPolicy Bypass -Scope Process -Force; iex  ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/fossas/fossa-cli/master/install.ps1'))
+        C:\ProgramData\fossa-cli\fossa.exe analyze
       env:
         FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
