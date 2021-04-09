@@ -1,33 +1,39 @@
 name: V8 Build
 
 on: workflow_dispatch
-              
-jobs:
-    build:
-        name: Build V8 for ${{ matrix.platform }}
-        strategy:
-            matrix:
-                platform: [ubuntu-latest, macos-latest]
-        runs-on: ${{ matrix.platform }}
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-              with:
-                  submodules: true
-                  fetch-depth: 1
-            - name: Build V8 linux
-              if: matrix.platform == 'ubuntu-latest'
-              run: cd deps && ./build.py --no-clang
-            - name: Build V8 macOS
-              if: matrix.platform == 'macos-latest'
-              run: cd deps && ./build.py
-            - name: Create PR
-              uses: peter-evans/create-pull-request@v3
-              with:
-                commit-message: Update V8 static library for ${{ matrix.platform  }}
-                branch: v8-lib
-                branch-suffix: random
-                delete-branch: true
-                title: V8 static library for ${{ matrix.platform  }}
-                body: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
 
+jobs:
+  build:
+    name: Build V8 for ${{ matrix.platform }}/${{ matrix.arch }}
+    strategy:
+      matrix:
+        platform: [ubuntu-latest, macos-latest]
+        arch: [arm64, x64]
+        exclude:
+          - platform: macos-latest
+            arch: arm64
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 1
+      - name: Install g++ (arm64)
+        if: matrix.arch == 'arm64'
+        run: sudo apt-get update && sudo apt-get install -y g++-aarch64-linux-gnu
+      - name: Build V8 linux/${{ matrix.arch }}
+        if: matrix.platform == 'ubuntu-latest'
+        run: cd deps && ./build.py --no-clang --arch=${{ matrix.arch }}
+      - name: Build V8 macOS
+        if: matrix.platform == 'macos-latest'
+        run: cd deps && ./build.py
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: Update V8 static library for ${{ matrix.platform }}/${{ matrix.arch }}
+          branch: v8-lib
+          branch-suffix: random
+          delete-branch: true
+          title: V8 static library for ${{ matrix.platform }}/${{ matrix.arch }}
+          body: Auto-generated pull request to build V8 for ${{ matrix.platform }}/${{ matrix.arch }}

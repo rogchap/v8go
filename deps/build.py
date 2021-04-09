@@ -8,7 +8,8 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
-parser.set_defaults(debug=False, clang=True)
+parser.add_argument('--arch', dest='arch', action='store')
+parser.set_defaults(debug=False, clang=True, arch="x64")
 args = parser.parse_args()
 
 deps_path = os.path.dirname(os.path.realpath(__file__))
@@ -39,6 +40,7 @@ gclient_sln = [
 gn_args = """
 is_debug=%s
 is_clang=%s
+target_cpu="%s"
 clang_use_chrome_plugins=false
 use_custom_libcxx=false
 use_sysroot=false
@@ -64,8 +66,7 @@ def v8deps():
                         env=env)
 
 def os_arch():
-    u = platform.uname()
-    return (u[0] + "_" + u[4]).lower()
+    return (platform.system() + "_" + args.arch).lower()
 
 def main():
     v8deps()
@@ -79,9 +80,9 @@ def main():
 
     is_debug = 'true' if args.debug else 'false'
     is_clang = 'true' if args.clang else 'false'
-    gnargs = gn_args % (is_debug, is_clang)
+    gnargs = gn_args % (is_debug, is_clang, args.arch)
     gen_args = gnargs.replace('\n', ' ')
-    
+
     subprocess.check_call([gn_path, "gen", build_path, "--args=" + gen_args], 
                         cwd=v8_path,
                         env=env)
