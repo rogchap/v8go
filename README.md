@@ -122,25 +122,21 @@ please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on 
 
 ### Windows
 
-While no prebuilt static V8 library is included for Windows, MSYS2 provides a package containing
-a dynamically linked V8 library that works.
+In order to build a project using v8go on Windows, Go requires a gcc compiler to be installed.
 
 To set this up:
 1. Install MSYS2 (https://www.msys2.org/)
 2. Add the Mingw-w64 bin to your PATH environment variable (`C:\msys64\mingw64\bin` by default)
-3. Open MSYS2 MSYS and execute `pacman -S mingw-w64-x86_64-toolchain mingw-w64-x86_64-v8`
-4. This will allow building projects that depend on `v8go`, but, in order to actually run them,
-   you will need to copy the `snapshot_blob.bin` file from the Mingw-w64 bin folder to your program's
-   working directory (which is typically wherever `main.go` is)
+3. Open MSYS2 MSYS and execute `pacman -S mingw-w64-x86_64-toolchain`
 
-V8 requires 64-bit on Windows, therefore will not work on 32-bit systems. 
+V8 requires 64-bit on Windows, therefore it will not work on 32-bit systems. 
 
 ## V8 dependency
 
 V8 version: **8.9.255.20** (March 2021)
 
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
-are included for Linux and macOS ie. you *should not* require to build V8 yourself.
+are included for Linux, macOS and Windows ie. you *should not* require to build V8 yourself.
 
 Due to security concerns of binary blobs hiding malicious code, the V8 binary is built via CI *ONLY*.
 
@@ -182,8 +178,8 @@ Make sure *NOT* to add your build of the binary, as this will be build via CI.
 1) Because the build is so long, this is not automatically triggered. Go to the [V8
 Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) Github Action, Select "Run workflow",
 and select your pushed branch eg. `v8_7_upgrade`.
-1) Once built, this should open 2 PRs against your branch to add the `libv8.a` for both macOS and linux; merge these PRs
-into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
+1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux, macOS and Windows; merge
+these PRs into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
 
 ### Formatting
 
