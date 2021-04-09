@@ -528,6 +528,13 @@ func (v *Value) AsPromise() (*Promise, error) {
 	return &Promise{&Object{v}}, nil
 }
 
+func (v *Value) AsFunction() (*Function, error) {
+	if !v.IsFunction() {
+		return nil, errors.New("v8go: value is not a Function")
+	}
+	return &Function{v}, nil
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 func (v *Value) MarshalJSON() ([]byte, error) {
 	jsonStr, err := JSONStringify(nil, v)
