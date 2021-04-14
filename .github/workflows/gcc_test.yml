@@ -22,7 +22,9 @@ jobs:
         uses: actions/checkout@v2
       - name: Install GCC
         run: |
-          sudo apt-get -y install gcc-${{ matrix.gcc-version }} g++${{ matrix.gcc-version }}
+          sudo apt-get update
+          sudo apt-get -y --no-install-recommends install \
+            gcc-${{ matrix.gcc-version }} g++${{ matrix.gcc-version }}
       - name: Go Test
         run: go test -v
         env:
