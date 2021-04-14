@@ -17,10 +17,9 @@ jobs:
         platform:
           - 'ubuntu-16.04'
           - 'ubuntu-18.04'
-          - 'ubuntu-20.04'
-          - 'macos-10.15'
-          - 'windows-2016'
-          - 'windows-2019'
+          - 'ubuntu-latest'
+          - 'macos-latest'
+          - 'windows-latest'
     runs-on: ${{ matrix.platform }}
 
     steps:
