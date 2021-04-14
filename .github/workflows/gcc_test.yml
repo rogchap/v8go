@@ -1,0 +1,30 @@
+name: GCC Test
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gcc:
+    name: Test with GCC-${{ matrix.gcc-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        gcc-version: ['7', '8', '9']
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install GCC
+        run: |
+          sudo apt-get -y install gcc-${{ matrix.gcc-version }} g++${{ matrix.gcc-version }}
+      - name: Go Test
+        run: go test -v
+        env:
+          CC: gcc-${{ matrix.gcc-version }}
+          CXX: g++-${{ matrix.gcc-version }}
