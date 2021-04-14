@@ -9,11 +9,12 @@ on:
 
 jobs:
   gcc:
-    name: Test with GCC-${{ matrix.gcc-version }}
-    runs-on: ubuntu-latest
+    name: Tests on ${{ matrix.platform }} with GCC-${{ matrix.gcc-version }}
+    runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
       matrix:
+        platform: ['ubuntu-16.04', 'ubuntu-18.04', 'ubuntu-latest' ]
         gcc-version: ['7', '8', '9']
     steps:
       - name: Install Go
