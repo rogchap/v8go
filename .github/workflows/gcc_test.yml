@@ -23,6 +23,8 @@ jobs:
         uses: actions/checkout@v2
       - name: Install GCC
         run: |
+          sudo apt-get -y --purge remove gcc g++ && \
+            sudo apt-get -y autoremove
           sudo apt-get -y --no-install-recommends install \
             gcc-${{ matrix.gcc-version }} g++-${{ matrix.gcc-version }}
       - name: Go Test
