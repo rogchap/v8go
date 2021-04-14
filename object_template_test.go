@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"testing"
 
-	"rogchap.com/v8go"
+	"github.com/Shopify/v8go"
 )
 
 func TestObjectTemplate(t *testing.T) {
