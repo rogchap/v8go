@@ -77,7 +77,6 @@ def apply_mingw_patches():
     v8_build_path = os.path.join(v8_path, "build")
     apply_patch("0000-add-mingw-main-code-changes", v8_path)
     apply_patch("0001-add-mingw-toolchain", v8_build_path)
-    apply_patch("0002-fix-mingw-unwind-tables", v8_build_path)
     update_last_change()
     zlib_path = os.path.join(v8_path, "third_party", "zlib")
     zlib_src_gn = os.path.join(deps_path, os_arch(), "zlib.gn")

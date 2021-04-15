@@ -5,7 +5,7 @@ index c0a686022..8e73a31ce 100644
 @@ -127,13 +127,13 @@ config("debug") {
      defines += [ "DYNAMIC_ANNOTATIONS_PREFIX=NACL_" ]
    }
- 
+
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      if (!enable_iterator_debugging && !use_custom_libcxx) {
@@ -19,7 +19,7 @@ index c0a686022..8e73a31ce 100644
      # Enable libstdc++ debugging facilities to help catch problems early, see
      # http://crbug.com/65151 .
 @@ -168,7 +168,7 @@ config("release") {
- 
+
  # This config defines the default libraries applied to all targets.
  config("default_libs") {
 -  if (is_win) {
@@ -28,7 +28,7 @@ index c0a686022..8e73a31ce 100644
      # instead the targets that use the less common ones (e.g. wininet or
      # winspool) should include those explicitly.
 @@ -294,8 +294,13 @@ group("shared_library_deps") {
- 
+
  # Windows linker setup for EXEs and DLLs.
  if (is_win) {
 -  _windows_linker_configs = [
@@ -44,13 +44,13 @@ index c0a686022..8e73a31ce 100644
    ]
  }
 diff --git a/config/BUILDCONFIG.gn b/config/BUILDCONFIG.gn
-index 1cff82186..779de96a7 100644
+index fa375deef..49daac2ee 100644
 --- a/config/BUILDCONFIG.gn
 +++ b/config/BUILDCONFIG.gn
 @@ -130,8 +130,12 @@ declare_args() {
    # separate flags.
    is_official_build = false
- 
+
 +  # Set to true when compiling with the MinGW GCC compiler on the MSYS2 environment.
 +  is_mingw = getenv("MSYSTEM") == "MINGW64" || getenv("MSYSTEM") == "MINGW32"
 +
@@ -60,7 +60,7 @@ index 1cff82186..779de96a7 100644
               (current_cpu != "s390x" && current_cpu != "s390" &&
                current_cpu != "ppc64" && current_cpu != "ppc" &&
                current_cpu != "mips" && current_cpu != "mips64")
-@@ -211,11 +215,15 @@ if (host_toolchain == "") {
+@@ -200,11 +204,15 @@ if (host_toolchain == "") {
      if (target_cpu == "x86" || target_cpu == "x64") {
        if (is_clang) {
          host_toolchain = "//build/toolchain/win:win_clang_$target_cpu"
@@ -76,7 +76,7 @@ index 1cff82186..779de96a7 100644
      } else {
        host_toolchain = "//build/toolchain/win:$host_cpu"
      }
-@@ -251,6 +259,8 @@ if (target_os == "android") {
+@@ -240,6 +248,8 @@ if (target_os == "android") {
    # Beware, win cross builds have some caveats, see docs/win_cross.md
    if (is_clang) {
      _default_toolchain = "//build/toolchain/win:win_clang_$target_cpu"
@@ -86,12 +86,12 @@ index 1cff82186..779de96a7 100644
      _default_toolchain = "//build/toolchain/win:$target_cpu"
    }
 diff --git a/config/compiler/BUILD.gn b/config/compiler/BUILD.gn
-index 5ea2f2130..3d23b318f 100644
+index 266b74b3b..e79c3e430 100644
 --- a/config/compiler/BUILD.gn
 +++ b/config/compiler/BUILD.gn
-@@ -278,8 +278,8 @@ config("compiler") {
+@@ -286,8 +286,8 @@ config("compiler") {
    }
- 
+
    # In general, Windows is totally different, but all the other builds share
 -  # some common compiler and linker configuration.
 -  if (!is_win) {
@@ -100,7 +100,7 @@ index 5ea2f2130..3d23b318f 100644
      # Common POSIX compiler flags setup.
      # --------------------------------
      cflags += [ "-fno-strict-aliasing" ]  # See http://crbug.com/32204
-@@ -293,7 +293,7 @@ config("compiler") {
+@@ -301,7 +301,7 @@ config("compiler") {
        } else {
          cflags += [ "-fstack-protector" ]
        }
@@ -109,7 +109,7 @@ index 5ea2f2130..3d23b318f 100644
        # TODO(phajdan.jr): Use -fstack-protector-strong when our gcc supports it.
        # See also https://crbug.com/533294
        cflags += [ "--param=ssp-buffer-size=4" ]
-@@ -304,6 +304,12 @@ config("compiler") {
+@@ -312,6 +312,12 @@ config("compiler") {
        } else if (current_os != "aix") {
          # Not available on aix.
          cflags += [ "-fstack-protector" ]
@@ -121,9 +121,9 @@ index 5ea2f2130..3d23b318f 100644
 +        }
        }
      }
- 
-@@ -337,7 +343,7 @@ config("compiler") {
- 
+
+@@ -345,7 +351,7 @@ config("compiler") {
+
    # Non-Mac Posix and Fuchsia compiler flags setup.
    # -----------------------------------
 -  if ((is_posix && !is_apple) || is_fuchsia) {
@@ -131,7 +131,7 @@ index 5ea2f2130..3d23b318f 100644
      if (enable_profiling) {
        if (!is_debug) {
          cflags += [ "-g" ]
-@@ -486,7 +492,7 @@ config("compiler") {
+@@ -494,7 +500,7 @@ config("compiler") {
      # TODO(thakis): Make the driver pass --color-diagnostics to the linker
      # if -fcolor-diagnostics is passed to it, and pass -fcolor-diagnostics
      # in ldflags instead.
@@ -140,8 +140,8 @@ index 5ea2f2130..3d23b318f 100644
        # On Windows, we call the linker directly, instead of calling it through
        # the driver.
        ldflags += [ "--color-diagnostics" ]
-@@ -514,7 +520,7 @@ config("compiler") {
- 
+@@ -522,7 +528,7 @@ config("compiler") {
+
    # C11/C++11 compiler flags setup.
    # ---------------------------
 -  if (is_linux || is_chromeos || is_android || (is_nacl && is_clang) ||
@@ -149,7 +149,7 @@ index 5ea2f2130..3d23b318f 100644
        current_os == "aix") {
      if (target_os == "android") {
        cxx11_override = use_cxx11_on_android
-@@ -687,7 +693,7 @@ config("compiler") {
+@@ -673,7 +679,7 @@ config("compiler") {
      # Tracked by llvm bug: https://bugs.llvm.org/show_bug.cgi?id=48245
      if (!is_android || current_cpu == "arm64") {
        cflags += [ "-fwhole-program-vtables" ]
@@ -158,7 +158,7 @@ index 5ea2f2130..3d23b318f 100644
          ldflags += [ "-fwhole-program-vtables" ]
        }
      }
-@@ -705,7 +711,7 @@ config("compiler") {
+@@ -691,7 +697,7 @@ config("compiler") {
    if (compiler_timing) {
      if (is_clang && !is_nacl) {
        cflags += [ "-ftime-trace" ]
@@ -167,7 +167,7 @@ index 5ea2f2130..3d23b318f 100644
        cflags += [
          # "Documented" here:
          # http://aras-p.info/blog/2017/10/23/Best-unknown-MSVC-flag-d2cgsummary/
-@@ -749,7 +755,7 @@ config("compiler") {
+@@ -753,7 +759,7 @@ config("compiler") {
    # Assign any flags set for the C compiler to asmflags so that they are sent
    # to the assembler. The Windows assembler takes different types of flags
    # so only do so for posix platforms.
@@ -176,16 +176,16 @@ index 5ea2f2130..3d23b318f 100644
      asmflags += cflags
      asmflags += cflags_c
    }
-@@ -765,7 +771,7 @@ config("compiler_cpu_abi") {
+@@ -807,7 +813,7 @@ config("compiler_cpu_abi") {
    ldflags = []
    defines = []
- 
+
 -  if ((is_posix && !is_apple) || is_fuchsia) {
 +  if ((is_posix && !is_apple) || is_fuchsia || is_mingw) {
      # CPU architecture. We may or may not be doing a cross compile now, so for
      # simplicity we always explicitly set the architecture.
      if (current_cpu == "x64") {
-@@ -1119,7 +1125,7 @@ config("compiler_deterministic") {
+@@ -1161,7 +1167,7 @@ config("compiler_deterministic") {
    # Eliminate build metadata (__DATE__, __TIME__ and __TIMESTAMP__) for
    # deterministic build.  See https://crbug.com/314403
    if (!is_official_build) {
@@ -194,16 +194,16 @@ index 5ea2f2130..3d23b318f 100644
        cflags += [
          "/wd4117",  # Trying to define or undefine a predefined macro.
          "/D__DATE__=",
-@@ -1280,7 +1286,7 @@ config("default_warnings") {
+@@ -1322,7 +1328,7 @@ config("default_warnings") {
    cflags_cc = []
    ldflags = []
- 
+
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      if (treat_warnings_as_errors) {
        cflags += [ "/WX" ]
      }
-@@ -1490,15 +1496,32 @@ config("default_warnings") {
+@@ -1532,15 +1538,32 @@ config("default_warnings") {
        # files.
        cflags += [ "-Wno-packed-not-aligned" ]
      }
@@ -221,7 +221,7 @@ index 5ea2f2130..3d23b318f 100644
 +      ]
 +    }
    }
- 
+
    # Common Clang and GCC warning setup.
 -  if (!is_win || is_clang) {
 +  if (!is_win || is_clang || is_mingw) {
@@ -235,36 +235,36 @@ index 5ea2f2130..3d23b318f 100644
 +      cflags += ["-Wno-range-loop-construct"] # Use of "conditionally-supported" offsetof in c++17
 +    }
    }
- 
+
    if (is_clang) {
-@@ -1583,7 +1606,7 @@ config("default_warnings") {
+@@ -1625,7 +1648,7 @@ config("default_warnings") {
  # part of Chromium.
- 
+
  config("chromium_code") {
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      cflags = [ "/W4" ]  # Warning level 4.
- 
+
      if (is_clang) {
-@@ -1671,7 +1694,7 @@ config("no_chromium_code") {
+@@ -1713,7 +1736,7 @@ config("no_chromium_code") {
    cflags_cc = []
    defines = []
- 
+
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      cflags += [
        "/W3",  # Warning level 3.
        "/wd4800",  # Disable warning when forcing value to bool.
-@@ -1730,7 +1753,7 @@ config("noshadowing") {
+@@ -1772,7 +1795,7 @@ config("noshadowing") {
  # Allows turning Run-Time Type Identification on or off.
- 
+
  config("rtti") {
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      cflags_cc = [ "/GR" ]
    } else {
      cflags_cc = [ "-frtti" ]
-@@ -1740,7 +1763,7 @@ config("rtti") {
+@@ -1782,7 +1805,7 @@ config("rtti") {
  config("no_rtti") {
    # Some sanitizer configs may require RTTI to be left enabled globally
    if (!use_rtti) {
@@ -273,25 +273,34 @@ index 5ea2f2130..3d23b318f 100644
        cflags_cc = [ "/GR-" ]
      } else {
        cflags_cc = [ "-fno-rtti" ]
-@@ -1793,7 +1816,7 @@ config("thin_archive") {
+@@ -1835,7 +1858,7 @@ config("thin_archive") {
  # Note: exceptions are disallowed in Google code.
- 
+
  config("exceptions") {
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      # Enables exceptions in the STL.
      if (!use_custom_libcxx) {
        defines = [ "_HAS_EXCEPTIONS=1" ]
-@@ -1806,7 +1829,7 @@ config("exceptions") {
+@@ -1844,11 +1867,16 @@ config("exceptions") {
+   } else {
+     cflags_cc = [ "-fexceptions" ]
+     cflags_objcc = cflags_cc
++    if (is_mingw && exclude_unwind_tables) {
++      # With exceptions explicitly allowed, override exclude_unwind_tables or
++      # linking will fail on MinGW
++      cflags_cc += [ "-funwind-tables", "-fasynchronous-unwind-tables" ]
++    }
+   }
  }
- 
+
  config("no_exceptions") {
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      # Disables exceptions in the STL.
      # libc++ uses the __has_feature macro to control whether to use exceptions,
      # so defining this macro is unnecessary. Defining _HAS_EXCEPTIONS to 0 also
-@@ -1876,7 +1899,7 @@ config("no_shorten_64_warnings") {
+@@ -1918,7 +1946,7 @@ config("no_shorten_64_warnings") {
      if (is_clang) {
        cflags = [ "-Wno-shorten-64-to-32" ]
      } else {
@@ -300,8 +309,8 @@ index 5ea2f2130..3d23b318f 100644
          # MSVC does not have an explicit warning equivalent to
          # -Wshorten-64-to-32 but 4267 warns for size_t -> int
          # on 64-bit builds, so is the closest.
-@@ -1916,12 +1939,22 @@ config("no_incompatible_pointer_warnings") {
- 
+@@ -1958,12 +1986,22 @@ config("no_incompatible_pointer_warnings") {
+
  # Shared settings for both "optimize" and "optimize_max" configs.
  # IMPORTANT: On Windows "/O1" and "/O2" must go before the common flags.
 -if (is_win) {
@@ -325,8 +334,8 @@ index 5ea2f2130..3d23b318f 100644
    if (!is_asan) {
      common_optimize_on_cflags += [
        # Put data in separate COMDATs. This allows the linker
-@@ -2021,7 +2054,7 @@ config("default_stack_frames") {
- 
+@@ -2063,7 +2101,7 @@ config("default_stack_frames") {
+
  # Default "optimization on" config.
  config("optimize") {
 -  if (is_win) {
@@ -334,8 +343,8 @@ index 5ea2f2130..3d23b318f 100644
      if (chrome_pgo_phase != 2) {
        # Favor size over speed, /O1 must be before the common flags.
        # /O1 implies /Os and /GF.
-@@ -2056,7 +2089,7 @@ config("optimize") {
- 
+@@ -2098,7 +2136,7 @@ config("optimize") {
+
  # Turn off optimizations.
  config("no_optimize") {
 -  if (is_win) {
@@ -343,7 +352,7 @@ index 5ea2f2130..3d23b318f 100644
      cflags = [
        "/Od",  # Disable optimization.
        "/Ob0",  # Disable all inlining (on by default).
-@@ -2108,7 +2141,7 @@ config("optimize_max") {
+@@ -2150,7 +2188,7 @@ config("optimize_max") {
      configs = [ "//build/config/nacl:irt_optimize" ]
    } else {
      ldflags = common_optimize_on_ldflags
@@ -352,7 +361,7 @@ index 5ea2f2130..3d23b318f 100644
        # Favor speed over size, /O2 must be before the common flags.
        # /O2 implies /Ot, /Oi, and /GF.
        cflags = [ "/O2" ] + common_optimize_on_cflags
-@@ -2140,7 +2173,7 @@ config("optimize_speed") {
+@@ -2182,7 +2220,7 @@ config("optimize_speed") {
      configs = [ "//build/config/nacl:irt_optimize" ]
    } else {
      ldflags = common_optimize_on_ldflags
@@ -361,8 +370,8 @@ index 5ea2f2130..3d23b318f 100644
        # Favor speed over size, /O2 must be before the common flags.
        # /O2 implies /Ot, /Oi, and /GF.
        cflags = [ "/O2" ] + common_optimize_on_cflags
-@@ -2268,7 +2301,7 @@ config("win_pdbaltpath") {
- 
+@@ -2314,7 +2352,7 @@ config("win_pdbaltpath") {
+
  # Full symbols.
  config("symbols") {
 -  if (is_win) {
@@ -370,7 +379,7 @@ index 5ea2f2130..3d23b318f 100644
      if (is_clang) {
        cflags = [ "/Z7" ]  # Debug information in the .obj files.
      } else {
-@@ -2320,7 +2353,8 @@ config("symbols") {
+@@ -2366,7 +2404,8 @@ config("symbols") {
      # build-directory-independent output. pnacl and nacl-clang do support that
      # flag, so we can use use -g1 for pnacl and nacl-clang compiles.
      # gcc nacl is is_nacl && !is_clang, pnacl and nacl-clang are && is_clang.
@@ -379,8 +388,8 @@ index 5ea2f2130..3d23b318f 100644
 +    if (!is_mingw && (!is_nacl || is_clang)) {
        cflags += [ "-g2" ]
      }
- 
-@@ -2370,7 +2404,7 @@ config("symbols") {
+
+@@ -2417,7 +2456,7 @@ config("symbols") {
  # This config guarantees to hold symbol for stack trace which are shown to user
  # when crash happens in unittests running on buildbot.
  config("minimal_symbols") {
@@ -389,16 +398,16 @@ index 5ea2f2130..3d23b318f 100644
      # Functions, files, and line tables only.
      cflags = []
      ldflags = [ "/DEBUG" ]
-@@ -2427,7 +2461,7 @@ config("minimal_symbols") {
+@@ -2476,7 +2515,7 @@ config("minimal_symbols") {
  # told to not generate debug information and the linker then just puts function
  # names in the final debug information.
  config("no_symbols") {
 -  if (is_win) {
 +  if (is_win && !is_mingw) {
      ldflags = [ "/DEBUG" ]
- 
+
      # All configs using /DEBUG should include this:
-@@ -2520,6 +2554,11 @@ buildflag_header("compiler_buildflags") {
+@@ -2569,6 +2608,11 @@ buildflag_header("compiler_buildflags") {
  config("cet_shadow_stack") {
    if (enable_cet_shadow_stack && is_win) {
      assert(target_cpu == "x64")
@@ -412,7 +421,7 @@ index 5ea2f2130..3d23b318f 100644
    }
  }
 diff --git a/config/linux/pkg-config.py b/config/linux/pkg-config.py
-index 5adf70cc3..e28e798df 100755
+index 5adf70cc3..e28e798df 100644
 --- a/config/linux/pkg-config.py
 +++ b/config/linux/pkg-config.py
 @@ -41,7 +41,11 @@ from optparse import OptionParser
@@ -425,13 +434,13 @@ index 5adf70cc3..e28e798df 100755
 +# of the PKG_CONFIG_LIBDIR environment library.
 +#
 +# --full-path-libs causes lib names to include their full path.
- 
+
  def SetConfigPath(options):
    """Set the PKG_CONFIG_LIBDIR environment variable.
 @@ -105,11 +109,29 @@ def RewritePath(path, strip_prefix, sysroot):
      return path
- 
- 
+
+
 +flag_regex = re.compile("(-.)(.+)")
 +
 +def FlagReplace(matchobj):
@@ -458,7 +467,7 @@ index 5adf70cc3..e28e798df 100755
 +  if "linux" not in sys.platform and 'win32' not in sys.platform:
      print("[[],[],[],[],[]]")
      return 0
- 
+
 @@ -122,12 +144,15 @@ def main():
    parser.add_option('-a', action='store', dest='arch', type='string')
    parser.add_option('--system_libdir', action='store', dest='system_libdir',
@@ -473,12 +482,12 @@ index 5adf70cc3..e28e798df 100755
                      dest='version_as_components')
 +  parser.add_option('--full-path-libs', action='store_true', dest='full_path_libs')
    (options, args) = parser.parse_args()
- 
+
    # Make a list of regular expressions to strip out.
 @@ -144,6 +169,10 @@ def main():
    else:
      prefix = ''
- 
+
 +  # Override PKG_CONFIG_LIBDIR
 +  if options.pkg_config_libdir:
 +    os.environ['PKG_CONFIG_LIBDIR'] = options.pkg_config_libdir
@@ -492,12 +501,12 @@ index 5adf70cc3..e28e798df 100755
    # to happen in practice.
 -  all_flags = flag_string.strip().split(' ')
 +  all_flags = ConvertGCCToMSVC(flag_string.strip().split(' '))
- 
- 
+
+
    sysroot = options.sysroot
 @@ -220,7 +249,10 @@ def main():
        continue;
- 
+
      if flag[:2] == '-l':
 -      libs.append(RewritePath(flag[2:], prefix, sysroot))
 +      library = RewritePath(flag[2:], prefix, sysroot)
@@ -510,7 +519,7 @@ index 5adf70cc3..e28e798df 100755
 @@ -237,6 +269,14 @@ def main():
      else:
        cflags.append(flag)
- 
+
 +  if options.full_path_libs:
 +    full_path_libs = []
 +    for lib_dir in lib_dirs:
@@ -534,12 +543,12 @@ index 428e44ac0..a0d2175ee 100644
 +  # Allow directly overriding the PKG_CONFIG_LIBDIR enviroment variable
 +  pkg_config_libdir = ""
  }
- 
+
  pkg_config_script = "//build/config/linux/pkg-config.py"
 @@ -87,6 +90,17 @@ if (host_pkg_config != "") {
    host_pkg_config_args = pkg_config_args
  }
- 
+
 +if (pkg_config_libdir != "") {
 +  pkg_config_args += [
 +    "--pkg_config_libdir",
@@ -555,7 +564,7 @@ index 428e44ac0..a0d2175ee 100644
    assert(defined(invoker.packages),
           "Variable |packages| must be defined to be a list in pkg_config.")
 diff --git a/config/win/BUILD.gn b/config/win/BUILD.gn
-index 51437c66c..cc126fcd4 100644
+index 4870f67d4..19cc8594b 100644
 --- a/config/win/BUILD.gn
 +++ b/config/win/BUILD.gn
 @@ -46,7 +46,7 @@ declare_args() {
@@ -570,7 +579,7 @@ index 51437c66c..cc126fcd4 100644
 @@ -57,27 +57,36 @@ config("compiler") {
      ]
    }
- 
+
 -  cflags = [
 -    "/Gy",  # Enable function-level linking.
 -    "/FS",  # Preserve previous PDB behavior.
@@ -590,11 +599,11 @@ index 51437c66c..cc126fcd4 100644
 +      "-fno-keep-inline-dllexport"
 +    ]
 +  }
- 
+
    if (is_clang) {
      cflags += [ "/Zc:twoPhase" ]
    }
- 
+
 -  # Force C/C++ mode for the given GN detected file type. This is necessary
 -  # for precompiled headers where the same source file is compiled in both
 -  # modes.
@@ -606,7 +615,7 @@ index 51437c66c..cc126fcd4 100644
 +    # modes.
 +    cflags_c = [ "/TC" ]
 +    cflags_cc = [ "/TP" ]
- 
+
 -  cflags += [
 -    # Work around crbug.com/526851, bug in VS 2015 RTM compiler.
 -    "/Zc:sizedDealloc-",
@@ -616,22 +625,22 @@ index 51437c66c..cc126fcd4 100644
 +      "/Zc:sizedDealloc-",
 +    ]
 +  }
- 
+
    if (is_clang) {
-     # Don't look for includes in %INCLUDE%.
-@@ -153,7 +162,7 @@ config("compiler") {
+     # Required to make the 19041 SDK compatible with clang-cl.
+@@ -150,7 +159,7 @@ config("compiler") {
      ldflags += [ "/lldignoreenv" ]
    }
- 
+
 -  if (!is_debug && !is_component_build) {
 +  if (!is_debug && !is_component_build && !is_mingw) {
      # Enable standard linker optimizations like GC (/OPT:REF) and ICF in static
      # release builds.
      # Release builds always want these optimizations, so enable them explicitly.
-@@ -178,17 +187,19 @@ config("compiler") {
+@@ -175,17 +184,19 @@ config("compiler") {
      ldflags += [ "/PROFILE" ]
    }
- 
+
 -  # arflags apply only to static_libraries. The normal linker configs are only
 -  # set for executable and shared library targets so arflags must be set
 -  # elsewhere. Since this is relatively contained, we just apply them in this
@@ -657,12 +666,12 @@ index 51437c66c..cc126fcd4 100644
 +    ]
 +  }
  }
- 
+
  # This is included by reference in the //build/config/compiler:runtime_library
-@@ -297,29 +308,31 @@ config("sdk_link") {
+@@ -294,29 +305,31 @@ config("sdk_link") {
      ldflags = [ "/MACHINE:ARM64" ]
    }
- 
+
 -  vcvars_toolchain_data = exec_script("../../toolchain/win/setup_toolchain.py",
 -                                      [
 -                                        visual_studio_path,
@@ -696,7 +705,7 @@ index 51437c66c..cc126fcd4 100644
 +      vc_lib_atlmfc_path = vcvars_toolchain_data.vc_lib_atlmfc_path
 +    }
 +    vc_lib_um_path = vcvars_toolchain_data.vc_lib_um_path
- 
+
 -  lib_dirs = [
 -    "$vc_lib_um_path",
 -    "$vc_lib_path",
@@ -712,8 +721,8 @@ index 51437c66c..cc126fcd4 100644
 +    }
    }
  }
- 
-@@ -327,19 +340,27 @@ config("sdk_link") {
+
+@@ -324,19 +337,27 @@ config("sdk_link") {
  # targets who want different library configurations can remove this and specify
  # their own.
  config("common_linker_setup") {
@@ -752,8 +761,8 @@ index 51437c66c..cc126fcd4 100644
 +    }
    }
  }
- 
-@@ -376,7 +397,7 @@ config("cfi_linker") {
+
+@@ -373,7 +394,7 @@ config("cfi_linker") {
    # ASan and CFG leads to slow process startup. Chromium's test runner uses
    # lots of child processes, so this means things are really slow. Disable CFG
    # for now. https://crbug.com/846966
@@ -762,7 +771,7 @@ index 51437c66c..cc126fcd4 100644
      # Turn on CFG bitmap generation and CFG load config.
      if (target_cpu == "arm64") {
        # longjmp protection is temporarily disabled on Windows on Arm64 due to
-@@ -473,20 +494,22 @@ config("delayloads_not_for_child_dll") {
+@@ -470,20 +491,22 @@ config("delayloads_not_for_child_dll") {
  # See https://msdn.microsoft.com/en-us/library/2kzt1wy3.aspx for a reference of
  # what each value does.
  config("default_crt") {
@@ -797,7 +806,7 @@ index 51437c66c..cc126fcd4 100644
      }
    }
  }
-@@ -527,42 +550,54 @@ config("static_crt") {
+@@ -524,42 +547,54 @@ config("static_crt") {
  if (current_cpu == "x64") {
    # The number after the comma is the minimum required OS version.
    # 5.02 = Windows Server 2003.
@@ -812,7 +821,7 @@ index 51437c66c..cc126fcd4 100644
 -  subsystem_version_suffix = ",5.01"
 +  subsystem_version_suffix = "5.01"
  }
- 
+
  config("console") {
 -  ldflags = [ "/SUBSYSTEM:CONSOLE$subsystem_version_suffix" ]
 +  if(is_mingw){
@@ -831,9 +840,9 @@ index 51437c66c..cc126fcd4 100644
 +    ldflags = [ "/SUBSYSTEM:WINDOWS,$subsystem_version_suffix" ]
 +  }
  }
- 
+
  # Incremental linking ----------------------------------------------------------
- 
+
  # Applies incremental linking or not depending on the current configuration.
  config("default_incremental_linking") {
 -  # Enable incremental linking for debug builds and all component builds - any
@@ -871,8 +880,8 @@ index 51437c66c..cc126fcd4 100644
 -    ldflags = [ "/INCREMENTAL:NO" ]
    }
  }
- 
-@@ -574,6 +609,9 @@ config("unicode") {
+
+@@ -571,6 +606,9 @@ config("unicode") {
      "_UNICODE",
      "UNICODE",
    ]
@@ -880,9 +889,9 @@ index 51437c66c..cc126fcd4 100644
 +    cflags = [ "-municode" ]
 +  }
  }
- 
+
  # Lean and mean ----------------------------------------------------------------
-@@ -594,3 +632,21 @@ config("lean_and_mean") {
+@@ -591,3 +629,21 @@ config("lean_and_mean") {
  config("nominmax") {
    defines = [ "NOMINMAX" ]
  }
@@ -917,7 +926,7 @@ index e2115083f..c6bdef8fb 100644
 +      if(!is_mingw){
 +        ldflags = [
 +                    "/manifest:embed",
- 
+
 -                  # We handle UAC by adding explicit .manifest files instead.
 -                  "/manifestuac:no",
 -                ] + manifests
@@ -926,7 +935,7 @@ index e2115083f..c6bdef8fb 100644
 +                  ] + manifests
 +      }
      }
- 
+
      # This source set only exists to add a dep on the invoker's deps and to
 diff --git a/config/x64.gni b/config/x64.gni
 index 9e86979cb..ca8f47501 100644
@@ -935,20 +944,20 @@ index 9e86979cb..ca8f47501 100644
 @@ -16,7 +16,7 @@ if (current_cpu == "x64") {
      x64_arch = ""
    }
- 
+
 -  if ((is_posix && !is_apple) || is_fuchsia) {
 +  if ((is_posix && !is_apple) || is_fuchsia || is_mingw) {
      if (x64_arch == "") {
        x64_arch = "x86-64"
      }
 diff --git a/toolchain/gcc_solink_wrapper.py b/toolchain/gcc_solink_wrapper.py
-index 32f38670a..c4b11a9ae 100755
+index 32f38670a..c4b11a9ae 100644
 --- a/toolchain/gcc_solink_wrapper.py
 +++ b/toolchain/gcc_solink_wrapper.py
 @@ -18,10 +18,11 @@ import sys
- 
+
  import wrapper_utils
- 
+
 -
  def CollectSONAME(args):
    """Replaces: readelf -d $sofile | grep SONAME"""
@@ -980,7 +989,7 @@ index 32f38670a..c4b11a9ae 100755
                        required=True,
                        help='Shared object file produced by linking command',
 @@ -183,8 +191,18 @@ def main():
- 
+
    # Finally, strip the linked shared object file (if desired).
    if args.strip:
 +    if args.objcopy:
@@ -995,18 +1004,18 @@ index 32f38670a..c4b11a9ae 100755
 +    if args.objcopy:
 +      result = subprocess.call(wrapper_utils.CommandToRun(
 +          [args.objcopy, '--add-gnu-debuglink', args.output + '.debug',args.output]))
- 
+
    if dwp_proc:
      dwp_result = dwp_proc.wait()
 @@ -193,6 +211,5 @@ def main():
- 
+
    return result
- 
+
 -
  if __name__ == "__main__":
    sys.exit(main())
 diff --git a/toolchain/gcc_toolchain.gni b/toolchain/gcc_toolchain.gni
-index 2a4c701fa..d92c53a91 100644
+index 06d6a684f..24a6bcd4a 100644
 --- a/toolchain/gcc_toolchain.gni
 +++ b/toolchain/gcc_toolchain.gni
 @@ -59,6 +59,7 @@ if (enable_resource_allowlist_generation) {
@@ -1028,7 +1037,7 @@ index 2a4c701fa..d92c53a91 100644
      # This define changes when the toolchain changes, forcing a rebuild.
      # Nothing should ever use this define.
      if (defined(invoker.rebuild_define)) {
-@@ -254,15 +257,19 @@ template("gcc_toolchain") {
+@@ -261,15 +264,19 @@ template("gcc_toolchain") {
      asm = asm_prefix + invoker.cc
      ar = invoker.ar
      ld = "$goma_ld${invoker.ld}"
@@ -1056,18 +1065,18 @@ index 2a4c701fa..d92c53a91 100644
      }
      if (defined(invoker.dwp)) {
        dwp_switch = " --dwp=\"${invoker.dwp}\""
-@@ -270,6 +277,7 @@ template("gcc_toolchain") {
+@@ -277,6 +284,7 @@ template("gcc_toolchain") {
        dwp_switch = ""
      }
- 
+
 +
      if (defined(invoker.shlib_extension)) {
        default_shlib_extension = invoker.shlib_extension
      } else {
-@@ -347,6 +355,16 @@ template("gcc_toolchain") {
+@@ -354,6 +362,16 @@ template("gcc_toolchain") {
        outputs = [ "$object_subdir/{{source_name_part}}.o" ]
      }
- 
+
 +    if(is_mingw){
 +      tool("rc") {
 +        depfile = "{{output}}.d"
@@ -1081,26 +1090,26 @@ index 2a4c701fa..d92c53a91 100644
      tool("asm") {
        # For GCC we can just use the C compiler to compile assembly.
        depfile = "{{output}}.d"
-@@ -407,8 +425,6 @@ template("gcc_toolchain") {
+@@ -414,8 +432,6 @@ template("gcc_toolchain") {
        # .TOC file, overwrite it, otherwise, don't change it.
        tocfile = sofile + ".TOC"
- 
+
 -      link_command = "$ld -shared -Wl,-soname=\"$soname\" {{ldflags}}${extra_ldflags} -o \"$unstripped_sofile\" @\"$rspfile\""
 -
        # Generate a map file to be used for binary size analysis.
        # Map file adds ~10% to the link time on a z620.
        # With target_os="android", libchrome.so.map.gz is ~20MB.
-@@ -418,13 +434,30 @@ template("gcc_toolchain") {
+@@ -425,13 +441,30 @@ template("gcc_toolchain") {
          map_switch = " --map-file \"$map_file\""
        }
- 
+
 -      assert(defined(readelf), "to solink you must have a readelf")
 -      assert(defined(nm), "to solink you must have an nm")
        strip_switch = ""
        if (defined(invoker.strip)) {
          strip_switch = "--strip=${invoker.strip} "
        }
- 
+
 +      mingw_flags = ""
 +      if(is_mingw){
 +        # Have MinGW linker generate a .def file and a .a import library
@@ -1124,7 +1133,7 @@ index 2a4c701fa..d92c53a91 100644
        # requiring sh control structures, pipelines, and POSIX utilities.
        # The host might not have a POSIX shell and utilities (e.g. Windows).
 diff --git a/toolchain/win/BUILD.gn b/toolchain/win/BUILD.gn
-index be0893059..d05ec20f8 100644
+index eff2a14c9..79f1bb786 100644
 --- a/toolchain/win/BUILD.gn
 +++ b/toolchain/win/BUILD.gn
 @@ -9,6 +9,7 @@ import("//build/config/win/visual_studio_version.gni")
@@ -1132,7 +1141,7 @@ index be0893059..d05ec20f8 100644
  import("//build/toolchain/goma.gni")
  import("//build/toolchain/toolchain.gni")
 +import("//build/toolchain/gcc_toolchain.gni")
- 
+
  # Should only be running on Windows.
  assert(is_win)
 @@ -46,13 +47,15 @@ if (current_toolchain == default_toolchain) {
@@ -1156,7 +1165,7 @@ index be0893059..d05ec20f8 100644
 +                ])
 +  }
  }
- 
+
  if (host_os == "win") {
 @@ -528,3 +531,29 @@ if (target_os == "winuwp") {
      }
@@ -1189,7 +1198,7 @@ index be0893059..d05ec20f8 100644
 +mingw_toolchain("x86") {
 +}
 diff --git a/util/lastchange.py b/util/lastchange.py
-index 874870ad5..a4fc0be8d 100755
+index 874870ad5..a4fc0be8d 100644
 --- a/util/lastchange.py
 +++ b/util/lastchange.py
 @@ -191,7 +191,10 @@ def GetGitTopDirectory(source_dir):
@@ -1201,8 +1210,8 @@ index 874870ad5..a4fc0be8d 100755
 +  if "GCC" in sys.version and sys.platform=='win32':
 +    return subprocess.check_output(["cygpath", "-w", directory]).strip(b"\n").decode()
 +  return directory
- 
- 
+
+
  def WriteIfChanged(file_name, contents):
 diff --git a/win/BUILD.gn b/win/BUILD.gn
 index d449f5925..558e04229 100644
@@ -1211,14 +1220,14 @@ index d449f5925..558e04229 100644
 @@ -16,7 +16,7 @@ windows_manifest("default_exe_manifest") {
    ]
  }
- 
+
 -if (is_win) {
 +if (is_win && !is_mingw) {
    assert(host_os != "mac" || target_cpu != "x86",
           "Windows cross-builds from Mac must be 64-bit.")
- 
+
 @@ -92,7 +92,7 @@ if (is_win) {
- 
+
    group("runtime_libs") {
      data = []
 -    if (is_component_build) {
