@@ -25,6 +25,8 @@ func (fn *Function) Call(args ...Valuer) (*Value, error) {
 		}
 		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
+	fn.ctx.register()
 	rtn := C.FunctionCall(fn.ptr, C.int(len(args)), argptr)
+	fn.ctx.deregister()
 	return getValue(fn.ctx, rtn), getError(rtn)
 }
