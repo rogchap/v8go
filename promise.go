@@ -85,3 +85,34 @@ func (p *Promise) Result() *Value {
 	val := &Value{ptr, p.ctx}
 	return val
 }
+
+// Then invokes the given function when the promise has been fulfilled, not rejected.
+// The returned Promise resolves after the given function has finished execution.
+func (p *Promise) Then(cb FunctionCallback) *Promise {
+	p.ctx.register()
+	defer p.ctx.deregister()
+	cbID := p.ctx.iso.registerCallback(cb)
+	ptr := C.PromiseThen(p.ptr, C.int(cbID))
+	return &Promise{&Object{&Value{ptr, p.ctx}}}
+}
+
+// Then2 invokes one of the given functions when the promise is fulfilled or rejected.
+// The returned Promise resolves after the callback has finished execution.
+func (p *Promise) Then2(onFulfilled, onRejected FunctionCallback) *Promise {
+	p.ctx.register()
+	defer p.ctx.deregister()
+	onFulfilledID := p.ctx.iso.registerCallback(onFulfilled)
+	onRejectedID := p.ctx.iso.registerCallback(onRejected)
+	ptr := C.PromiseThen2(p.ptr, C.int(onFulfilledID), C.int(onRejectedID))
+	return &Promise{&Object{&Value{ptr, p.ctx}}}
+}
+
+// Catch invokes the given function if the promise is rejected.
+// The returned Promise resolves after the callback has finished execution.
+func (p *Promise) Catch(cb FunctionCallback) *Promise {
+	p.ctx.register()
+	defer p.ctx.deregister()
+	cbID := p.ctx.iso.registerCallback(cb)
+	ptr := C.PromiseCatch(p.ptr, C.int(cbID))
+	return &Promise{&Object{&Value{ptr, p.ctx}}}
+}
