@@ -35,6 +35,35 @@ func TestFunctionTemplate(t *testing.T) {
 	}
 }
 
+func TestFunctionTemplateGetFunction(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewContext(iso)
+
+	var args *v8go.FunctionCallbackInfo
+	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		args = info
+		reply, _ := v8go.NewValue(iso, "hello")
+		return reply
+	})
+	fn := tmpl.GetFunction(ctx)
+	ten, err := v8go.NewValue(iso, int32(10))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ret, err := fn.Call(ten)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(args.Args()) != 1 || args.Args()[0].String() != "10" {
+		t.Fatalf("expected args [10], got: %+v", args.Args())
+	}
+	if !ret.IsString() || ret.String() != "hello" {
+		t.Fatalf("expected return value of 'hello', was: %v", ret)
+	}
+}
+
 func ExampleFunctionTemplate() {
 	iso, _ := v8go.NewIsolate()
 	global, _ := v8go.NewObjectTemplate(iso)
