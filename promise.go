@@ -87,7 +87,12 @@ func (p *Promise) Result() *Value {
 }
 
 // Then invokes the given function when the promise has been fulfilled, not rejected.
-// The returned Promise resolves after the given function has finished execution.
+//
+// The returned Promise resolves after the callback finishes execution.
+//
+// V8 only invokes the callback when processing "microtasks".
+// The default MicrotaskPolicy processes them when the call depth decreases to 0.
+// Call (*Context).PerformMicrotaskCheckpoint to trigger it manually.
 func (p *Promise) Then(cb FunctionCallback) *Promise {
 	p.ctx.register()
 	defer p.ctx.deregister()
@@ -97,7 +102,7 @@ func (p *Promise) Then(cb FunctionCallback) *Promise {
 }
 
 // Then2 invokes one of the given functions when the promise is fulfilled or rejected.
-// The returned Promise resolves after the callback has finished execution.
+// See Then for other details.
 func (p *Promise) Then2(onFulfilled, onRejected FunctionCallback) *Promise {
 	p.ctx.register()
 	defer p.ctx.deregister()
@@ -108,7 +113,7 @@ func (p *Promise) Then2(onFulfilled, onRejected FunctionCallback) *Promise {
 }
 
 // Catch invokes the given function if the promise is rejected.
-// The returned Promise resolves after the callback has finished execution.
+// See Then for other details.
 func (p *Promise) Catch(cb FunctionCallback) *Promise {
 	p.ctx.register()
 	defer p.ctx.deregister()
