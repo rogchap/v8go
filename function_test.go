@@ -33,6 +33,37 @@ func TestFunctionCall(t *testing.T) {
 	}
 }
 
+func TestFunctionCallToGoFunc(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	global, _ := v8go.NewObjectTemplate(iso)
+
+	called := false
+	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		called = true
+		return nil
+	})
+
+	global.Set("print", printfn, v8go.ReadOnly)
+
+	ctx, err := v8go.NewContext(iso, global)
+	failIf(t, err)
+	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
+	failIf(t, err)
+	fn, err := val.AsFunction()
+	failIf(t, err)
+	resultValue, err := fn.Call()
+	failIf(t, err)
+
+	if !called {
+		t.Errorf("expected my function to be called, wasn't")
+	}
+	if !resultValue.IsUndefined() {
+		t.Errorf("expected undefined, got: %v", resultValue.DetailString())
+	}
+}
+
 func TestFunctionCallError(t *testing.T) {
 	t.Parallel()
 
