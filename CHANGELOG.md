@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Promise resolver and promise result
-- Convert a Value to a Function and invoke it
+- Convert a Value to a Function and invoke it. Thanks to [@robfig](https://github.com/robfig)
+- Windows static binary. Thanks to [@cleiner](https://github.com/cleiner)
+- Setting/unsetting of V8 feature flags
 
 ### Changed
-- Upgrade to V8 8.9.255.20
+- Upgrade to V8 9.0.257.18
 
 ### Fixed
 - Go GC attempting to free C memory (via finalizer) of values after an Isolate is disposed causes a panic

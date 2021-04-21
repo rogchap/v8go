@@ -133,7 +133,7 @@ V8 requires 64-bit on Windows, therefore it will not work on 32-bit systems.
 
 ## V8 dependency
 
-V8 version: **8.9.255.20** (March 2021)
+V8 version: **9.0.257.18** (April 2021)
 
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
 are included for Linux, macOS and Windows ie. you *should not* require to build V8 yourself.
