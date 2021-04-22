@@ -79,7 +79,7 @@ func TestPromiseRejected(t *testing.T) {
 			thenInfo = info
 			return nil
 		}).
-		Then2(
+		Then(
 			func(_ *v8go.FunctionCallbackInfo) *v8go.Value {
 				then2Fulfilled = true
 				return nil
