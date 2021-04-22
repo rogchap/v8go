@@ -7,7 +7,7 @@ jobs:
         name: Build V8 for ${{ matrix.platform }}
         strategy:
             matrix:
-                platform: [ubuntu-latest, macos-latest, windows-latest]
+                platform: [ubuntu-18.04, macos-latest, windows-latest]
         runs-on: ${{ matrix.platform }}
         steps:
             - name: Checkout
@@ -19,7 +19,7 @@ jobs:
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
             - name: Build V8 linux
-              if: matrix.platform == 'ubuntu-latest'
+              if: matrix.platform == 'ubuntu-18.04'
               run: cd deps && ./build.py --no-clang
             - name: Build V8 macOS
               if: matrix.platform == 'macos-latest'
