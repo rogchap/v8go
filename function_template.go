@@ -69,7 +69,7 @@ func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, argsCount int) 
 
 	argv := (*[1 << 30]C.ValuePtr)(unsafe.Pointer(args))[:argsCount:argsCount]
 	for i, v := range argv {
-		val := &Value{ptr: v}
+		val := &Value{ptr: v, ctx: ctx}
 		info.args[i] = val
 	}
 
