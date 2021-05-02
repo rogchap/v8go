@@ -104,3 +104,24 @@ func TestPromiseRejected(t *testing.T) {
 		t.Fatalf("expected call to onRejected, got none")
 	}
 }
+
+func TestPromiseThenPanic(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewContext(iso)
+	res, _ := v8go.NewPromiseResolver(ctx)
+	prom := res.GetPromise()
+
+	t.Run("no callbacks", func(t *testing.T) {
+		defer func() { recover() }()
+		prom.Then()
+		t.Errorf("expected a panic")
+	})
+	t.Run("3 callbacks", func(t *testing.T) {
+		defer func() { recover() }()
+		fn := func(_ *v8go.FunctionCallbackInfo) *v8go.Value { return nil }
+		prom.Then(fn, fn, fn)
+		t.Errorf("expected a panic")
+	})
+}
