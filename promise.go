@@ -85,3 +85,41 @@ func (p *Promise) Result() *Value {
 	val := &Value{ptr, p.ctx}
 	return val
 }
+
+// Then accepts 1 or 2 callbacks.
+// The first is invoked when the promise has been fulfilled.
+// The second is invoked when the promise has been rejected.
+// The returned Promise resolves after the callback finishes execution.
+//
+// V8 only invokes the callback when processing "microtasks".
+// The default MicrotaskPolicy processes them when the call depth decreases to 0.
+// Call (*Context).PerformMicrotaskCheckpoint to trigger it manually.
+func (p *Promise) Then(cbs ...FunctionCallback) *Promise {
+	p.ctx.register()
+	defer p.ctx.deregister()
+
+	var ptr C.ValuePtr
+	switch len(cbs) {
+	case 1:
+		cbID := p.ctx.iso.registerCallback(cbs[0])
+		ptr = C.PromiseThen(p.ptr, C.int(cbID))
+	case 2:
+		cbID1 := p.ctx.iso.registerCallback(cbs[0])
+		cbID2 := p.ctx.iso.registerCallback(cbs[1])
+		ptr = C.PromiseThen2(p.ptr, C.int(cbID1), C.int(cbID2))
+
+	default:
+		panic("1 or 2 callbacks required")
+	}
+	return &Promise{&Object{&Value{ptr, p.ctx}}}
+}
+
+// Catch invokes the given function if the promise is rejected.
+// See Then for other details.
+func (p *Promise) Catch(cb FunctionCallback) *Promise {
+	p.ctx.register()
+	defer p.ctx.deregister()
+	cbID := p.ctx.iso.registerCallback(cb)
+	ptr := C.PromiseCatch(p.ptr, C.int(cbID))
+	return &Promise{&Object{&Value{ptr, p.ctx}}}
+}

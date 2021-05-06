@@ -117,6 +117,14 @@ func (c *Context) Global() *Object {
 	return &Object{v}
 }
 
+// PerformMicrotaskCheckpoint runs the default MicrotaskQueue until empty.
+// This is used to make progress on Promises.
+func (c *Context) PerformMicrotaskCheckpoint() {
+	c.register()
+	defer c.deregister()
+	C.IsolatePerformMicrotaskCheckpoint(c.iso.ptr)
+}
+
 // Close will dispose the context and free the memory.
 // Access to any values assosiated with the context after calling Close may panic.
 func (c *Context) Close() {
