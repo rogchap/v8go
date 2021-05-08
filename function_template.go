@@ -58,6 +58,12 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 	return &FunctionTemplate{tmpl}, nil
 }
 
+// GetFunction returns an instance of this function template bound to the given context.
+func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
+	val_ptr := C.FunctionTemplateGetFunction(tmpl.ptr, ctx.ptr)
+	return &Function{&Value{val_ptr, ctx}}
+}
+
 //export goFunctionCallback
 func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, argsCount int) C.ValuePtr {
 	ctx := getContext(ctxref)

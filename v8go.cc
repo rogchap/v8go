@@ -329,6 +329,22 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
   return static_cast<TemplatePtr>(ot);
 }
 
+ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
+  LOCAL_TEMPLATE(ptr);
+  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
+  MaybeLocal<Function> fn = fn_tmpl->GetFunction(local_ctx);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, fn.ToLocalChecked());
+  return tracked_value(ctx, val);
+}
+
 /********** Context **********/
 
 #define LOCAL_CONTEXT(ctx_ptr)                  \
