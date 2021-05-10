@@ -74,13 +74,13 @@ if obj.Has("version") { // check if a property exists on the object
 ```go
 val, err := ctx.RunScript(src, filename)
 if err != nil {
-  err = err.(*v8go.JSError) // JavaScript errors will be returned as the JSError struct
-  fmt.Println(err.Message) // the message of the exception thrown
-  fmt.Println(err.Location) // the filename, line number and the column where the error occured
-  fmt.Println(err.StackTrace) // the full stack trace of the error, if available
+  e := err.(*v8go.JSError) // JavaScript errors will be returned as the JSError struct
+  fmt.Println(e.Message) // the message of the exception thrown
+  fmt.Println(e.Location) // the filename, line number and the column where the error occured
+  fmt.Println(e.StackTrace) // the full stack trace of the error, if available
 
-  fmt.Printf("javascript error: %v", err) // will format the standard error message
-  fmt.Printf("javascript stack trace: %+v", err) // will format the full error stack trace
+  fmt.Printf("javascript error: %v", e) // will format the standard error message
+  fmt.Printf("javascript stack trace: %+v", e) // will format the full error stack trace
 }
 ```
 
