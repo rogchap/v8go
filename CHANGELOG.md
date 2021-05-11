@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.6.0] - 2021-05-11
+
 ### Added
 - Promise resolver and promise result
 - Convert a Value to a Function and invoke it. Thanks to [@robfig](https://github.com/robfig)
