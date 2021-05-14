@@ -1160,17 +1160,41 @@ ValuePtr PromiseResult(ValuePtr ptr) {
 
 /********** Function **********/
 
+static void buildCallArguments(Isolate* iso, Local<Value> *argv, int argc, ValuePtr args[])
+{
+  for (int i = 0; i < argc; i++) {
+    m_value* arg = static_cast<m_value*>(args[i]);
+    argv[i] = arg->ptr.Get(iso);
+  }
+}
+
 RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
   RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
-  for (int i = 0; i < argc; i++) {
-    m_value* arg = static_cast<m_value*>(args[i]);
-    argv[i] = arg->ptr.Get(iso);
-  }
+  buildCallArguments(iso, argv, argc, args);
   Local<Value> recv = Undefined(iso);
   MaybeLocal<Value> result = fn->Call(local_ctx, recv, argc, argv);
+  if (result.IsEmpty()) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* rtnval = new m_value;
+  rtnval->iso = iso;
+  rtnval->ctx = ctx;
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtn.value = tracked_value(ctx, rtnval);
+  return rtn;
+}
+
+RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
+  LOCAL_VALUE(ptr)
+  RtnValue rtn = {nullptr, nullptr};
+  Local<Function> fn = Local<Function>::Cast(value);
+  Local<Value> argv[argc];
+  buildCallArguments(iso, argv, argc, args);
+  MaybeLocal<Object> result = fn->NewInstance(local_ctx, argc, argv);
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
