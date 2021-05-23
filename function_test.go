@@ -115,6 +115,28 @@ func TestFunctionNewInstance(t *testing.T) {
 	}
 }
 
+func TestFunctionNewInstanceError(t *testing.T) {
+	t.Parallel()
+
+	ctx, err := v8go.NewContext()
+	failIf(t, err)
+	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
+	failIf(t, err)
+	throwsValue, err := ctx.Global().Get("throws")
+	failIf(t, err)
+	fn, _ := throwsValue.AsFunction()
+
+	_, err = fn.NewInstance()
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
+	got := *(err.(*v8go.JSError))
+	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
+	if got != want {
+		t.Errorf("want %+v, got: %+v", want, got)
+	}
+}
+
 func failIf(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {
