@@ -86,6 +86,57 @@ func TestFunctionCallError(t *testing.T) {
 	}
 }
 
+func TestFunctionNewInstance(t *testing.T) {
+	t.Parallel()
+
+	ctx, err := v8go.NewContext()
+	failIf(t, err)
+	iso, err := ctx.Isolate()
+	failIf(t, err)
+
+	value, err := ctx.Global().Get("Error")
+	failIf(t, err)
+	fn, err := value.AsFunction()
+	failIf(t, err)
+	messageObj, err := v8go.NewValue(iso, "test message")
+	failIf(t, err)
+	errObj, err := fn.NewInstance(messageObj)
+	failIf(t, err)
+
+	message, err := errObj.Get("message")
+	failIf(t, err)
+	if !message.IsString() {
+		t.Error("missing error message")
+	}
+	want := "test message"
+	got := message.String()
+	if got != want {
+		t.Errorf("want %+v, got: %+v", want, got)
+	}
+}
+
+func TestFunctionNewInstanceError(t *testing.T) {
+	t.Parallel()
+
+	ctx, err := v8go.NewContext()
+	failIf(t, err)
+	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
+	failIf(t, err)
+	throwsValue, err := ctx.Global().Get("throws")
+	failIf(t, err)
+	fn, _ := throwsValue.AsFunction()
+
+	_, err = fn.NewInstance()
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
+	got := *(err.(*v8go.JSError))
+	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
+	if got != want {
+		t.Errorf("want %+v, got: %+v", want, got)
+	}
+}
+
 func failIf(t *testing.T, err error) {
 	t.Helper()
 	if err != nil {

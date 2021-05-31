@@ -30,3 +30,19 @@ func (fn *Function) Call(args ...Valuer) (*Value, error) {
 	fn.ctx.deregister()
 	return getValue(fn.ctx, rtn), getError(rtn)
 }
+
+// Invoke a constructor function to create an object instance.
+func (fn *Function) NewInstance(args ...Valuer) (*Object, error) {
+	var argptr *C.ValuePtr
+	if len(args) > 0 {
+		var cArgs = make([]C.ValuePtr, len(args))
+		for i, arg := range args {
+			cArgs[i] = arg.value().ptr
+		}
+		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
+	}
+	fn.ctx.register()
+	rtn := C.FunctionNewInstance(fn.ptr, C.int(len(args)), argptr)
+	fn.ctx.deregister()
+	return getObject(fn.ctx, rtn), getError(rtn)
+}
