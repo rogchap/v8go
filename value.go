@@ -102,6 +102,11 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		rtnVal = &Value{
 			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
 		}
+	case []uint8:
+		rtnVal = &Value{
+			//NOTE: C.CBytes() allocates memory, must be freed
+			ptr: C.NewValueUint8Array(iso.ptr, (*C.uchar)(C.CBytes(v)), C.int(len(v))),
+		}
 	case *big.Int:
 		if v.IsInt64() {
 			rtnVal = &Value{
