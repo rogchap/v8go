@@ -85,6 +85,7 @@ extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr)
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
 extern ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v);
+extern ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t* v, int len);
 extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);

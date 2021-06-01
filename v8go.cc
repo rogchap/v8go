@@ -560,6 +560,33 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   return tracked_value(ctx, val);
 }
 
+ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
+fprintf(stderr, "NewValueUint8Array(len %d)\n", len);
+
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  Local<Context> c = ctx->ptr.Get(iso);
+  c->Enter(); // ArrayBuffer::New() needs a Context
+
+fprintf(stderr, "Creating array buffer\n"); //TODO REMOVEME
+
+    Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso,
+        (void*)v, len,
+        ArrayBufferCreationMode::kInternalized); //TODO check if memory gets freed
+
+fprintf(stderr, "Created array buffer!!!\n"); //TODO REMOVEME
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Uint8Array::New(arbuf, 0, len));
+
+  c->Exit();
+
+  return tracked_value(ctx, val);
+}
+
+
 ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
