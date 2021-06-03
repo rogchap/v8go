@@ -196,10 +196,9 @@ func (v *Value) BigInt() *big.Int {
 }
 
 func (v *Value) Uint8Array() []uint8 { // TwinTag added
-	arraybytes := C.ValueToUint8Array(v.ptr)
-	arraylen := C.ValueToArrayLength(v.ptr)
-	slice := C.GoBytes(unsafe.Pointer(arraybytes), C.int(arraylen))
-	return slice
+	bytes := unsafe.Pointer(C.ValueToUint8Array(v.ptr)) // allocates copy on the heap
+	defer C.free(bytes)
+	return C.GoBytes(bytes, C.int(C.ValueToArrayLength(v.ptr)))
 }
 
 // Boolean perform the equivalent of `Boolean(value)` in JS. This can never fail.
