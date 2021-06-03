@@ -560,14 +560,20 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   return tracked_value(ctx, val);
 }
 
+// Create a new v8go Value representing a uint8_t array.
+// The function takes ownership over the incoming array's memory.
 ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) { // TwinTag added
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   Local<Context> c = ctx->ptr.Get(iso);
-  c->Enter(); //TODO review, ArrayBuffer::New() needs a Context
+
+  // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
+  // otherwise ArrayBuffer::New() trips over missing context.
+  // They are not needed when this code gets called through an executing script.
+  c->Enter();
 
   Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso,
-      (void*)v, len,
-      ArrayBufferCreationMode::kInternalized); //TODO check if memory gets freed
+      static_cast<void*>(const_cast<uint8_t*>(v)), len,
+      ArrayBufferCreationMode::kInternalized); // ArrayBuffer now owns the memory
 
   m_value* val = new m_value;
   val->iso = iso;
@@ -575,7 +581,7 @@ ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) { // 
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Uint8Array::New(arbuf, 0, len));
 
-  c->Exit();
+  c->Exit(); // see comment above
 
   return tracked_value(ctx, val);
 }
@@ -710,7 +716,8 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
   return rtn;
 }
 
-// Returns copy of uint8 array, allocated on the heap
+// Returns copy of uint8 array, allocated on the heap.
+// The caller is responsible for freeing it.
 uint8_t* ValueToUint8Array(ValuePtr ptr) { // TwinTag added
   LOCAL_VALUE(ptr);
   MaybeLocal<Uint8Array> array = value.As<Uint8Array>();
