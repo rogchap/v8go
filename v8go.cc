@@ -1660,7 +1660,13 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
   return tracked_value(ctx, rtnval);
 }
+/******** Exceptions *********/
 
+void ThrowException(IsolatePtr iso_ptr, const char* message) { // TwinTag added
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message).ToLocalChecked();
+  iso->ThrowException(msg);
+}
 /********** v8::V8 **********/
 
 const char* Version() {
