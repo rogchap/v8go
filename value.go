@@ -82,7 +82,7 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		rtnVal = &Value{
 			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
 		}
-	case []uint8:
+	case []uint8: // TwinTag added
 		rtnVal = &Value{
 			//NOTE: C.CBytes() allocates memory, must be freed
 			ptr: C.NewValueUint8Array(iso.ptr, (*C.uchar)(C.CBytes(v)), C.int(len(v))),
@@ -174,6 +174,13 @@ func (v *Value) BigInt() *big.Int {
 	}
 
 	return b
+}
+
+func (v *Value) Uint8Array() []uint8 { // TwinTag added
+	arraybytes := C.ValueToUint8Array(v.ptr)
+	arraylen := C.ValueToArrayLength(v.ptr)
+	slice := C.GoBytes(unsafe.Pointer(arraybytes), C.int(arraylen))
+	return slice
 }
 
 // Boolean perform the equivalent of `Boolean(value)` in JS. This can never fail.

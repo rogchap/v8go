@@ -560,20 +560,14 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
-fprintf(stderr, "NewValueUint8Array(len %d)\n", len);
-
+ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) { // TwinTag added
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   Local<Context> c = ctx->ptr.Get(iso);
-  c->Enter(); // ArrayBuffer::New() needs a Context
+  c->Enter(); //TODO review, ArrayBuffer::New() needs a Context
 
-fprintf(stderr, "Creating array buffer\n"); //TODO REMOVEME
-
-    Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso,
-        (void*)v, len,
-        ArrayBufferCreationMode::kInternalized); //TODO check if memory gets freed
-
-fprintf(stderr, "Created array buffer!!!\n"); //TODO REMOVEME
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso,
+      (void*)v, len,
+      ArrayBufferCreationMode::kInternalized); //TODO check if memory gets freed
 
   m_value* val = new m_value;
   val->iso = iso;
@@ -714,6 +708,23 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
   bint.ToLocalChecked()->ToWordsArray(&sign_bit, &word_count, words);
   ValueBigInt rtn = {words, word_count, sign_bit};
   return rtn;
+}
+
+// Returns copy of uint8 array, allocated on the heap
+uint8_t* ValueToUint8Array(ValuePtr ptr) { // TwinTag added
+  LOCAL_VALUE(ptr);
+  MaybeLocal<Uint8Array> array = value.As<Uint8Array>();
+  int length = array.ToLocalChecked()->ByteLength();
+  uint8_t* bytes = new uint8_t[length];
+  memcpy(bytes, array.ToLocalChecked()->Buffer()->GetBackingStore()->Data(), length);
+  return bytes;
+}
+
+// Returns length of the array (number of elements, not number of bytes)
+uint64_t ValueToArrayLength(ValuePtr ptr) { //TwinTag added
+  LOCAL_VALUE(ptr);
+  MaybeLocal<TypedArray> array = value.As<TypedArray>();
+  return array.ToLocalChecked()->Length();
 }
 
 ValuePtr ValueToObject(ValuePtr ptr) {

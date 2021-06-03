@@ -104,6 +104,8 @@ double ValueToNumber(ValuePtr ptr);
 const char* ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
+extern uint8_t* ValueToUint8Array(ValuePtr ptr); // TwinTag added
+extern uint64_t ValueToArrayLength(ValuePtr ptr); // TwinTag added
 extern ValuePtr ValueToObject(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
