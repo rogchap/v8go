@@ -4,11 +4,13 @@
 
 package v8go
 
+// #include <stdlib.h>
 // #include "v8go.h"
 import "C"
 
 import (
 	"sync"
+	"unsafe"
 )
 
 var v8once sync.Once
@@ -114,4 +116,11 @@ func (i *Isolate) getCallback(ref int) FunctionCallback {
 	i.cbMutex.RLock()
 	defer i.cbMutex.RUnlock()
 	return i.cbs[ref]
+}
+
+func (i *Isolate) ThrowException(msg string) *Value {
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+	C.ThrowException(i.ptr, cmsg)
+	return nil
 }

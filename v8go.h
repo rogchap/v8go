@@ -183,6 +183,8 @@ extern ValuePtr PromiseResult(ValuePtr ptr);
 
 extern RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr argv[]);
 
+extern void ThrowException(IsolatePtr iso_ptr, const char* message); // TwinTag added
+
 extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,

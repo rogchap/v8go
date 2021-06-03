@@ -1230,6 +1230,12 @@ RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
 
 /******** Exceptions *********/
 
+void ThrowException(IsolatePtr iso_ptr, const char* message) { // TwinTag added
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message).ToLocalChecked();
+  iso->ThrowException(msg);
+}
+
 ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message) {
   ISOLATE_SCOPE(iso_ptr);
   Local<String> msg = String::NewFromUtf8(iso, message).ToLocalChecked();

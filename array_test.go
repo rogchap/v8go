@@ -3,7 +3,7 @@ package v8go
 import (
 	"errors"
 	"fmt"
-	"os"
+	"log"
 	"testing"
 )
 
@@ -20,30 +20,26 @@ func NewNativeObject() NativeObject {
 
 func (nto *nativeObject) GetReverseUint8ArrayFunctionCallback() FunctionCallback {
 	return func(info *FunctionCallbackInfo) *Value {
-		args := info.Args()
-		if len(args) != 1 {
-			os.Stderr.WriteString("Function ReverseUint8Array expects 1 parameter\n") //TODO
-			return nil
-		}
 		iso, err := info.Context().Isolate()
 		if err != nil {
-			os.Stderr.WriteString(fmt.Sprintf("Could not get isolate from context: %v\n", err)) //TODO
-			return nil
+			log.Fatalf("Could not get isolate from context: %v\n", err)
+		}
+		args := info.Args()
+		if len(args) != 1 {
+			return iso.ThrowException("Function ReverseUint8Array expects 1 parameter")
 		}
 		if !args[0].IsUint8Array() {
-			os.Stderr.WriteString("Function ReverseUint8Array expects Uint8Array parameter\n") //TODO
-			return nil
+			return iso.ThrowException("Function ReverseUint8Array expects Uint8Array parameter")
 		}
-		inarray := args[0].Uint8Array() //TODO who frees this
-		length := len(inarray)
+		array := args[0].Uint8Array() //TODO who frees this
+		length := len(array)
 		reversed := make([]uint8, length)
 		for i := 0; i < length; i++ {
-			reversed[i] = inarray[length-i-1]
+			reversed[i] = array[length-i-1]
 		}
 		val, err := NewValue(iso, reversed)
 		if err != nil {
-			os.Stderr.WriteString(fmt.Sprintf("Could not get value for array: %v\n", err))
-			return nil
+			return iso.ThrowException(fmt.Sprintf("Could not get value for array: %v\n", err))
 		}
 		return val
 	}
@@ -89,6 +85,7 @@ func injectNativeObject(ctx *Context) error {
 	return nil
 }
 
+// Test that a script can call a go function to reverse a []uint8 array
 func TestNativeUint8Array(t *testing.T) {
 	t.Parallel()
 
@@ -115,5 +112,23 @@ func TestNativeUint8Array(t *testing.T) {
 				t.Errorf("Incorrect byte at index %d (whole array: %v)", i, arr)
 			}
 		}
+	}
+}
+
+// Test that a native go function can throw exceptions that make it back to the script runner
+func TestNativeUint8ArrayException(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := NewIsolate()
+	ctx, _ := NewContext(iso)
+
+	if err := injectNativeObject(ctx); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := ctx.RunScript("native.reverseUint8Array(\"notanarray\")", ""); err != nil {
+		t.Logf("Got expected error from script: %v", err)
+	} else {
+		t.Errorf("Should have received an error from the script")
 	}
 }
