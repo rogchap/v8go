@@ -219,6 +219,8 @@ uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
 extern RtnValue ValueToObject(ValuePtr ptr);
 int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr);
+extern uint8_t* ValueToUint8Array(ValuePtr ptr); // TwinTag added
+extern uint64_t ValueToArrayLength(ValuePtr ptr); // TwinTag added
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
 int ValueIsNullOrUndefined(ValuePtr ptr);
