@@ -31,7 +31,7 @@ func (nto *nativeObject) GetReverseUint8ArrayFunctionCallback() FunctionCallback
 		if !args[0].IsUint8Array() {
 			return iso.ThrowException("Function ReverseUint8Array expects Uint8Array parameter")
 		}
-		array := args[0].Uint8Array() //TODO who frees this
+		array := args[0].Uint8Array()
 		length := len(array)
 		reversed := make([]uint8, length)
 		for i := 0; i < length; i++ {
@@ -131,4 +131,22 @@ func TestNativeUint8ArrayException(t *testing.T) {
 	} else {
 		t.Errorf("Should have received an error from the script")
 	}
+}
+
+func TestNativeUint8ArrayManyCalls(t *testing.T) {
+	t.Parallel()
+	iso, _ := NewIsolate()
+	ctx, _ := NewContext(iso)
+	if err := injectNativeObject(ctx); err != nil {
+		t.Error(err)
+	}
+	stats := iso.GetHeapStatistics()
+	fmt.Printf("MEMSTATS BEFORE: %+v\n", stats)
+
+	if _, err := ctx.RunScript("for(i = 0; i < 100000; i++) native.reverseUint8Array(new Uint8Array([0,1,2,3,4,5,6,7,8,9]));", ""); err != nil {
+		t.Error(err)
+	}
+
+	stats = iso.GetHeapStatistics()
+	fmt.Printf("MEMSTATS AFTER: %+v\n", stats)
 }
