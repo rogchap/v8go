@@ -132,21 +132,3 @@ func TestNativeUint8ArrayException(t *testing.T) {
 		t.Errorf("Should have received an error from the script")
 	}
 }
-
-func TestNativeUint8ArrayManyCalls(t *testing.T) {
-	t.Parallel()
-	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
-	if err := injectNativeObject(ctx); err != nil {
-		t.Error(err)
-	}
-	stats := iso.GetHeapStatistics()
-	fmt.Printf("MEMSTATS BEFORE: %+v\n", stats)
-
-	if _, err := ctx.RunScript("for(i = 0; i < 100000; i++) native.reverseUint8Array(new Uint8Array([0,1,2,3,4,5,6,7,8,9]));", ""); err != nil {
-		t.Error(err)
-	}
-
-	stats = iso.GetHeapStatistics()
-	fmt.Printf("MEMSTATS AFTER: %+v\n", stats)
-}

@@ -860,9 +860,13 @@ ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) { // 
   // They are not needed when this code gets called through an executing script.
   c->Enter();
 
-  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso,
-      static_cast<void*>(const_cast<uint8_t*>(v)), len,
-      ArrayBufferCreationMode::kInternalized); // ArrayBuffer now owns the memory
+  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
+    static_cast<void*>(const_cast<uint8_t*>(v)), len,
+    [](void* data, size_t length, void *deleter_data) {
+      free(data);
+      }, nullptr);
+
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
 
   m_value* val = new m_value;
   val->iso = iso;
