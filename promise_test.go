@@ -15,6 +15,8 @@ func TestPromiseFulfilled(t *testing.T) {
 
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
+
 	if _, err := v8go.NewPromiseResolver(nil); err == nil {
 		t.Error("expected error with <nil> Context")
 	}
@@ -62,6 +64,7 @@ func TestPromiseRejected(t *testing.T) {
 
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
 
 	res2, _ := v8go.NewPromiseResolver(ctx)
 	val2, _ := v8go.NewValue(iso, "Bad Foo")
@@ -110,6 +113,8 @@ func TestPromiseThenPanic(t *testing.T) {
 
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
+
 	res, _ := v8go.NewPromiseResolver(ctx)
 	prom := res.GetPromise()
 

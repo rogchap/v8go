@@ -39,7 +39,9 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
 
 	var args *v8go.FunctionCallbackInfo
 	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
@@ -68,6 +70,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 
 	foo, _ := v8go.NewObjectTemplate(iso)
 	foo.Set("name", "foobar")
@@ -83,6 +86,8 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	global.Set("foo", foo)
 
 	ctx, _ := v8go.NewContext(iso, global)
+	defer ctx.Close()
+
 	ctx.RunScript("foo.bar()", "")
 
 	v, _ := this.Get("name")

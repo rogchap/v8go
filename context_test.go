@@ -15,6 +15,8 @@ import (
 func TestContextExec(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Close()
+
 	ctx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	val, _ := ctx.RunScript(`add(3, 4)`, "main.js")
 	rtn := val.String()
@@ -49,10 +51,11 @@ func TestJSExceptions(t *testing.T) {
 	}
 
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Close()
+
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			_, err := ctx.RunScript(tt.source, tt.origin)
 			if err == nil {
 				t.Error("error expected but got <nil>")
@@ -69,6 +72,8 @@ func TestContextRegistry(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Close()
+
 	ctxref := ctx.Ref()
 
 	c1 := v8go.GetContext(ctxref)

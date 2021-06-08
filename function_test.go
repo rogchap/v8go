@@ -15,6 +15,8 @@ func TestFunctionCall(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Close()
+
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }", "")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("add")
@@ -78,6 +80,8 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 
 	ctx, err := v8go.NewContext(iso, global)
 	failIf(t, err)
+	defer ctx.Close()
+
 	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
 	failIf(t, err)
 	fn, err := val.AsFunction()
@@ -98,6 +102,8 @@ func TestFunctionCallError(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Close()
+
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("throws")
@@ -120,6 +126,8 @@ func TestFunctionNewInstance(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Close()
+
 	iso, err := ctx.Isolate()
 	failIf(t, err)
 
@@ -149,6 +157,8 @@ func TestFunctionNewInstanceError(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Close()
+
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
 	throwsValue, err := ctx.Global().Get("throws")
