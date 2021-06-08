@@ -179,6 +179,13 @@ func getValue(ctx *Context, rtn C.RtnValue) *Value {
 	return &Value{rtn.value, ctx}
 }
 
+func getObject(ctx *Context, rtn C.RtnValue) *Object {
+	if rtn.value == nil {
+		return nil
+	}
+	return &Object{&Value{rtn.value, ctx}}
+}
+
 func getError(rtn C.RtnValue) error {
 	if rtn.error.msg == nil {
 		return nil
