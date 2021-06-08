@@ -562,7 +562,7 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
 
 // Create a new v8go Value representing a uint8_t array.
 // The function takes ownership over the incoming array's memory.
-ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) { // TwinTag added
+ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   Local<Context> c = ctx->ptr.Get(iso);
 
@@ -722,7 +722,7 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 
 // Returns copy of uint8 array, allocated on the heap.
 // The caller is responsible for freeing it.
-uint8_t* ValueToUint8Array(ValuePtr ptr) { // TwinTag added
+uint8_t* ValueToUint8Array(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   MaybeLocal<Uint8Array> array = value.As<Uint8Array>();
   int length = array.ToLocalChecked()->ByteLength();
@@ -732,7 +732,7 @@ uint8_t* ValueToUint8Array(ValuePtr ptr) { // TwinTag added
 }
 
 // Returns length of the array (number of elements, not number of bytes)
-uint64_t ValueToArrayLength(ValuePtr ptr) { //TwinTag added
+uint64_t ValueToArrayLength(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   MaybeLocal<TypedArray> array = value.As<TypedArray>();
   return array.ToLocalChecked()->Length();
@@ -1234,7 +1234,7 @@ RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
 
 /******** Exceptions *********/
 
-void ThrowException(IsolatePtr iso_ptr, const char* message) { // TwinTag added
+void ThrowException(IsolatePtr iso_ptr, const char* message) {
   ISOLATE_SCOPE(iso_ptr);
   Local<String> msg = String::NewFromUtf8(iso, message).ToLocalChecked();
   iso->ThrowException(msg);

@@ -85,7 +85,7 @@ extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr)
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
 extern ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v);
-extern ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t* v, int len); // TwinTag added
+extern ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t* v, int len);
 extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
@@ -104,8 +104,8 @@ double ValueToNumber(ValuePtr ptr);
 const char* ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
-extern uint8_t* ValueToUint8Array(ValuePtr ptr); // TwinTag added
-extern uint64_t ValueToArrayLength(ValuePtr ptr); // TwinTag added
+extern uint8_t* ValueToUint8Array(ValuePtr ptr);
+extern uint64_t ValueToArrayLength(ValuePtr ptr);
 extern ValuePtr ValueToObject(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
@@ -183,7 +183,7 @@ extern ValuePtr PromiseResult(ValuePtr ptr);
 
 extern RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr argv[]);
 
-extern void ThrowException(IsolatePtr iso_ptr, const char* message); // TwinTag added
+extern void ThrowException(IsolatePtr iso_ptr, const char* message);
 
 extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
