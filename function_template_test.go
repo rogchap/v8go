@@ -39,7 +39,9 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
 
 	var args *v8go.FunctionCallbackInfo
 	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
@@ -61,6 +63,36 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	}
 	if !ret.IsString() || ret.String() != "hello" {
 		t.Fatalf("expected return value of 'hello', was: %v", ret)
+	}
+}
+
+func TestFunctionCallbackInfoThis(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
+
+	foo, _ := v8go.NewObjectTemplate(iso)
+	foo.Set("name", "foobar")
+
+	var this *v8go.Object
+	barfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		this = info.This()
+		return nil
+	})
+	foo.Set("bar", barfn)
+
+	global, _ := v8go.NewObjectTemplate(iso)
+	global.Set("foo", foo)
+
+	ctx, _ := v8go.NewContext(iso, global)
+	defer ctx.Close()
+
+	ctx.RunScript("foo.bar()", "")
+
+	v, _ := this.Get("name")
+	if v.String() != "foobar" {
+		t.Errorf("expected this.name to be foobar, but got %q", v)
 	}
 }
 
