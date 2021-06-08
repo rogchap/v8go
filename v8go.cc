@@ -280,6 +280,12 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
 
   int callback_ref = info.Data().As<Integer>()->Value();
 
+  m_value* _this = new m_value;
+  _this->iso = iso;
+  _this->ctx = ctx;
+  _this->ptr.Reset(iso, Persistent<Value, CopyablePersistentTraits<Value>>(
+                            iso, info.This()));
+
   int args_count = info.Length();
   ValuePtr args[args_count];
   for (int i = 0; i < args_count; i++) {
@@ -291,10 +297,10 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* args,
-                              int args_count);
-  ValuePtr val_ptr =
-      goFunctionCallback(ctx_ref, callback_ref, args, args_count);
+  ValuePtr goFunctionCallback(int ctxref, int cbref, ValuePtr _this,
+                              const ValuePtr* args, int args_count);
+  ValuePtr val_ptr = goFunctionCallback(
+      ctx_ref, callback_ref, tracked_value(ctx, _this), args, args_count);
   if (val_ptr != nullptr) {
     m_value* val = static_cast<m_value*>(val_ptr);
     info.GetReturnValue().Set(val->ptr.Get(iso));
@@ -334,7 +340,8 @@ ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, fn.ToLocalChecked());
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, fn.ToLocalChecked());
   return tracked_value(ctx, val);
 }
 
@@ -1095,8 +1102,9 @@ ValuePtr PromiseThen(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func = Function::New(local_ctx, FunctionTemplateCallback, cbData)
-    .ToLocalChecked();
+  Local<Function> func =
+      Function::New(local_ctx, FunctionTemplateCallback, cbData)
+          .ToLocalChecked();
   Local<Promise> result = promise->Then(local_ctx, func).ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
@@ -1110,12 +1118,16 @@ ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> onFulfilledData = Integer::New(iso, on_fulfilled_ref);
-  Local<Function> onFulfilledFunc = Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
-    .ToLocalChecked();
+  Local<Function> onFulfilledFunc =
+      Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
+          .ToLocalChecked();
   Local<Integer> onRejectedData = Integer::New(iso, on_rejected_ref);
-  Local<Function> onRejectedFunc = Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
-    .ToLocalChecked();
-  Local<Promise> result = promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc).ToLocalChecked();
+  Local<Function> onRejectedFunc =
+      Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
+          .ToLocalChecked();
+  Local<Promise> result =
+      promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc)
+          .ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
   promise_val->ctx = ctx;
@@ -1128,8 +1140,9 @@ ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func = Function::New(local_ctx, FunctionTemplateCallback, cbData)
-    .ToLocalChecked();
+  Local<Function> func =
+      Function::New(local_ctx, FunctionTemplateCallback, cbData)
+          .ToLocalChecked();
   Local<Promise> result = promise->Catch(local_ctx, func).ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
@@ -1153,8 +1166,10 @@ ValuePtr PromiseResult(ValuePtr ptr) {
 
 /********** Function **********/
 
-static void buildCallArguments(Isolate* iso, Local<Value> *argv, int argc, ValuePtr args[])
-{
+static void buildCallArguments(Isolate* iso,
+                               Local<Value>* argv,
+                               int argc,
+                               ValuePtr args[]) {
   for (int i = 0; i < argc; i++) {
     m_value* arg = static_cast<m_value*>(args[i]);
     argv[i] = arg->ptr.Get(iso);
@@ -1176,7 +1191,8 @@ RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
@@ -1195,7 +1211,8 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
