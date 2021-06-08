@@ -19,11 +19,17 @@ type FunctionCallback func(info *FunctionCallbackInfo) *Value
 type FunctionCallbackInfo struct {
 	ctx  *Context
 	args []*Value
+	this *Object
 }
 
 // Context is the current context that the callback is being executed in.
 func (i *FunctionCallbackInfo) Context() *Context {
 	return i.ctx
+}
+
+// This returns the receiver object "this".
+func (i *FunctionCallbackInfo) This() *Object {
+	return i.this
 }
 
 // Args returns a slice of the value arguments that are passed to the JS function.
@@ -65,11 +71,12 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 }
 
 //export goFunctionCallback
-func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, argsCount int) C.ValuePtr {
+func goFunctionCallback(ctxref int, cbref int, this C.ValuePtr, args *C.ValuePtr, argsCount int) C.ValuePtr {
 	ctx := getContext(ctxref)
 
 	info := &FunctionCallbackInfo{
 		ctx:  ctx,
+		this: &Object{&Value{ptr: this, ctx: ctx}},
 		args: make([]*Value, argsCount),
 	}
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for calling constructors functions with NewInstance on Function
 - Build v8 with i18n support
+- Access "this" from function callback
 
 ### Changed
 - Removed error return value from Context.Isolate() which never fails
