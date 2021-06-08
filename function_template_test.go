@@ -54,7 +54,9 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
 
 	var args *v8go.FunctionCallbackInfo
 	tmpl := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
