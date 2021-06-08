@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Support for calling constructors functions with NewInstance on Function
-- Build v8 with i18n support
 
 ## [v0.6.0] - 2021-05-11
 
