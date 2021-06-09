@@ -52,34 +52,34 @@ func injectNativeObject(ctx *Context) error {
 
 	iso, err := ctx.Isolate()
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %w", err)
+		return fmt.Errorf("injectNativeObject: %v", err)
 	}
 
 	c := NewNativeObject()
 
 	con, err := NewObjectTemplate(iso)
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %w", err)
+		return fmt.Errorf("injectNativeObject: %v", err)
 	}
 
 	reverseFn, err := NewFunctionTemplate(iso, c.GetReverseUint8ArrayFunctionCallback())
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %w", err)
+		return fmt.Errorf("injectNativeObject: %v", err)
 	}
 
 	if err := con.Set("reverseUint8Array", reverseFn, ReadOnly); err != nil {
-		return fmt.Errorf("injectNativeObject: %w", err)
+		return fmt.Errorf("injectNativeObject: %v", err)
 	}
 
 	nativeObj, err := con.NewInstance(ctx)
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %w", err)
+		return fmt.Errorf("injectNativeObject: %v", err)
 	}
 
 	global := ctx.Global()
 
 	if err := global.Set("native", nativeObj); err != nil {
-		return fmt.Errorf("injectNativeObject: %w", err)
+		return fmt.Errorf("injectNativeObject: %v", err)
 	}
 
 	return nil
