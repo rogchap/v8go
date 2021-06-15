@@ -64,7 +64,11 @@ func set(o *Object, key string, idx uint32, val interface{}, internal bool) erro
 	}
 
 	if internal {
-		C.ObjectSetInternal(o.ptr, C.uint32_t(idx), value.ptr)
+		inserted := C.ObjectSetInternal(o.ptr, C.uint32_t(idx), value.ptr)
+
+		if inserted == 0 {
+			return errors.New("v8go: index exceeded internal field count")
+		}
 	} else {
 		C.ObjectSetIdx(o.ptr, C.uint32_t(idx), value.ptr)
 	}

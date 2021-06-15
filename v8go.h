@@ -162,7 +162,7 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
-extern void ObjectSetInternal(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+extern int ObjectSetInternal(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
 extern RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx);
 extern RtnValue ObjectGetInternal(ValuePtr ptr, uint32_t idx);

@@ -49,6 +49,12 @@ func TestObjectPrivateProperties(t *testing.T) {
 	if v.String() != "baz" || err != nil {
 		t.Errorf("unexpected value: %q", v)
 	}
+
+	err = obj.SetInternal(1, "baz")
+
+	if err == nil {
+		t.Error("Should get \"index exceeded internal field count\" error")
+	}
 }
 
 func TestObjectGet(t *testing.T) {

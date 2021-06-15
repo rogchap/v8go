@@ -996,11 +996,18 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
-void ObjectSetInternal(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+int ObjectSetInternal(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   m_value* prop_val = static_cast<m_value*>(val_ptr);
+
+  if (obj->InternalFieldCount() <= idx) {
+    return 0;
+  }
+
   obj->SetAlignedPointerInInternalField(idx, nullptr);
   obj->SetInternalField(idx, prop_val->ptr.Get(iso));
+
+  return 1;
 }
 
 RtnValue ObjectGet(ValuePtr ptr, const char* key) {
