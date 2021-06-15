@@ -59,6 +59,12 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 	return &Object{&Value{valPtr, ctx}}, nil
 }
 
+// SetInternalFieldCount sets the amount of internal fields that we want our
+// object to have.
+func (o *ObjectTemplate) SetInternalFieldCount(fieldCount uint32) {
+	C.ObjectTemplateSetInternalFieldCount(o.ptr, C.uint32_t(fieldCount))
+}
+
 func (o *ObjectTemplate) apply(opts *contextOptions) {
 	opts.gTmpl = o
 }
