@@ -186,7 +186,8 @@ func (i *Isolate) getCallback(ref int) FunctionCallback {
 	return i.cbs[ref]
 }
 
-func (i *Isolate) ThrowException(msg string) *Value { // TwinTag added
+// Throw an exception into javascript land from within a go function callback
+func (i *Isolate) ThrowException(msg string) *Value {
 	cmsg := C.CString(msg)
 	defer C.free(unsafe.Pointer(cmsg))
 	C.ThrowException(i.ptr, cmsg)

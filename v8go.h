@@ -308,6 +308,12 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 const char* Version();
 extern void SetFlags(const char* flags);
 
+// ArrayBuffer support
+extern ValuePtr NewArrayBuffer(IsolatePtr iso_ptr, size_t byte_length);
+extern size_t ArrayBufferByteLength(ValuePtr val_ptr);
+extern void* GetArrayBufferBytes(ValuePtr val_ptr); // returns pointer into BackingStore data buffer
+extern void PutArrayBufferBytes(ValuePtr val_ptr, size_t byteOffset, const char *bytes, size_t byteLength); // writes byteLength bytes into BackingStore data buffer at byteOffset
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
