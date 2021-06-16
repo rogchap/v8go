@@ -1335,4 +1335,55 @@ const char* Version() {
 void SetFlags(const char* flags) {
   V8::SetFlagsFromString(flags);
 }
+
+/************** ArrayBuffer support *****************/
+
+// Create a new ArrayBuffer value of the requested size
+ValuePtr NewArrayBuffer(IsolatePtr iso_ptr, size_t byte_length) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  Local<Context> c = ctx->ptr.Get(iso);
+
+  // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
+  // otherwise ArrayBuffer::New() trips over missing context.
+  // They are not needed when this code gets called through an executing script.
+  c->Enter();
+
+  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(iso, byte_length);
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, arbuf);
+
+  c->Exit(); // see comment above
+
+  return tracked_value(ctx, val);
+}
+
+// Obtain length in bytes of this ArrayBuffer
+size_t ArrayBufferByteLength(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  return ab->ByteLength();
+}
+
+// Returns pointer into ArrayBuffer's BackingStore.
+// The caller is supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
+void* GetArrayBufferBytes(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  return ab->GetBackingStore()->Data();
+}
+
+// Writes into the ArrayBuffer's BackingStore.
+// The caller is responsible for respecting buffer boundaries.
+// The caller is also supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
+void PutArrayBufferBytes(ValuePtr ptr, size_t byteOffset, const char *bytes, size_t byteLength) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  uint8_t *data = (uint8_t*) ab->GetBackingStore()->Data();
+  memcpy(data+byteOffset, bytes, byteLength);
+}
+
 }

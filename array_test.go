@@ -7,18 +7,9 @@ import (
 	"testing"
 )
 
-type NativeObject interface {
-	GetReverseUint8ArrayFunctionCallback() FunctionCallback
-}
+type uint8ArrayTester struct{}
 
-type nativeObject struct {
-}
-
-func NewNativeObject() NativeObject {
-	return &nativeObject{}
-}
-
-func (nto *nativeObject) GetReverseUint8ArrayFunctionCallback() FunctionCallback {
+func (u *uint8ArrayTester) GetReverseUint8ArrayFunctionCallback() FunctionCallback {
 	return func(info *FunctionCallbackInfo) *Value {
 		iso, err := info.Context().Isolate()
 		if err != nil {
@@ -45,54 +36,54 @@ func (nto *nativeObject) GetReverseUint8ArrayFunctionCallback() FunctionCallback
 	}
 }
 
-func injectNativeObject(ctx *Context) error {
+func injectUint8ArrayTester(ctx *Context) error {
 	if ctx == nil {
-		return errors.New("injectNativeObject: ctx is required")
+		return errors.New("injectUint8ArrayTester: ctx is required")
 	}
 
 	iso, err := ctx.Isolate()
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %v", err)
+		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
-	c := NewNativeObject()
+	c := &uint8ArrayTester{}
 
 	con, err := NewObjectTemplate(iso)
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %v", err)
+		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
 	reverseFn, err := NewFunctionTemplate(iso, c.GetReverseUint8ArrayFunctionCallback())
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %v", err)
+		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
 	if err := con.Set("reverseUint8Array", reverseFn, ReadOnly); err != nil {
-		return fmt.Errorf("injectNativeObject: %v", err)
+		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
 	nativeObj, err := con.NewInstance(ctx)
 	if err != nil {
-		return fmt.Errorf("injectNativeObject: %v", err)
+		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
 	global := ctx.Global()
 
 	if err := global.Set("native", nativeObj); err != nil {
-		return fmt.Errorf("injectNativeObject: %v", err)
+		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
 	return nil
 }
 
 // Test that a script can call a go function to reverse a []uint8 array
-func TestNativeUint8Array(t *testing.T) {
+func TestUint8Array(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := NewIsolate()
 	ctx, _ := NewContext(iso)
 
-	if err := injectNativeObject(ctx); err != nil {
+	if err := injectUint8ArrayTester(ctx); err != nil {
 		t.Error(err)
 	}
 
@@ -116,13 +107,13 @@ func TestNativeUint8Array(t *testing.T) {
 }
 
 // Test that a native go function can throw exceptions that make it back to the script runner
-func TestNativeUint8ArrayException(t *testing.T) {
+func TestUint8ArrayException(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := NewIsolate()
 	ctx, _ := NewContext(iso)
 
-	if err := injectNativeObject(ctx); err != nil {
+	if err := injectUint8ArrayTester(ctx); err != nil {
 		t.Error(err)
 	}
 
