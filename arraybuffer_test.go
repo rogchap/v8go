@@ -7,55 +7,49 @@ import (
 	"testing"
 )
 
-type arrayBufferTester struct{}
-
-func (a *arrayBufferTester) GetReverseArrayBufferFunctionCallback() FunctionCallback {
-	return func(info *FunctionCallbackInfo) *Value {
-		iso, err := info.Context().Isolate()
-		if err != nil {
-			log.Fatalf("Could not get isolate from context: %v\n", err)
-		}
-		args := info.Args()
-		if len(args) != 1 {
-			return iso.ThrowException("Function ReverseArrayBuffer expects 1 parameter")
-		}
-		if !args[0].IsArrayBuffer() {
-			return iso.ThrowException("Function ReverseArrayBuffer expects ArrayBuffer parameter")
-		}
-		ab := args[0].ArrayBuffer() // "cast" to ArrayBuffer
-		length := int(ab.ByteLength())
-		bytes := ab.GetBytes() // get a copy of the bytes from the ArrayBuffer
-		reversed := make([]uint8, length)
-		for i := 0; i < length; i++ {
-			reversed[i] = bytes[length-i-1]
-		}
-		ab.PutBytes(reversed) // update the bytes in the ArrayBuffer (length must match!)
-		return nil
+func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
+	iso, err := info.Context().Isolate()
+	if err != nil {
+		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
+	args := info.Args()
+	if len(args) != 1 {
+		return iso.ThrowException("Function ReverseArrayBuffer expects 1 parameter")
+	}
+	if !args[0].IsArrayBuffer() {
+		return iso.ThrowException("Function ReverseArrayBuffer expects ArrayBuffer parameter")
+	}
+	ab := args[0].ArrayBuffer() // "cast" to ArrayBuffer
+	length := int(ab.ByteLength())
+	bytes := ab.GetBytes() // get a copy of the bytes from the ArrayBuffer
+	reversed := make([]uint8, length)
+	for i := 0; i < length; i++ {
+		reversed[i] = bytes[length-i-1]
+	}
+	ab.PutBytes(reversed) // update the bytes in the ArrayBuffer (length must match!)
+	return nil
 }
 
-func (a *arrayBufferTester) GetCreateArrayBufferFunctionCallback() FunctionCallback {
-	return func(info *FunctionCallbackInfo) *Value {
-		iso, err := info.Context().Isolate()
-		if err != nil {
-			log.Fatalf("Could not get isolate from context: %v\n", err)
-		}
-		args := info.Args()
-		if len(args) != 1 {
-			return iso.ThrowException("Function CreateArrayBuffer expects 1 parameter")
-		}
-		if !args[0].IsInt32() {
-			return iso.ThrowException("Function CreateArrayBuffer expects Int32 parameter")
-		}
-		length := args[0].Int32()
-		ab := NewArrayBuffer(info.Context(), int64(length)) // create ArrayBuffer object of given length
-		bytes := make([]uint8, length)
-		for i := uint8(0); i < uint8(length); i++ {
-			bytes[i] = i
-		}
-		ab.PutBytes(bytes) // copy these bytes into it. Caller is responsible for avoiding overruns!
-		return ab.Value    // return the ArrayBuffer to javascript
+func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
+	iso, err := info.Context().Isolate()
+	if err != nil {
+		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
+	args := info.Args()
+	if len(args) != 1 {
+		return iso.ThrowException("Function CreateArrayBuffer expects 1 parameter")
+	}
+	if !args[0].IsInt32() {
+		return iso.ThrowException("Function CreateArrayBuffer expects Int32 parameter")
+	}
+	length := args[0].Int32()
+	ab := NewArrayBuffer(info.Context(), int64(length)) // create ArrayBuffer object of given length
+	bytes := make([]uint8, length)
+	for i := uint8(0); i < uint8(length); i++ {
+		bytes[i] = i
+	}
+	ab.PutBytes(bytes) // copy these bytes into it. Caller is responsible for avoiding overruns!
+	return ab.Value    // return the ArrayBuffer to javascript
 }
 
 func injectArrayBufferTester(ctx *Context, funcName string, funcCb FunctionCallback) error {
@@ -103,9 +97,7 @@ func TestModifyArrayBuffer(t *testing.T) {
 
 	iso, _ := NewIsolate()
 	ctx, _ := NewContext(iso)
-	c := &arrayBufferTester{}
-
-	if err := injectArrayBufferTester(ctx, "reverseArrayBuffer", c.GetReverseArrayBufferFunctionCallback()); err != nil {
+	if err := injectArrayBufferTester(ctx, "reverseArrayBuffer", reverseArrayBufferFunctionCallback); err != nil {
 		t.Error(err)
 	}
 
@@ -142,9 +134,7 @@ func TestCreateArrayBuffer(t *testing.T) {
 
 	iso, _ := NewIsolate()
 	ctx, _ := NewContext(iso)
-	c := &arrayBufferTester{}
-
-	if err := injectArrayBufferTester(ctx, "createArrayBuffer", c.GetCreateArrayBufferFunctionCallback()); err != nil {
+	if err := injectArrayBufferTester(ctx, "createArrayBuffer", createArrayBufferFunctionCallback); err != nil {
 		t.Error(err)
 	}
 

@@ -7,33 +7,29 @@ import (
 	"testing"
 )
 
-type uint8ArrayTester struct{}
-
-func (u *uint8ArrayTester) GetReverseUint8ArrayFunctionCallback() FunctionCallback {
-	return func(info *FunctionCallbackInfo) *Value {
-		iso, err := info.Context().Isolate()
-		if err != nil {
-			log.Fatalf("Could not get isolate from context: %v\n", err)
-		}
-		args := info.Args()
-		if len(args) != 1 {
-			return iso.ThrowException("Function ReverseUint8Array expects 1 parameter")
-		}
-		if !args[0].IsUint8Array() {
-			return iso.ThrowException("Function ReverseUint8Array expects Uint8Array parameter")
-		}
-		array := args[0].Uint8Array()
-		length := len(array)
-		reversed := make([]uint8, length)
-		for i := 0; i < length; i++ {
-			reversed[i] = array[length-i-1]
-		}
-		val, err := NewValue(iso, reversed)
-		if err != nil {
-			return iso.ThrowException(fmt.Sprintf("Could not get value for array: %v\n", err))
-		}
-		return val
+func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) *Value {
+	iso, err := info.Context().Isolate()
+	if err != nil {
+		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
+	args := info.Args()
+	if len(args) != 1 {
+		return iso.ThrowException("Function ReverseUint8Array expects 1 parameter")
+	}
+	if !args[0].IsUint8Array() {
+		return iso.ThrowException("Function ReverseUint8Array expects Uint8Array parameter")
+	}
+	array := args[0].Uint8Array()
+	length := len(array)
+	reversed := make([]uint8, length)
+	for i := 0; i < length; i++ {
+		reversed[i] = array[length-i-1]
+	}
+	val, err := NewValue(iso, reversed)
+	if err != nil {
+		return iso.ThrowException(fmt.Sprintf("Could not get value for array: %v\n", err))
+	}
+	return val
 }
 
 func injectUint8ArrayTester(ctx *Context) error {
@@ -46,14 +42,12 @@ func injectUint8ArrayTester(ctx *Context) error {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
-	c := &uint8ArrayTester{}
-
 	con, err := NewObjectTemplate(iso)
 	if err != nil {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
-	reverseFn, err := NewFunctionTemplate(iso, c.GetReverseUint8ArrayFunctionCallback())
+	reverseFn, err := NewFunctionTemplate(iso, reverseUint8ArrayFunctionCallback)
 	if err != nil {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
