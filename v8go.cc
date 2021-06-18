@@ -1342,6 +1342,19 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr)        \
   Local<Object> obj = value.As<Object>()
 
+ValuePtr NewObject(IsolatePtr iso_ptr) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  Local<Context> c = ctx->ptr.Get(iso);
+  Local<Object> obj = Object::New(iso);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
+
+  return tracked_value(ctx, val);
+}
+
 void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
   Local<String> key_val =
