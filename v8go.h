@@ -85,6 +85,7 @@ extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr)
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
 extern ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v);
+extern ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t* v, int len);
 extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
@@ -103,6 +104,8 @@ double ValueToNumber(ValuePtr ptr);
 const char* ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
+extern uint8_t* ValueToUint8Array(ValuePtr ptr);
+extern uint64_t ValueToArrayLength(ValuePtr ptr);
 extern ValuePtr ValueToObject(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
@@ -159,6 +162,7 @@ int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
+extern ValuePtr NewObject(IsolatePtr iso_ptr);
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
@@ -181,6 +185,8 @@ extern ValuePtr PromiseResult(ValuePtr ptr);
 extern RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 
+extern void ThrowException(IsolatePtr iso_ptr, const char* message);
+
 extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,
@@ -190,6 +196,12 @@ extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
 
 const char* Version();
 extern void SetFlags(const char* flags);
+
+// ArrayBuffer support
+extern ValuePtr NewArrayBuffer(IsolatePtr iso_ptr, size_t byte_length);
+extern size_t ArrayBufferByteLength(ValuePtr val_ptr);
+extern void* GetArrayBufferBytes(ValuePtr val_ptr); // returns pointer into BackingStore data buffer
+extern void PutArrayBufferBytes(ValuePtr val_ptr, size_t byteOffset, const char *bytes, size_t byteLength); // writes byteLength bytes into BackingStore data buffer at byteOffset
 
 #ifdef __cplusplus
 }  // extern "C"

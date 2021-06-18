@@ -19,6 +19,12 @@ type Object struct {
 	*Value
 }
 
+// Instantiate a new blank object without any properties.
+// Add properties on the object using Set.
+func NewObject(ctx *Context) *Object {
+	return &Object{&Value{C.NewObject(ctx.iso.ptr), ctx}}
+}
+
 // Set will set a property on the Object to a given value.
 // Supports all value types, eg: Object, Array, Date, Set, Map etc
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
