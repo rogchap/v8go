@@ -225,28 +225,24 @@ func ExampleObject_global() {
 	// foo
 }
 
-type objectTester struct{}
-
-func (a *objectTester) GetCreateObjectFunctionCallback() v8go.FunctionCallback {
-	return func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		iso, err := info.Context().Isolate()
-		if err != nil {
-			log.Fatalf("Could not get isolate from context: %v\n", err)
-		}
-		args := info.Args()
-		if len(args) != 2 {
-			return iso.ThrowException("Function CreateObject expects 2 parameters")
-		}
-		if !args[0].IsInt32() || !args[1].IsInt32() {
-			return iso.ThrowException("Function CreateObject expects 2 Int32 parameters")
-		}
-		read := args[0].Int32()
-		written := args[1].Int32()
-		obj := v8go.NewObject(info.Context()) // create object
-		obj.Set("read", read)                 // set some properties
-		obj.Set("written", written)
-		return obj.Value
+func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	iso, err := info.Context().Isolate()
+	if err != nil {
+		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
+	args := info.Args()
+	if len(args) != 2 {
+		return iso.ThrowException("Function createObject expects 2 parameters")
+	}
+	if !args[0].IsInt32() || !args[1].IsInt32() {
+		return iso.ThrowException("Function createObject expects 2 Int32 parameters")
+	}
+	read := args[0].Int32()
+	written := args[1].Int32()
+	obj := v8go.NewObject(info.Context()) // create object
+	obj.Set("read", read)                 // set some properties
+	obj.Set("written", written)
+	return obj.Value
 }
 
 func injectObjectTester(ctx *v8go.Context, funcName string, funcCb v8go.FunctionCallback) error {
@@ -292,9 +288,8 @@ func TestObjectCreate(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewContext(iso)
-	c := &objectTester{}
 
-	if err := injectObjectTester(ctx, "createObject", c.GetCreateObjectFunctionCallback()); err != nil {
+	if err := injectObjectTester(ctx, "createObject", createObjectFunctionCallback); err != nil {
 		t.Error(err)
 	}
 
