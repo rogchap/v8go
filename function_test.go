@@ -33,6 +33,26 @@ func TestFunctionCall(t *testing.T) {
 	}
 }
 
+func TestFunctionSourceMapUrl(t *testing.T) {
+	t.Parallel()
+
+	ctx, err := v8go.NewContext()
+	failIf(t, err)
+	_, err = ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
+	failIf(t, err)
+	addValue, err := ctx.Global().Get("add")
+	failIf(t, err)
+
+	fn, _ := addValue.AsFunction()
+
+	resultVal, err := fn.SourceMapUrl()
+	failIf(t, err)
+
+	if resultVal.String() != "main.js.map" {
+		t.Errorf("expected main.js.map, got %v", resultVal.String())
+	}
+}
+
 func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 

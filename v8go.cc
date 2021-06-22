@@ -1207,6 +1207,19 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   return rtn;
 }
 
+RtnValue FunctionSourceMapUrl(ValuePtr ptr) {
+  LOCAL_VALUE(ptr)
+  RtnValue rtn = {nullptr, nullptr};
+  Local<Function> fn = Local<Function>::Cast(value);
+  MaybeLocal<Value> result = fn->GetScriptOrigin().SourceMapUrl();
+  m_value* rtnval = new m_value;
+  rtnval->iso = iso;
+  rtnval->ctx = ctx;
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtn.value = tracked_value(ctx, rtnval);
+  return rtn;
+}
+
 /******** Exceptions *********/
 
 ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message) {
