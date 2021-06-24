@@ -49,8 +49,6 @@ func (fn *Function) NewInstance(args ...Valuer) (*Object, error) {
 
 // Return the script origin for a function
 func (fn *Function) SourceMapUrl() (*Value, error) {
-	fn.ctx.register()
 	rtn := C.FunctionSourceMapUrl(fn.ptr)
-	fn.ctx.deregister()
 	return getValue(fn.ctx, rtn), getError(rtn)
 }
