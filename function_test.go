@@ -51,6 +51,19 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 	if resultVal.String() != "main.js.map" {
 		t.Errorf("expected main.js.map, got %v", resultVal.String())
 	}
+
+	_, err = ctx.RunScript("function sub(a, b) { return a - b; };", "")
+	failIf(t, err)
+	subValue, err := ctx.Global().Get("sub")
+	failIf(t, err)
+
+	subFn, _ := subValue.AsFunction()
+	resultVal, err = subFn.SourceMapUrl()
+	failIf(t, err)
+
+	if !resultVal.IsUndefined() {
+		t.Errorf("expected undefined, got: %v", resultVal.DetailString())
+	}
 }
 
 func TestFunctionCallToGoFunc(t *testing.T) {
