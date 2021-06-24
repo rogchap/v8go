@@ -1211,11 +1211,11 @@ RtnValue FunctionSourceMapUrl(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
   RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
-  MaybeLocal<Value> result = fn->GetScriptOrigin().SourceMapUrl();
+  Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
