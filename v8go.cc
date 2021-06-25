@@ -1207,7 +1207,7 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   return rtn;
 }
 
-RtnValue FunctionSourceMapUrl(ValuePtr ptr) {
+ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
   RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
@@ -1216,8 +1216,7 @@ RtnValue FunctionSourceMapUrl(ValuePtr ptr) {
   rtnval->iso = iso;
   rtnval->ctx = ctx;
   rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
-  rtn.value = tracked_value(ctx, rtnval);
-  return rtn;
+  return tracked_value(ctx, rtnval);
 }
 
 /******** Exceptions *********/
