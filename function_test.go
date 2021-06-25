@@ -33,6 +33,35 @@ func TestFunctionCall(t *testing.T) {
 	}
 }
 
+func TestFunctionSourceMapUrl(t *testing.T) {
+	t.Parallel()
+
+	ctx, err := v8go.NewContext()
+	failIf(t, err)
+	_, err = ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
+	failIf(t, err)
+	addValue, err := ctx.Global().Get("add")
+	failIf(t, err)
+
+	fn, _ := addValue.AsFunction()
+
+	resultVal := fn.SourceMapUrl()
+	if resultVal.String() != "main.js.map" {
+		t.Errorf("expected main.js.map, got %v", resultVal.String())
+	}
+
+	_, err = ctx.RunScript("function sub(a, b) { return a - b; };", "")
+	failIf(t, err)
+	subValue, err := ctx.Global().Get("sub")
+	failIf(t, err)
+
+	subFn, _ := subValue.AsFunction()
+	resultVal = subFn.SourceMapUrl()
+	if !resultVal.IsUndefined() {
+		t.Errorf("expected undefined, got: %v", resultVal.DetailString())
+	}
+}
+
 func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
