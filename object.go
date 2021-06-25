@@ -47,6 +47,20 @@ func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	return getValue(fn.ctx, rtn), getError(rtn)
 }
 
+func coerceValue(iso *Isolate, val interface{}) (*Value, error) {
+	switch v := val.(type) {
+	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
+		// ignoring error as code cannot reach the error state as we are already
+		// validating the new value types in this case statement
+		value, _ := NewValue(iso, v)
+		return value, nil
+	case Valuer:
+		return v.value(), nil
+	default:
+		return nil, fmt.Errorf("v8go: unsupported object property type `%T`", v)
+	}
+}
+
 // Set will set a property on the Object to a given value.
 // Supports all value types, eg: Object, Array, Date, Set, Map etc
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
@@ -55,7 +69,16 @@ func (o *Object) Set(key string, val interface{}) error {
 	if len(key) == 0 {
 		return errors.New("v8go: You must provide a valid property key")
 	}
-	return set(o, key, 0, val)
+
+	value, err := coerceValue(o.ctx.iso, val)
+	if err != nil {
+		return err
+	}
+
+	ckey := C.CString(key)
+	defer C.free(unsafe.Pointer(ckey))
+	C.ObjectSet(o.ptr, ckey, value.ptr)
+	return nil
 }
 
 // Set will set a given index on the Object to a given value.
@@ -63,27 +86,9 @@ func (o *Object) Set(key string, val interface{}) error {
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
 // then a *Value will be created and set as the value property.
 func (o *Object) SetIdx(idx uint32, val interface{}) error {
-	return set(o, "", idx, val)
-}
-
-func set(o *Object, key string, idx uint32, val interface{}) error {
-	var value *Value
-	switch v := val.(type) {
-	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
-		// ignoring error as code cannot reach the error state as we are already
-		// validating the new value types in this case statement
-		value, _ = NewValue(o.ctx.iso, v)
-	case Valuer:
-		value = v.value()
-	default:
-		return fmt.Errorf("v8go: unsupported object property type `%T`", v)
-	}
-
-	if len(key) > 0 {
-		ckey := C.CString(key)
-		defer C.free(unsafe.Pointer(ckey))
-		C.ObjectSet(o.ptr, ckey, value.ptr)
-		return nil
+	value, err := coerceValue(o.ctx.iso, val)
+	if err != nil {
+		return err
 	}
 
 	C.ObjectSetIdx(o.ptr, C.uint32_t(idx), value.ptr)
