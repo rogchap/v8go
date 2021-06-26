@@ -270,6 +270,13 @@ ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
   return tracked_value(ctx, val);
 }
 
+void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->SetInternalFieldCount(field_count);
+}
+
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
@@ -989,6 +996,20 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
+int ObjectSetInternal(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+
+  if (obj->InternalFieldCount() <= idx) {
+    return 0;
+  }
+
+  obj->SetAlignedPointerInInternalField(idx, nullptr);
+  obj->SetInternalField(idx, prop_val->ptr.Get(iso));
+
+  return 1;
+}
+
 RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
@@ -1005,6 +1026,22 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   new_val->ctx = ctx;
   new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, result.ToLocalChecked());
+
+  rtn.value = tracked_value(ctx, new_val);
+  return rtn;
+}
+
+RtnValue ObjectGetInternal(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+  RtnValue rtn = {nullptr, nullptr};
+
+  Local<Value> result = obj->GetInternalField(idx);
+
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result);
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;

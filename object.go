@@ -27,7 +27,7 @@ func (o *Object) Set(key string, val interface{}) error {
 	if len(key) == 0 {
 		return errors.New("v8go: You must provide a valid property key")
 	}
-	return set(o, key, 0, val)
+	return set(o, key, 0, val, false)
 }
 
 // Set will set a given index on the Object to a given value.
@@ -35,10 +35,15 @@ func (o *Object) Set(key string, val interface{}) error {
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
 // then a *Value will be created and set as the value property.
 func (o *Object) SetIdx(idx uint32, val interface{}) error {
-	return set(o, "", idx, val)
+	return set(o, "", idx, val, false)
 }
 
-func set(o *Object, key string, idx uint32, val interface{}) error {
+// SetInternal sets the value of an internal field.
+func (o *Object) SetInternal(idx uint32, val interface{}) error {
+	return set(o, "", idx, val, true)
+}
+
+func set(o *Object, key string, idx uint32, val interface{}, internal bool) error {
 	var value *Value
 	switch v := val.(type) {
 	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
@@ -58,7 +63,16 @@ func set(o *Object, key string, idx uint32, val interface{}) error {
 		return nil
 	}
 
-	C.ObjectSetIdx(o.ptr, C.uint32_t(idx), value.ptr)
+	if internal {
+		inserted := C.ObjectSetInternal(o.ptr, C.uint32_t(idx), value.ptr)
+
+		if inserted == 0 {
+			panic("v8go: index exceeded internal field count")
+		}
+	} else {
+		C.ObjectSetIdx(o.ptr, C.uint32_t(idx), value.ptr)
+	}
+
 	return nil
 }
 
@@ -68,6 +82,12 @@ func (o *Object) Get(key string) (*Value, error) {
 	defer C.free(unsafe.Pointer(ckey))
 
 	rtn := C.ObjectGet(o.ptr, ckey)
+	return getValue(o.ctx, rtn), getError(rtn)
+}
+
+// GetInternal tries to get a Value for a given Object internal property key.
+func (o *Object) GetInternal(idx uint32) (*Value, error) {
+	rtn := C.ObjectGetInternal(o.ptr, C.uint32_t(idx))
 	return getValue(o.ctx, rtn), getError(rtn)
 }
 
