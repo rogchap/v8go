@@ -1035,16 +1035,13 @@ RtnValue ObjectGetInternal(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
 
-  MaybeLocal<Value> result = obj->GetInternalField(idx);
-  if (result.IsEmpty()) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
+  Local<Value> result = obj->GetInternalField(idx);
+
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx = ctx;
   new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+      iso, result);
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;
