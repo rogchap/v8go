@@ -50,11 +50,17 @@ func TestObjectPrivateProperties(t *testing.T) {
 		t.Errorf("unexpected value: %q", v)
 	}
 
-	err = obj.SetInternal(1, "baz")
+	defer func() {
+		if r := recover(); r != nil {
+			if r == "v8go: index exceeded internal field count" {
+				return
+			}
+		}
 
-	if err == nil {
 		t.Error("Should get \"index exceeded internal field count\" error")
-	}
+	}()
+
+	obj.SetInternal(1, "baz")
 }
 
 func TestObjectGet(t *testing.T) {
