@@ -164,10 +164,3 @@ func TestFunctionNewInstanceError(t *testing.T) {
 		t.Errorf("want %+v, got: %+v", want, got)
 	}
 }
-
-func failIf(t *testing.T, err error) {
-	t.Helper()
-	if err != nil {
-		t.Fatal(err)
-	}
-}
