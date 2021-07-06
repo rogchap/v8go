@@ -105,7 +105,7 @@ case val := <- vals:
 case err := <- errs:
     // javascript error
 case <- time.After(200 * time.Milliseconds):
-    vm, _ := ctx.Isolate() // get the Isolate from the context
+    vm := ctx.Isolate() // get the Isolate from the context
     vm.TerminateExecution() // terminate the execution 
     err := <- errs // will get a termination error back from the running script
 }

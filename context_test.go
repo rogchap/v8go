@@ -27,7 +27,7 @@ func TestContextExec(t *testing.T) {
 		t.Errorf("error not expected: %v", err)
 	}
 
-	iso, _ := ctx.Isolate()
+	iso := ctx.Isolate()
 	ctx2, _ := v8go.NewContext(iso)
 	_, err = ctx2.RunScript(`add`, "ctx2.js")
 	if err == nil {

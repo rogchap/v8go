@@ -19,7 +19,7 @@ func TestFunctionCall(t *testing.T) {
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("add")
 	failIf(t, err)
-	iso, _ := ctx.Isolate()
+	iso := ctx.Isolate()
 
 	arg1, err := v8go.NewValue(iso, int32(1))
 	failIf(t, err)
@@ -91,8 +91,7 @@ func TestFunctionNewInstance(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
-	iso, err := ctx.Isolate()
-	failIf(t, err)
+	iso := ctx.Isolate()
 
 	value, err := ctx.Global().Get("Error")
 	failIf(t, err)
