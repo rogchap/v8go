@@ -27,7 +27,7 @@ func TestContextExec(t *testing.T) {
 		t.Errorf("error not expected: %v", err)
 	}
 
-	iso, _ := ctx.Isolate()
+	iso := ctx.Isolate()
 	ctx2, _ := v8go.NewContext(iso)
 	_, err = ctx2.RunScript(`add`, "ctx2.js")
 	if err == nil {
@@ -150,7 +150,7 @@ func ExampleContext_isolate() {
 
 func ExampleContext_globalTemplate() {
 	iso, _ := v8go.NewIsolate()
-	obj, _ := v8go.NewObjectTemplate(iso)
+	obj := v8go.NewObjectTemplate(iso)
 	obj.Set("version", "v1.0.0")
 	ctx, _ := v8go.NewContext(iso, obj)
 	val, _ := ctx.RunScript("version", "main.js")

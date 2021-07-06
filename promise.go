@@ -41,6 +41,7 @@ func NewPromiseResolver(ctx *Context) (*PromiseResolver, error) {
 	}
 	ptr := C.NewPromiseResolver(ctx.ptr)
 	val := &Value{ptr, ctx}
+	// TODO: Propagate Promise::Resolver::New error
 	return &PromiseResolver{&Object{val}, nil}, nil
 }
 

@@ -36,9 +36,9 @@ type ObjectTemplate struct {
 
 // NewObjectTemplate creates a new ObjectTemplate.
 // The *ObjectTemplate can be used as a v8go.ContextOption to create a global object in a Context.
-func NewObjectTemplate(iso *Isolate) (*ObjectTemplate, error) {
+func NewObjectTemplate(iso *Isolate) *ObjectTemplate {
 	if iso == nil {
-		return nil, errors.New("v8go: failed to create new ObjectTemplate: Isolate cannot be <nil>")
+		panic("nil Isolate argument not supported")
 	}
 
 	tmpl := &template{
@@ -46,7 +46,7 @@ func NewObjectTemplate(iso *Isolate) (*ObjectTemplate, error) {
 		iso: iso,
 	}
 	runtime.SetFinalizer(tmpl, (*template).finalizer)
-	return &ObjectTemplate{tmpl}, nil
+	return &ObjectTemplate{tmpl}
 }
 
 // NewInstance creates a new Object based on the template.
@@ -55,6 +55,7 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 		return nil, errors.New("v8go: Context cannot be <nil>")
 	}
 
+	// TODO: propagate v8 error
 	valPtr := C.ObjectTemplateNewInstance(o.ptr, ctx.ptr)
 	return &Object{&Value{valPtr, ctx}}, nil
 }

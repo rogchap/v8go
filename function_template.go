@@ -8,7 +8,6 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
-	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -40,12 +39,12 @@ type FunctionTemplate struct {
 }
 
 // NewFunctionTemplate creates a FunctionTemplate for a given callback.
-func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemplate, error) {
+func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) *FunctionTemplate {
 	if iso == nil {
-		return nil, errors.New("v8go: failed to create new FunctionTemplate: Isolate cannot be <nil>")
+		panic("nil Isolate argument not supported")
 	}
 	if callback == nil {
-		return nil, errors.New("v8go: failed to create new FunctionTemplate: FunctionCallback cannot be <nil>")
+		panic("nil FunctionCallback argument not supported")
 	}
 
 	cbref := iso.registerCallback(callback)
@@ -55,11 +54,12 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 		iso: iso,
 	}
 	runtime.SetFinalizer(tmpl, (*template).finalizer)
-	return &FunctionTemplate{tmpl}, nil
+	return &FunctionTemplate{tmpl}
 }
 
 // GetFunction returns an instance of this function template bound to the given context.
 func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
+	// TODO: Consider propagating the v8::FunctionTemplate::GetFunction error
 	val_ptr := C.FunctionTemplateGetFunction(tmpl.ptr, ctx.ptr)
 	return &Function{&Value{val_ptr, ctx}}
 }
