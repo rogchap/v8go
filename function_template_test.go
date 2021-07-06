@@ -6,8 +6,6 @@ package v8go_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -78,28 +76,23 @@ func ExampleFunctionTemplate() {
 	// [foo bar 0 1]
 }
 
-func ExampleFunctionTemplate_fetch() {
+func ExampleFunctionTemplate_promise() {
 	iso, _ := v8go.NewIsolate()
 	global, _ := v8go.NewObjectTemplate(iso)
 
-	fetchfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		args := info.Args()
-		url := args[0].String()
-
+	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		resolver, _ := v8go.NewPromiseResolver(info.Context())
 
 		go func() {
-			res, _ := http.Get(url)
-			body, _ := ioutil.ReadAll(res.Body)
-			val, _ := v8go.NewValue(iso, string(body))
+			val, _ := v8go.NewValue(iso, "ZOMGBBQ it works!")
 			resolver.Resolve(val)
 		}()
 		return resolver.GetPromise().Value
 	})
-	global.Set("fetch", fetchfn, v8go.ReadOnly)
+	global.Set("resolve", fn, v8go.ReadOnly)
 
 	ctx, _ := v8go.NewContext(iso, global)
-	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
+	val, _ := ctx.RunScript("resolve()", "")
 	prom, _ := val.AsPromise()
 
 	// wait for the promise to resolve
@@ -108,5 +101,5 @@ func ExampleFunctionTemplate_fetch() {
 	}
 	fmt.Printf("%s\n", strings.Split(prom.Result().String(), "\n")[0])
 	// Output:
-	// <!DOCTYPE html>
+	// ZOMGBBQ it works!
 }

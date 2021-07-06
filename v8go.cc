@@ -1027,12 +1027,20 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
 ValuePtr NewObject(IsolatePtr iso_ptr) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   Local<Context> c = ctx->ptr.Get(iso);
+
+  // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
+  // otherwise ArrayBuffer::New() trips over missing context.
+  // They are not needed when this code gets called through an executing script.
+  c->Enter();
+
   Local<Object> obj = Object::New(iso);
 
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
+
+  c->Exit(); // see comment above
 
   return tracked_value(ctx, val);
 }

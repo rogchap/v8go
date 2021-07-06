@@ -205,3 +205,42 @@ func TestObjectCreate(t *testing.T) {
 		t.Errorf("Got wrong return value from script: %d", val.Int32())
 	}
 }
+
+func TestNewObject(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewContext(iso)
+
+	obj := v8go.NewObject(ctx)
+	err := obj.Set("test", "ok")
+	if err != nil {
+		t.Errorf("Got error from setting object property: %v", err)
+	}
+}
+
+func TestNewObjectWithFunctionalTemplate(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewContext(iso)
+
+	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		obj := v8go.NewObject(ctx)
+		err := obj.Set("test", "ok")
+		if err != nil {
+			t.Errorf("Got error from setting object property: %v", err)
+		}
+
+		return obj.Value
+	})
+
+	res, err := fn.GetFunction(ctx).Call()
+	if err != nil {
+		t.Errorf("Got error from calling function: %v", err)
+	}
+
+	obj, _ := res.AsObject()
+	test, _ := obj.Get("test")
+	if test.String() != "ok" {
+		t.Errorf("functional template: new object: test needs to pass %q but returned %q", "ok", test.String())
+	}
+}
