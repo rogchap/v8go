@@ -37,7 +37,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
-	global, _ := v8go.NewObjectTemplate(iso)
+	global := v8go.NewObjectTemplate(iso)
 
 	called := false
 	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {

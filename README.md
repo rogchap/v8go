@@ -49,7 +49,7 @@ printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *
     fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
     return nil // you can return a value back to the JS caller if required
 })
-global, _ := v8go.NewObjectTemplate(iso) // a template that represents a JS Object
+global := v8go.NewObjectTemplate(iso) // a template that represents a JS Object
 global.Set("print", printfn) // sets the "print" property of the Object to our function
 ctx, _ := v8go.NewContext(iso, global) // new Context with the global Object set to our object template
 ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'

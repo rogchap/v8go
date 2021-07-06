@@ -81,7 +81,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 
 func ExampleFunctionTemplate() {
 	iso, _ := v8go.NewIsolate()
-	global, _ := v8go.NewObjectTemplate(iso)
+	global := v8go.NewObjectTemplate(iso)
 	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		fmt.Printf("%+v\n", info.Args())
 		return nil
@@ -95,7 +95,7 @@ func ExampleFunctionTemplate() {
 
 func ExampleFunctionTemplate_fetch() {
 	iso, _ := v8go.NewIsolate()
-	global, _ := v8go.NewObjectTemplate(iso)
+	global := v8go.NewObjectTemplate(iso)
 
 	fetchfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		args := info.Args()

@@ -13,15 +13,8 @@ import (
 
 func TestObjectTemplate(t *testing.T) {
 	t.Parallel()
-	_, err := v8go.NewObjectTemplate(nil)
-	if err == nil {
-		t.Fatal("expected error but got <nil>")
-	}
 	iso, _ := v8go.NewIsolate()
-	obj, err := v8go.NewObjectTemplate(iso)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	obj := v8go.NewObjectTemplate(iso)
 
 	setError := func(t *testing.T, err error) {
 		if err != nil {
@@ -30,7 +23,7 @@ func TestObjectTemplate(t *testing.T) {
 	}
 
 	val, _ := v8go.NewValue(iso, "bar")
-	objVal, _ := v8go.NewObjectTemplate(iso)
+	objVal := v8go.NewObjectTemplate(iso)
 	bigbigint, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
 	bigbignegint, _ := new(big.Int).SetString("-36893488147419099136", 10)
 
@@ -62,6 +55,17 @@ func TestObjectTemplate(t *testing.T) {
 	}
 }
 
+func TestObjectTemplate_panic_on_nil_isolate(t *testing.T) {
+	t.Parallel()
+
+	defer func() {
+		if err := recover(); err == nil {
+			t.Error("expected panic")
+		}
+	}()
+	v8go.NewObjectTemplate(nil)
+}
+
 func TestGlobalObjectTemplate(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
@@ -72,7 +76,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 	}{
 		{
 			func() *v8go.ObjectTemplate {
-				gbl, _ := v8go.NewObjectTemplate(iso)
+				gbl := v8go.NewObjectTemplate(iso)
 				gbl.Set("foo", "bar")
 				return gbl
 			},
@@ -89,9 +93,9 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		},
 		{
 			func() *v8go.ObjectTemplate {
-				foo, _ := v8go.NewObjectTemplate(iso)
+				foo := v8go.NewObjectTemplate(iso)
 				foo.Set("bar", "baz")
-				gbl, _ := v8go.NewObjectTemplate(iso)
+				gbl := v8go.NewObjectTemplate(iso)
 				gbl.Set("foo", foo)
 				return gbl
 			},
@@ -121,7 +125,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 func TestObjectTemplateNewInstance(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	tmpl, _ := v8go.NewObjectTemplate(iso)
+	tmpl := v8go.NewObjectTemplate(iso)
 	if _, err := tmpl.NewInstance(nil); err == nil {
 		t.Error("expected error but got <nil>")
 	}
