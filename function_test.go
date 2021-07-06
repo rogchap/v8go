@@ -40,7 +40,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	global, _ := v8go.NewObjectTemplate(iso)
 
 	called := false
-	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		called = true
 		return nil
 	})

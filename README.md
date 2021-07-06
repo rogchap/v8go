@@ -45,7 +45,7 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 ```go
 iso, _ := v8go.NewIsolate() // create a new VM
 // a template that represents a JS function
-printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
     fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
     return nil // you can return a value back to the JS caller if required
 })
