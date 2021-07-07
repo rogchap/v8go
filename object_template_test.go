@@ -108,7 +108,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
 			t.Parallel()
-			ctx, _ := v8go.NewContext(iso, tt.global())
+			ctx, _ := v8go.NewExecContext(iso, tt.global())
 			val, err := ctx.RunScript(tt.source, "test.js")
 			if err != nil {
 				t.Fatalf("unexpected error runing script: %v", err)
@@ -127,7 +127,7 @@ func TestObjectTemplateNewInstance(t *testing.T) {
 	}
 
 	tmpl.Set("foo", "bar")
-	ctx, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewExecContext(iso)
 	obj, _ := tmpl.NewInstance(ctx)
 	if foo, _ := obj.Get("foo"); foo.String() != "bar" {
 		t.Errorf("unexpected value for object property: %v", foo)

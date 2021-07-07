@@ -17,7 +17,7 @@ func TestJSONParse(t *testing.T) {
 	if _, err := v8go.JSONParse(nil, "{}"); err == nil {
 		t.Error("expected error but got <nil>")
 	}
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	_, err := v8go.JSONParse(ctx, "{")
 	if err == nil {
 		t.Error("expected error but got <nil>")
@@ -32,14 +32,14 @@ func TestJSONParse(t *testing.T) {
 func TestJSONStringify(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	if _, err := v8go.JSONStringify(ctx, nil); err == nil {
 		t.Error("expected error but got <nil>")
 	}
 }
 
 func ExampleJSONParse() {
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := v8go.JSONParse(ctx, `{"foo": "bar"}`)
 	fmt.Println(val)
 	// Output:
@@ -47,7 +47,7 @@ func ExampleJSONParse() {
 }
 
 func ExampleJSONStringify() {
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := v8go.JSONParse(ctx, `{
 		"a": 1,
 		"b": "foo"

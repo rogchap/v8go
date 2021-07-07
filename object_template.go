@@ -50,7 +50,7 @@ func NewObjectTemplate(iso *Isolate) (*ObjectTemplate, error) {
 }
 
 // NewInstance creates a new Object based on the template.
-func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
+func (o *ObjectTemplate) NewInstance(ctx *ExecContext) (*Object, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context cannot be <nil>")
 	}
@@ -59,6 +59,6 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 	return &Object{&Value{valPtr, ctx}}, nil
 }
 
-func (o *ObjectTemplate) apply(opts *contextOptions) {
+func (o *ObjectTemplate) apply(opts *execContextOptions) {
 	opts.gTmpl = o
 }

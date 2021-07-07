@@ -8,6 +8,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"context"
 	"errors"
 	"runtime"
 	"unsafe"
@@ -18,13 +19,18 @@ type FunctionCallback func(info *FunctionCallbackInfo) *Value
 
 // FunctionCallbackInfo is the argument that is passed to a FunctionCallback.
 type FunctionCallbackInfo struct {
-	ctx  *Context
+	ctx  *ExecContext
 	args []*Value
 }
 
 // Context is the current context that the callback is being executed in.
-func (i *FunctionCallbackInfo) Context() *Context {
+func (i *FunctionCallbackInfo) ExecContext() *ExecContext {
 	return i.ctx
+}
+
+// Context will return context.
+func (i *FunctionCallbackInfo) Context() context.Context {
+	return i.ctx.Context()
 }
 
 // Args returns a slice of the value arguments that are passed to the JS function.
@@ -59,7 +65,7 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 }
 
 // GetFunction returns an instance of this function template bound to the given context.
-func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
+func (tmpl *FunctionTemplate) GetFunction(ctx *ExecContext) *Function {
 	val_ptr := C.FunctionTemplateGetFunction(tmpl.ptr, ctx.ptr)
 	return &Function{&Value{val_ptr, ctx}}
 }

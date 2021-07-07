@@ -33,7 +33,7 @@ func TestValueNewBaseCases(t *testing.T) {
 
 func TestValueNewUint8Array(t *testing.T) {
 	t.Parallel()
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	if err != nil {
 		t.Fatalf("NewContext() error: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestValueNewUint8Array(t *testing.T) {
 
 func TestValueFormatting(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		source          string
 		defaultVerb     string
@@ -95,7 +95,7 @@ func TestValueFormatting(t *testing.T) {
 
 func TestValueString(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		name   string
 		source string
@@ -122,7 +122,7 @@ func TestValueString(t *testing.T) {
 
 func TestValueDetailString(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		name   string
 		source string
@@ -149,7 +149,7 @@ func TestValueDetailString(t *testing.T) {
 
 func TestValueBoolean(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		source string
 		out    bool
@@ -181,7 +181,7 @@ func TestValueBoolean(t *testing.T) {
 
 func TestValueArrayIndex(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		source string
 		idx    uint32
@@ -217,7 +217,7 @@ func TestValueArrayIndex(t *testing.T) {
 
 func TestValueInt32(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		source   string
 		expected int32
@@ -254,7 +254,7 @@ func TestValueInt32(t *testing.T) {
 
 func TestValueInteger(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		source   string
 		expected int64
@@ -291,7 +291,7 @@ func TestValueInteger(t *testing.T) {
 
 func TestValueNumber(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		source   string
 		expected float64
@@ -333,7 +333,7 @@ func TestValueNumber(t *testing.T) {
 
 func TestValueUint32(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 	tests := [...]struct {
 		source   string
 		expected uint32
@@ -378,7 +378,7 @@ func TestValueBigInt(t *testing.T) {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
 			t.Parallel()
-			ctx, _ := v8go.NewContext(iso)
+			ctx, _ := v8go.NewExecContext(iso)
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			b := val.BigInt()
 			if b == nil && tt.expected != nil {
@@ -399,7 +399,7 @@ func TestValueBigInt(t *testing.T) {
 func TestValueObject(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsObject(); err == nil {
 		t.Error("Expected error but got <nil>")
@@ -412,7 +412,7 @@ func TestValueObject(t *testing.T) {
 func TestValuePromise(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsPromise(); err == nil {
 		t.Error("Expected error but got <nil>")
@@ -426,7 +426,7 @@ func TestValuePromise(t *testing.T) {
 func TestValueFunction(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsFunction(); err == nil {
 		t.Error("Expected error but got <nil>")
@@ -543,7 +543,7 @@ func TestValueIsXXX(t *testing.T) {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
 			t.Parallel()
-			ctx, _ := v8go.NewContext(iso)
+			ctx, _ := v8go.NewExecContext(iso)
 			val, err := ctx.RunScript(tt.source, "test.js")
 			if err != nil {
 				t.Fatalf("failed to run script: %v", err)
@@ -575,7 +575,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		{
 			"object",
 			func() *v8go.Value {
-				ctx, _ := v8go.NewContext(iso)
+				ctx, _ := v8go.NewExecContext(iso)
 				val, _ := ctx.RunScript("let foo = {a:1, b:2}; foo", "test.js")
 				return val
 			},
@@ -584,7 +584,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		{
 			"objectFunc",
 			func() *v8go.Value {
-				ctx, _ := v8go.NewContext(iso)
+				ctx, _ := v8go.NewExecContext(iso)
 				val, _ := ctx.RunScript("let foo = {a:1, b:()=>{}}; foo", "test.js")
 				return val
 			},

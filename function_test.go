@@ -13,7 +13,7 @@ import (
 func TestFunctionCall(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }", "")
 	failIf(t, err)
@@ -47,7 +47,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 
 	global.Set("print", printfn, v8go.ReadOnly)
 
-	ctx, err := v8go.NewContext(iso, global)
+	ctx, err := v8go.NewExecContext(iso, global)
 	failIf(t, err)
 	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
 	failIf(t, err)
@@ -67,7 +67,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 func TestFunctionCallError(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
@@ -89,7 +89,7 @@ func TestFunctionCallError(t *testing.T) {
 func TestFunctionNewInstance(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	iso, err := ctx.Isolate()
 	failIf(t, err)
@@ -118,7 +118,7 @@ func TestFunctionNewInstance(t *testing.T) {
 func TestFunctionNewInstanceError(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)

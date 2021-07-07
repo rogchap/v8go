@@ -9,6 +9,7 @@ package v8go
 import "C"
 
 import (
+	"context"
 	"sync"
 	"unsafe"
 )
@@ -21,9 +22,10 @@ var v8once sync.Once
 type Isolate struct {
 	ptr C.IsolatePtr
 
-	cbMutex sync.RWMutex
+	cbMutex *sync.RWMutex
 	cbSeq   int
 	cbs     map[int]FunctionCallback
+	ctx     context.Context
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -49,15 +51,44 @@ type HeapStatistics struct {
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
 func NewIsolate() (*Isolate, error) {
+	return NewIsolateContext(context.Background())
+}
+
+// NewIsolateContext creates a new V8 isolate with context. Only one thread may access
+// a given isolate at a time, but different threads may access
+// different isolates simultaneously.
+// When an isolate is no longer used its resources should be freed
+// by calling iso.Dispose().
+// An *Isolate can be used as a v8go.ContextOption to create a new
+// Context, rather than creating a new default Isolate.
+func NewIsolateContext(ctx context.Context) (*Isolate, error) {
 	v8once.Do(func() {
 		C.Init()
 	})
 	iso := &Isolate{
-		ptr: C.NewIsolate(),
-		cbs: make(map[int]FunctionCallback),
+		ptr:     C.NewIsolate(),
+		cbs:     make(map[int]FunctionCallback),
+		ctx:     ctx,
+		cbMutex: &sync.RWMutex{},
 	}
 	// TODO: [RC] catch any C++ exceptions and return as error
 	return iso, nil
+}
+
+// WithContext adds context to isolate.
+func (i *Isolate) WithContext(ctx context.Context) *Isolate {
+	iso := new(Isolate)
+	*iso = *i
+	iso.ctx = ctx
+	return iso
+}
+
+// Context returns isolate context.
+func (i *Isolate) Context() context.Context {
+	if i.ctx != nil {
+		return i.ctx
+	}
+	return context.Background()
 }
 
 // TerminateExecution terminates forcefully the current thread
@@ -99,7 +130,7 @@ func (i *Isolate) Close() {
 	i.Dispose()
 }
 
-func (i *Isolate) apply(opts *contextOptions) {
+func (i *Isolate) apply(opts *execContextOptions) {
 	opts.iso = i
 }
 

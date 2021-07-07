@@ -21,7 +21,7 @@ type Object struct {
 
 // Instantiate a new blank object without any properties.
 // Add properties on the object using Set.
-func NewObject(ctx *Context) *Object {
+func NewObject(ctx *ExecContext) *Object {
 	return &Object{&Value{C.NewObject(ctx.iso.ptr), ctx}}
 }
 

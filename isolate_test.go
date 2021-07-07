@@ -5,6 +5,7 @@
 package v8go_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -19,7 +20,8 @@ import (
 func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	iso = iso.WithContext(context.Background())
+	ctx, _ := v8go.NewExecContext(iso)
 	//	ctx2, _ := v8go.NewContext(iso)
 
 	err := make(chan error, 1)
@@ -43,8 +45,8 @@ func TestIsolateTermination(t *testing.T) {
 func TestGetHeapStatistics(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	v8go.NewContext(iso)
-	v8go.NewContext(iso)
+	v8go.NewExecContext(iso)
+	v8go.NewExecContext(iso)
 
 	hs := iso.GetHeapStatistics()
 
@@ -61,6 +63,7 @@ func TestCallbackRegistry(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	iso = iso.WithContext(context.Background())
 	cb := func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }
 
 	cb0 := iso.GetCallback(0)
@@ -105,7 +108,7 @@ func TestIsolateGarbageCollection(t *testing.T) {
 
 	tmpl, _ := v8go.NewObjectTemplate(iso)
 	tmpl.Set("foo", "bar")
-	v8go.NewContext(iso, tmpl)
+	v8go.NewExecContext(iso, tmpl)
 
 	iso.Dispose()
 
@@ -126,7 +129,7 @@ func BenchmarkIsolateInitAndRun(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
 		vm, _ := v8go.NewIsolate()
-		ctx, _ := v8go.NewContext(vm)
+		ctx, _ := v8go.NewExecContext(vm)
 		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)

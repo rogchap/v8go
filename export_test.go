@@ -15,12 +15,12 @@ func (i *Isolate) GetCallback(ref int) FunctionCallback {
 }
 
 // Register is exported for testing only.
-func (c *Context) Register() {
+func (c *ExecContext) Register() {
 	c.register()
 }
 
 // Deregister is exported for testing only.
-func (c *Context) Deregister() {
+func (c *ExecContext) Deregister() {
 	c.deregister()
 }
 
@@ -28,6 +28,6 @@ func (c *Context) Deregister() {
 var GetContext = getContext
 
 // Ref is exported for testing only.
-func (c *Context) Ref() int {
+func (c *ExecContext) Ref() int {
 	return c.ref
 }

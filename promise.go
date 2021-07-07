@@ -35,7 +35,7 @@ type Promise struct {
 
 // MewPromiseResolver creates a new Promise resolver for the given context.
 // The associated Promise will be in a Pending state.
-func NewPromiseResolver(ctx *Context) (*PromiseResolver, error) {
+func NewPromiseResolver(ctx *ExecContext) (*PromiseResolver, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context is required")
 	}

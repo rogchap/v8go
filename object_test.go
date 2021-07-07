@@ -16,7 +16,7 @@ import (
 func TestObjectSet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
 	obj, _ := val.AsObject()
 	obj.Set("bar", "baz")
@@ -39,7 +39,7 @@ func TestObjectSet(t *testing.T) {
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
 	obj, _ := val.AsObject()
 	if bar, _ := obj.Get("bar"); bar.String() != "baz" {
@@ -60,7 +60,7 @@ func TestObjectGet(t *testing.T) {
 func TestObjectHas(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("a") {
@@ -80,7 +80,7 @@ func TestObjectHas(t *testing.T) {
 func TestObjectDelete(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("bar") {
@@ -100,7 +100,7 @@ func TestObjectDelete(t *testing.T) {
 
 func ExampleObject_global() {
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewExecContext(iso)
 	global := ctx.Global()
 
 	console, _ := v8go.NewObjectTemplate(iso)
@@ -118,7 +118,7 @@ func ExampleObject_global() {
 }
 
 func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) *v8go.Value {
-	iso, err := info.Context().Isolate()
+	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
@@ -131,13 +131,13 @@ func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) *v8go.Value {
 	}
 	read := args[0].Int32()
 	written := args[1].Int32()
-	obj := v8go.NewObject(info.Context()) // create object
-	obj.Set("read", read)                 // set some properties
+	obj := v8go.NewObject(info.ExecContext()) // create object
+	obj.Set("read", read)                     // set some properties
 	obj.Set("written", written)
 	return obj.Value
 }
 
-func injectObjectTester(ctx *v8go.Context, funcName string, funcCb v8go.FunctionCallback) error {
+func injectObjectTester(ctx *v8go.ExecContext, funcName string, funcCb v8go.FunctionCallback) error {
 	if ctx == nil {
 		return errors.New("ctx is required")
 	}
@@ -179,7 +179,7 @@ func injectObjectTester(ctx *v8go.Context, funcName string, funcCb v8go.Function
 func TestObjectCreate(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewExecContext(iso)
 
 	if err := injectObjectTester(ctx, "createObject", createObjectFunctionCallback); err != nil {
 		t.Error(err)
@@ -209,7 +209,7 @@ func TestObjectCreate(t *testing.T) {
 func TestNewObject(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewExecContext(iso)
 
 	obj := v8go.NewObject(ctx)
 	err := obj.Set("test", "ok")
@@ -221,7 +221,7 @@ func TestNewObject(t *testing.T) {
 func TestNewObjectWithFunctionalTemplate(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewExecContext(iso)
 
 	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		obj := v8go.NewObject(ctx)

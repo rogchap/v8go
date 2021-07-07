@@ -8,6 +8,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"context"
 	"fmt"
 	"sync"
 	"unsafe"
@@ -19,7 +20,7 @@ import (
 // To make sure we can still GC *Context we register the context only when we are
 // running a script inside the context and then deregister.
 type ctxRef struct {
-	ctx      *Context
+	ctx      *ExecContext
 	refCount int
 }
 
@@ -27,28 +28,28 @@ var ctxMutex sync.RWMutex
 var ctxRegistry = make(map[int]*ctxRef)
 var ctxSeq = 0
 
-// Context is a global root execution environment that allows separate,
+// ExecContext is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
-type Context struct {
+type ExecContext struct {
 	ref int
 	ptr C.ContextPtr
 	iso *Isolate
 }
 
-type contextOptions struct {
+type execContextOptions struct {
 	iso   *Isolate
 	gTmpl *ObjectTemplate
 }
 
-// ContextOption sets options such as Isolate and Global Template to the NewContext
-type ContextOption interface {
-	apply(*contextOptions)
+// ExecContextOption sets options such as Isolate and Global Template to the NewContext
+type ExecContextOption interface {
+	apply(*execContextOptions)
 }
 
 // NewContext creates a new JavaScript context; if no Isolate is passed as a
 // ContextOption than a new Isolate will be created.
-func NewContext(opt ...ContextOption) (*Context, error) {
-	opts := contextOptions{}
+func NewExecContext(opt ...ExecContextOption) (*ExecContext, error) {
+	opts := execContextOptions{}
 	for _, o := range opt {
 		if o != nil {
 			o.apply(&opts)
@@ -72,7 +73,7 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 	ref := ctxSeq
 	ctxMutex.Unlock()
 
-	ctx := &Context{
+	ctx := &ExecContext{
 		ref: ref,
 		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
@@ -83,15 +84,23 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 
 // Isolate gets the current context's parent isolate.An  error is returned
 // if the isolate has been terninated.
-func (c *Context) Isolate() (*Isolate, error) {
+func (c *ExecContext) Isolate() (*Isolate, error) {
 	// TODO: [RC] check to see if the isolate has not been terninated
 	return c.iso, nil
+}
+
+// Context returns isolate context.
+func (c *ExecContext) Context() context.Context {
+	if c.iso.ctx != nil {
+		return c.iso.ctx
+	}
+	return context.Background()
 }
 
 // RunScript executes the source JavaScript; origin or filename provides a
 // reference for the script and used in the stack trace if there is an error.
 // error will be of type `JSError` of not nil.
-func (c *Context) RunScript(source string, origin string) (*Value, error) {
+func (c *ExecContext) RunScript(source string, origin string) (*Value, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
@@ -111,7 +120,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 // Please note that changes to global proxy object prototype most probably
 // would break the VM — V8 expects only global object as a prototype of
 // global proxy object.
-func (c *Context) Global() *Object {
+func (c *ExecContext) Global() *Object {
 	valPtr := C.ContextGlobal(c.ptr)
 	v := &Value{valPtr, c}
 	return &Object{v}
@@ -119,7 +128,7 @@ func (c *Context) Global() *Object {
 
 // PerformMicrotaskCheckpoint runs the default MicrotaskQueue until empty.
 // This is used to make progress on Promises.
-func (c *Context) PerformMicrotaskCheckpoint() {
+func (c *ExecContext) PerformMicrotaskCheckpoint() {
 	c.register()
 	defer c.deregister()
 	C.IsolatePerformMicrotaskCheckpoint(c.iso.ptr)
@@ -127,12 +136,12 @@ func (c *Context) PerformMicrotaskCheckpoint() {
 
 // Close will dispose the context and free the memory.
 // Access to any values assosiated with the context after calling Close may panic.
-func (c *Context) Close() {
+func (c *ExecContext) Close() {
 	C.ContextFree(c.ptr)
 	c.ptr = nil
 }
 
-func (c *Context) register() {
+func (c *ExecContext) register() {
 	ctxMutex.Lock()
 	r := ctxRegistry[c.ref]
 	if r == nil {
@@ -143,7 +152,7 @@ func (c *Context) register() {
 	ctxMutex.Unlock()
 }
 
-func (c *Context) deregister() {
+func (c *ExecContext) deregister() {
 	ctxMutex.Lock()
 	defer ctxMutex.Unlock()
 	r := ctxRegistry[c.ref]
@@ -156,7 +165,7 @@ func (c *Context) deregister() {
 	}
 }
 
-func getContext(ref int) *Context {
+func getContext(ref int) *ExecContext {
 	ctxMutex.RLock()
 	defer ctxMutex.RUnlock()
 	r := ctxRegistry[ref]
@@ -172,14 +181,14 @@ func goContext(ref int) C.ContextPtr {
 	return ctx.ptr
 }
 
-func getValue(ctx *Context, rtn C.RtnValue) *Value {
+func getValue(ctx *ExecContext, rtn C.RtnValue) *Value {
 	if rtn.value == nil {
 		return nil
 	}
 	return &Value{rtn.value, ctx}
 }
 
-func getObject(ctx *Context, rtn C.RtnValue) *Object {
+func getObject(ctx *ExecContext, rtn C.RtnValue) *Object {
 	if rtn.value == nil {
 		return nil
 	}

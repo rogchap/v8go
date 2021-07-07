@@ -8,7 +8,7 @@ import (
 )
 
 func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
-	iso, err := info.Context().Isolate()
+	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
@@ -31,7 +31,7 @@ func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
 }
 
 func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
-	iso, err := info.Context().Isolate()
+	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
@@ -43,7 +43,7 @@ func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
 		return iso.ThrowException("Function CreateArrayBuffer expects Int32 parameter")
 	}
 	length := args[0].Int32()
-	ab := NewArrayBuffer(info.Context(), int64(length)) // create ArrayBuffer object of given length
+	ab := NewArrayBuffer(info.ExecContext(), int64(length)) // create ArrayBuffer object of given length
 	bytes := make([]uint8, length)
 	for i := uint8(0); i < uint8(length); i++ {
 		bytes[i] = i
@@ -52,7 +52,7 @@ func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
 	return ab.Value    // return the ArrayBuffer to javascript
 }
 
-func injectArrayBufferTester(ctx *Context, funcName string, funcCb FunctionCallback) error {
+func injectArrayBufferTester(ctx *ExecContext, funcName string, funcCb FunctionCallback) error {
 	if ctx == nil {
 		return errors.New("injectArrayBufferTester: ctx is required")
 	}
@@ -96,7 +96,7 @@ func TestModifyArrayBuffer(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	ctx, _ := NewExecContext(iso)
 	if err := injectArrayBufferTester(ctx, "reverseArrayBuffer", reverseArrayBufferFunctionCallback); err != nil {
 		t.Error(err)
 	}
@@ -133,7 +133,7 @@ func TestCreateArrayBuffer(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	ctx, _ := NewExecContext(iso)
 	if err := injectArrayBufferTester(ctx, "createArrayBuffer", createArrayBufferFunctionCallback); err != nil {
 		t.Error(err)
 	}

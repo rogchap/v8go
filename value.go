@@ -18,7 +18,7 @@ import (
 // Value represents all Javascript values and objects
 type Value struct {
 	ptr C.ValuePtr
-	ctx *Context
+	ctx *ExecContext
 }
 
 // Valuer is an interface that reperesents anything that extends from a Value

@@ -8,7 +8,7 @@ import (
 )
 
 func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) *Value {
-	iso, err := info.Context().Isolate()
+	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
@@ -32,7 +32,7 @@ func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) *Value {
 	return val
 }
 
-func injectUint8ArrayTester(ctx *Context) error {
+func injectUint8ArrayTester(ctx *ExecContext) error {
 	if ctx == nil {
 		return errors.New("injectUint8ArrayTester: ctx is required")
 	}
@@ -75,7 +75,7 @@ func TestUint8Array(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	ctx, _ := NewExecContext(iso)
 
 	if err := injectUint8ArrayTester(ctx); err != nil {
 		t.Error(err)
@@ -105,7 +105,7 @@ func TestUint8ArrayException(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	ctx, _ := NewExecContext(iso)
 
 	if err := injectUint8ArrayTester(ctx); err != nil {
 		t.Error(err)

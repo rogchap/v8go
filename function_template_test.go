@@ -37,7 +37,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewExecContext(iso)
 
 	var args *v8go.FunctionCallbackInfo
 	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
@@ -70,7 +70,7 @@ func ExampleFunctionTemplate() {
 		return nil
 	})
 	global.Set("print", printfn, v8go.ReadOnly)
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx, _ := v8go.NewExecContext(iso, global)
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
 	// Output:
 	// [foo bar 0 1]
@@ -81,7 +81,7 @@ func ExampleFunctionTemplate_promise() {
 	global, _ := v8go.NewObjectTemplate(iso)
 
 	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		resolver, _ := v8go.NewPromiseResolver(info.Context())
+		resolver, _ := v8go.NewPromiseResolver(info.ExecContext())
 
 		go func() {
 			val, _ := v8go.NewValue(iso, "ZOMGBBQ it works!")
@@ -91,7 +91,7 @@ func ExampleFunctionTemplate_promise() {
 	})
 	global.Set("resolve", fn, v8go.ReadOnly)
 
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx, _ := v8go.NewExecContext(iso, global)
 	val, _ := ctx.RunScript("resolve()", "")
 	prom, _ := val.AsPromise()
 

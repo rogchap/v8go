@@ -9,7 +9,7 @@ type ArrayBuffer struct {
 	*Value
 }
 
-func NewArrayBuffer(ctx *Context, len int64) *ArrayBuffer {
+func NewArrayBuffer(ctx *ExecContext, len int64) *ArrayBuffer {
 	return &ArrayBuffer{&Value{C.NewArrayBuffer(ctx.iso.ptr, C.size_t(len)), ctx}}
 }
 
