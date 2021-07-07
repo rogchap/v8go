@@ -7,17 +7,19 @@ import (
 	"testing"
 )
 
-func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) Valuer {
+func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) (Valuer, error) {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
 	args := info.Args()
 	if len(args) != 1 {
-		return iso.ThrowException("Function ReverseArrayBuffer expects 1 parameter")
+		iso.ThrowException("Function ReverseArrayBuffer expects 1 parameter")
+		return nil, nil
 	}
 	if !args[0].IsArrayBuffer() {
-		return iso.ThrowException("Function ReverseArrayBuffer expects ArrayBuffer parameter")
+		iso.ThrowException("Function ReverseArrayBuffer expects ArrayBuffer parameter")
+		return nil, nil
 	}
 	ab := args[0].ArrayBuffer() // "cast" to ArrayBuffer
 	length := int(ab.ByteLength())
@@ -27,20 +29,22 @@ func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) Valuer {
 		reversed[i] = bytes[length-i-1]
 	}
 	ab.PutBytes(reversed) // update the bytes in the ArrayBuffer (length must match!)
-	return nil
+	return nil, nil
 }
 
-func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) Valuer {
+func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) (Valuer, error) {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
 	args := info.Args()
 	if len(args) != 1 {
-		return iso.ThrowException("Function CreateArrayBuffer expects 1 parameter")
+		iso.ThrowException("Function CreateArrayBuffer expects 1 parameter")
+		return nil, nil
 	}
 	if !args[0].IsInt32() {
-		return iso.ThrowException("Function CreateArrayBuffer expects Int32 parameter")
+		iso.ThrowException("Function CreateArrayBuffer expects Int32 parameter")
+		return nil, nil
 	}
 	length := args[0].Int32()
 	ab := NewArrayBuffer(info.ExecContext(), int64(length)) // create ArrayBuffer object of given length
@@ -48,8 +52,8 @@ func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) Valuer {
 	for i := uint8(0); i < uint8(length); i++ {
 		bytes[i] = i
 	}
-	ab.PutBytes(bytes) // copy these bytes into it. Caller is responsible for avoiding overruns!
-	return ab.Value    // return the ArrayBuffer to javascript
+	ab.PutBytes(bytes)   // copy these bytes into it. Caller is responsible for avoiding overruns!
+	return ab.Value, nil // return the ArrayBuffer to javascript
 }
 
 func injectArrayBufferTester(ctx *ExecContext, funcName string, funcCb FunctionCallback) error {

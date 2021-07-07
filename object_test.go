@@ -104,9 +104,9 @@ func ExampleObject_global() {
 	global := ctx.Global()
 
 	console, _ := v8go.NewObjectTemplate(iso)
-	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
+	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 		fmt.Println(info.Args()[0])
-		return nil
+		return nil, nil
 	})
 	console.Set("log", logfn)
 	consoleObj, _ := console.NewInstance(ctx)
@@ -117,24 +117,26 @@ func ExampleObject_global() {
 	// foo
 }
 
-func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) v8go.Valuer {
+func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
 	args := info.Args()
 	if len(args) != 2 {
-		return iso.ThrowException("Function createObject expects 2 parameters")
+		iso.ThrowException("Function createObject expects 2 parameters")
+		return nil, nil
 	}
 	if !args[0].IsInt32() || !args[1].IsInt32() {
-		return iso.ThrowException("Function createObject expects 2 Int32 parameters")
+		iso.ThrowException("Function createObject expects 2 Int32 parameters")
+		return nil, nil
 	}
 	read := args[0].Int32()
 	written := args[1].Int32()
 	obj := v8go.NewObject(info.ExecContext()) // create object
 	obj.Set("read", read)                     // set some properties
 	obj.Set("written", written)
-	return obj.Value
+	return obj.Value, nil
 }
 
 func injectObjectTester(ctx *v8go.ExecContext, funcName string, funcCb v8go.FunctionCallback) error {
@@ -223,14 +225,14 @@ func TestNewObjectWithFunctionalTemplate(t *testing.T) {
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewExecContext(iso)
 
-	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
+	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 		obj := v8go.NewObject(ctx)
 		err := obj.Set("test", "ok")
 		if err != nil {
 			t.Errorf("Got error from setting object property: %v", err)
 		}
 
-		return obj.Value
+		return obj.Value, nil
 	})
 
 	res, err := fn.GetFunction(ctx).Call()

@@ -64,7 +64,7 @@ func TestCallbackRegistry(t *testing.T) {
 
 	iso, _ := v8go.NewIsolate()
 	iso = iso.WithContext(context.Background())
-	cb := func(*v8go.FunctionCallbackInfo) v8go.Valuer { return nil }
+	cb := func(*v8go.FunctionCallbackInfo) (v8go.Valuer, error) { return nil, nil }
 
 	cb0 := iso.GetCallback(0)
 	if cb0 != nil {

@@ -7,17 +7,17 @@ import (
 	"testing"
 )
 
-func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) Valuer {
+func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) (Valuer, error) {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
 	}
 	args := info.Args()
 	if len(args) != 1 {
-		return iso.ThrowException("Function ReverseUint8Array expects 1 parameter")
+		return nil, errors.New("Function ReverseUint8Array expects 1 parameter")
 	}
 	if !args[0].IsUint8Array() {
-		return iso.ThrowException("Function ReverseUint8Array expects Uint8Array parameter")
+		return nil, errors.New("Function ReverseUint8Array expects Uint8Array parameter")
 	}
 	array := args[0].Uint8Array()
 	length := len(array)
@@ -27,9 +27,9 @@ func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) Valuer {
 	}
 	val, err := NewValue(iso, reversed)
 	if err != nil {
-		return iso.ThrowException(fmt.Sprintf("Could not get value for array: %v\n", err))
+		return nil, fmt.Errorf("Could not get value for array: %v\n", err)
 	}
-	return val
+	return val, nil
 }
 
 func injectUint8ArrayTester(ctx *ExecContext) error {
