@@ -104,7 +104,7 @@ func ExampleObject_global() {
 	global := ctx.Global()
 
 	console, _ := v8go.NewObjectTemplate(iso)
-	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 		fmt.Println(info.Args()[0])
 		return nil
 	})
@@ -117,7 +117,7 @@ func ExampleObject_global() {
 	// foo
 }
 
-func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) *v8go.Value {
+func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
@@ -223,7 +223,7 @@ func TestNewObjectWithFunctionalTemplate(t *testing.T) {
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewExecContext(iso)
 
-	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 		obj := v8go.NewObject(ctx)
 		err := obj.Set("test", "ok")
 		if err != nil {

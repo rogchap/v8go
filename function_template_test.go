@@ -15,7 +15,7 @@ import (
 func TestFunctionTemplate(t *testing.T) {
 	t.Parallel()
 
-	if _, err := v8go.NewFunctionTemplate(nil, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }); err == nil {
+	if _, err := v8go.NewFunctionTemplate(nil, func(*v8go.FunctionCallbackInfo) v8go.Valuer { return nil }); err == nil {
 		t.Error("expected error but got <nil>")
 	}
 
@@ -24,7 +24,7 @@ func TestFunctionTemplate(t *testing.T) {
 		t.Error("expected error but got <nil>")
 	}
 
-	fn, err := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil })
+	fn, err := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) v8go.Valuer { return nil })
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -40,7 +40,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	ctx, _ := v8go.NewExecContext(iso)
 
 	var args *v8go.FunctionCallbackInfo
-	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 		args = info
 		reply, _ := v8go.NewValue(iso, "hello")
 		return reply
@@ -65,7 +65,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 func ExampleFunctionTemplate() {
 	iso, _ := v8go.NewIsolate()
 	global, _ := v8go.NewObjectTemplate(iso)
-	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 		fmt.Printf("%+v\n", info.Args())
 		return nil
 	})
@@ -80,7 +80,7 @@ func ExampleFunctionTemplate_promise() {
 	iso, _ := v8go.NewIsolate()
 	global, _ := v8go.NewObjectTemplate(iso)
 
-	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 		resolver, _ := v8go.NewPromiseResolver(info.ExecContext())
 
 		go func() {

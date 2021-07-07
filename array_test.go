@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) *Value {
+func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) Valuer {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)

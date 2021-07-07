@@ -26,7 +26,7 @@ func TestPromiseFulfilled(t *testing.T) {
 	}
 
 	var thenInfo *v8go.FunctionCallbackInfo
-	prom1thenVal := prom1.Then(func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	prom1thenVal := prom1.Then(func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 		thenInfo = info
 		return nil
 	})
@@ -75,16 +75,16 @@ func TestPromiseRejected(t *testing.T) {
 	var thenInfo *v8go.FunctionCallbackInfo
 	var then2Fulfilled, then2Rejected bool
 	prom2.
-		Catch(func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		Catch(func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 			thenInfo = info
 			return nil
 		}).
 		Then(
-			func(_ *v8go.FunctionCallbackInfo) *v8go.Value {
+			func(_ *v8go.FunctionCallbackInfo) v8go.Valuer {
 				then2Fulfilled = true
 				return nil
 			},
-			func(_ *v8go.FunctionCallbackInfo) *v8go.Value {
+			func(_ *v8go.FunctionCallbackInfo) v8go.Valuer {
 				then2Rejected = true
 				return nil
 			},
@@ -120,7 +120,7 @@ func TestPromiseThenPanic(t *testing.T) {
 	})
 	t.Run("3 callbacks", func(t *testing.T) {
 		defer func() { recover() }()
-		fn := func(_ *v8go.FunctionCallbackInfo) *v8go.Value { return nil }
+		fn := func(_ *v8go.FunctionCallbackInfo) v8go.Valuer { return nil }
 		prom.Then(fn, fn, fn)
 		t.Errorf("expected a panic")
 	})

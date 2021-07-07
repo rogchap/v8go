@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
+func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) Valuer {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)
@@ -30,7 +30,7 @@ func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
 	return nil
 }
 
-func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
+func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) Valuer {
 	iso, err := info.ExecContext().Isolate()
 	if err != nil {
 		log.Fatalf("Could not get isolate from context: %v\n", err)

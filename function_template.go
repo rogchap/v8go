@@ -15,7 +15,7 @@ import (
 )
 
 // FunctionCallback is a callback that is executed in Go when a function is executed in JS.
-type FunctionCallback func(info *FunctionCallbackInfo) *Value
+type FunctionCallback func(info *FunctionCallbackInfo) Valuer
 
 // FunctionCallbackInfo is the argument that is passed to a FunctionCallback.
 type FunctionCallbackInfo struct {
@@ -86,8 +86,8 @@ func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, argsCount int) 
 	}
 
 	callbackFunc := ctx.iso.getCallback(cbref)
-	if val := callbackFunc(info); val != nil {
-		return val.ptr
+	if val := callbackFunc(info); val != nil && val.value() != nil {
+		return val.value().ptr
 	}
 	return nil
 }
