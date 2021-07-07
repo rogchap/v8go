@@ -48,6 +48,8 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	var rtnVal *Value
 
 	switch v := val.(type) {
+	case Valuer:
+		rtnVal = v.value()
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
