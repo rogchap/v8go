@@ -26,9 +26,9 @@ func TestPromiseFulfilled(t *testing.T) {
 	}
 
 	var thenInfo *v8go.FunctionCallbackInfo
-	prom1thenVal := prom1.Then(func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
+	prom1thenVal := prom1.Then(func(info *v8go.FunctionCallbackInfo) v8go.Valuer {
 		thenInfo = info
-		return nil, nil
+		return nil
 	})
 	prom1then, _ := prom1thenVal.AsPromise()
 	if prom1then.State() != v8go.Pending {
@@ -80,13 +80,13 @@ func TestPromiseRejected(t *testing.T) {
 			return nil, nil
 		}).
 		Then(
-			func(_ *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
+			func(_ *v8go.FunctionCallbackInfo) v8go.Valuer {
 				then2Fulfilled = true
-				return nil, nil
+				return nil
 			},
-			func(_ *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
+			func(_ *v8go.FunctionCallbackInfo) v8go.Valuer {
 				then2Rejected = true
-				return nil, nil
+				return nil
 			},
 		)
 	ctx.PerformMicrotaskCheckpoint()
@@ -120,7 +120,7 @@ func TestPromiseThenPanic(t *testing.T) {
 	})
 	t.Run("3 callbacks", func(t *testing.T) {
 		defer func() { recover() }()
-		fn := func(_ *v8go.FunctionCallbackInfo) (v8go.Valuer, error) { return nil, nil }
+		fn := func(_ *v8go.FunctionCallbackInfo) v8go.Valuer { return nil }
 		prom.Then(fn, fn, fn)
 		t.Errorf("expected a panic")
 	})

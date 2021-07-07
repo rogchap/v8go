@@ -11,6 +11,9 @@ import (
 	"errors"
 )
 
+// FunctionPromiseCallback
+type FunctionPromiseCallback func(info *FunctionCallbackInfo) Valuer
+
 // PromiseState is the state of the Promise.
 type PromiseState int
 
@@ -94,18 +97,24 @@ func (p *Promise) Result() *Value {
 // V8 only invokes the callback when processing "microtasks".
 // The default MicrotaskPolicy processes them when the call depth decreases to 0.
 // Call (*Context).PerformMicrotaskCheckpoint to trigger it manually.
-func (p *Promise) Then(cbs ...FunctionCallback) *Promise {
+func (p *Promise) Then(cbs ...FunctionPromiseCallback) *Promise {
 	p.ctx.register()
 	defer p.ctx.deregister()
 
 	var ptr C.ValuePtr
 	switch len(cbs) {
 	case 1:
-		cbID := p.ctx.iso.registerCallback(cbs[0])
+		cbID := p.ctx.iso.registerCallback(func(info *FunctionCallbackInfo) (Valuer, error) {
+			return cbs[0](info), nil
+		})
 		ptr = C.PromiseThen(p.ptr, C.int(cbID))
 	case 2:
-		cbID1 := p.ctx.iso.registerCallback(cbs[0])
-		cbID2 := p.ctx.iso.registerCallback(cbs[1])
+		cbID1 := p.ctx.iso.registerCallback(func(info *FunctionCallbackInfo) (Valuer, error) {
+			return cbs[0](info), nil
+		})
+		cbID2 := p.ctx.iso.registerCallback(func(info *FunctionCallbackInfo) (Valuer, error) {
+			return cbs[1](info), nil
+		})
 		ptr = C.PromiseThen2(p.ptr, C.int(cbID1), C.int(cbID2))
 
 	default:
