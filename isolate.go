@@ -25,7 +25,8 @@ type Isolate struct {
 	cbMutex *sync.RWMutex
 	cbSeq   int
 	cbs     map[int]FunctionCallback
-	ctx     context.Context
+
+	ctx context.Context
 }
 
 // HeapStatistics represents V8 isolate heap statistics
