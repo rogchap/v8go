@@ -56,7 +56,7 @@ func injectUint8ArrayTester(ctx *ExecContext) error {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
-	nativeObj, err := con.NewInstance(ctx)
+	nativeObj, err := con.GetObject(ctx)
 	if err != nil {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}

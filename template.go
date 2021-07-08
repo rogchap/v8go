@@ -8,12 +8,14 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
-	"errors"
 	"fmt"
-	"math/big"
 	"runtime"
 	"unsafe"
 )
+
+type Templater interface {
+	templater()
+}
 
 type template struct {
 	ptr C.TemplatePtr
@@ -24,7 +26,7 @@ type template struct {
 // The property must be defined either as a primitive value, or a template.
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
 // then a value will be created and set as the value property.
-func (t *template) Set(name string, val interface{}, attributes ...PropertyAttribute) error {
+func (t *template) Set(name string, val Templater, attributes ...PropertyAttribute) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
@@ -34,20 +36,11 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 	}
 
 	switch v := val.(type) {
-	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
-		newVal, err := NewValue(t.iso, v)
-		if err != nil {
-			return fmt.Errorf("v8go: unable to create new value: %v", err)
-		}
-		C.TemplateSetValue(t.ptr, cname, newVal.ptr, C.int(attrs))
 	case *ObjectTemplate:
 		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 	case *FunctionTemplate:
 		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
-	case *Value:
-		if v.IsObject() || v.IsExternal() {
-			return errors.New("v8go: unsupported property: value type must be a primitive or use a template")
-		}
+	case *ValueTemplate:
 		C.TemplateSetValue(t.ptr, cname, v.ptr, C.int(attrs))
 	default:
 		return fmt.Errorf("v8go: unsupported property type `%T`, must be one of string, int32, uint32, int64, uint64, float64, *big.Int, *v8go.Value, *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)

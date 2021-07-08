@@ -27,6 +27,12 @@ type Valuer interface {
 	value() *Value
 }
 
+// ValueGetter is helper method to allow better composition in third
+// party libraries.
+type ValueGetter interface {
+	GetValue(*ExecContext) Valuer
+}
+
 func (v *Value) value() *Value {
 	return v
 }
@@ -89,6 +95,8 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			//NOTE: C.CBytes() allocates memory, must be freed
 			ptr: C.NewValueUint8Array(iso.ptr, (*C.uchar)(C.CBytes(v)), C.int(len(v))),
 		}
+	case *Value:
+		rtnVal = v
 	case *big.Int:
 		if v.IsInt64() {
 			rtnVal = &Value{

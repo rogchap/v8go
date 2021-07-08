@@ -109,7 +109,7 @@ func ExampleObject_global() {
 		return nil, nil
 	})
 	console.Set("log", logfn)
-	consoleObj, _ := console.NewInstance(ctx)
+	consoleObj, _ := console.GetObject(ctx)
 
 	global.Set("console", consoleObj)
 	ctx.RunScript("console.log('foo')", "")
@@ -163,7 +163,7 @@ func injectObjectTester(ctx *v8go.ExecContext, funcName string, funcCb v8go.Func
 		return fmt.Errorf("ObjectTemplate.Set: %v", err)
 	}
 
-	nativeObj, err := con.NewInstance(ctx)
+	nativeObj, err := con.GetObject(ctx)
 	if err != nil {
 		return fmt.Errorf("ObjectTemplate.NewInstance: %v", err)
 	}

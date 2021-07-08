@@ -80,7 +80,7 @@ func injectArrayBufferTester(ctx *ExecContext, funcName string, funcCb FunctionC
 		return fmt.Errorf("injectArrayBufferTester: %v", err)
 	}
 
-	nativeObj, err := con.NewInstance(ctx)
+	nativeObj, err := con.GetObject(ctx)
 	if err != nil {
 		return fmt.Errorf("injectArrayBufferTester: %v", err)
 	}

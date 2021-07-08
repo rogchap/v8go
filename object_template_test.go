@@ -34,22 +34,30 @@ func TestObjectTemplate(t *testing.T) {
 	bigbigint, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
 	bigbignegint, _ := new(big.Int).SetString("-36893488147419099136", 10)
 
+	valtemp := func(x interface{}) v8go.Templater {
+		v, err := v8go.NewValueTemplate(iso, x)
+		if err != nil {
+			t.Errorf("failed to make property: %v", err)
+		}
+		return v
+	}
+
 	tests := [...]struct {
 		name  string
-		value interface{}
+		value v8go.Templater
 	}{
-		{"str", "foo"},
-		{"i32", int32(1)},
-		{"u32", uint32(1)},
-		{"i64", int64(1)},
-		{"u64", uint64(1)},
-		{"float64", float64(1)},
-		{"bigint", big.NewInt(1)},
-		{"biguint", new(big.Int).SetUint64(1 << 63)},
-		{"bigbigint", bigbigint},
-		{"bigbignegint", bigbignegint},
-		{"bool", true},
-		{"val", val},
+		{"str", valtemp("foo")},
+		{"i32", valtemp(int32(1))},
+		{"u32", valtemp(uint32(1))},
+		{"i64", valtemp(int64(1))},
+		{"u64", valtemp(uint64(1))},
+		{"float64", valtemp(float64(1))},
+		{"bigint", valtemp(big.NewInt(1))},
+		{"biguint", valtemp(new(big.Int).SetUint64(1 << 63))},
+		{"bigbigint", valtemp(bigbigint)},
+		{"bigbignegint", valtemp(bigbignegint)},
+		{"bool", valtemp(true)},
+		{"val", valtemp(val)},
 		{"obj", objVal},
 	}
 
@@ -57,6 +65,7 @@ func TestObjectTemplate(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+
 			setError(t, obj.Set(tt.name, tt.value, 0))
 		})
 	}
@@ -73,7 +82,8 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		{
 			func() *v8go.ObjectTemplate {
 				gbl, _ := v8go.NewObjectTemplate(iso)
-				gbl.Set("foo", "bar")
+				v, _ := v8go.NewValueTemplate(iso, "bar")
+				gbl.Set("foo", v)
 				return gbl
 			},
 			"foo",
@@ -90,7 +100,8 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		{
 			func() *v8go.ObjectTemplate {
 				foo, _ := v8go.NewObjectTemplate(iso)
-				foo.Set("bar", "baz")
+				v, _ := v8go.NewValueTemplate(iso, "baz")
+				foo.Set("bar", v)
 				gbl, _ := v8go.NewObjectTemplate(iso)
 				gbl.Set("foo", foo)
 				return gbl
@@ -122,13 +133,14 @@ func TestObjectTemplateNewInstance(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
 	tmpl, _ := v8go.NewObjectTemplate(iso)
-	if _, err := tmpl.NewInstance(nil); err == nil {
+	if _, err := tmpl.GetObject(nil); err == nil {
 		t.Error("expected error but got <nil>")
 	}
 
-	tmpl.Set("foo", "bar")
+	v, _ := v8go.NewValueTemplate(iso, "bar")
+	tmpl.Set("foo", v)
 	ctx, _ := v8go.NewExecContext(iso)
-	obj, _ := tmpl.NewInstance(ctx)
+	obj, _ := tmpl.GetObject(ctx)
 	if foo, _ := obj.Get("foo"); foo.String() != "bar" {
 		t.Errorf("unexpected value for object property: %v", foo)
 	}
