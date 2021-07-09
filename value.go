@@ -29,8 +29,8 @@ type Valuer interface {
 
 // ValueGetter is helper method to allow better composition in third
 // party libraries.
-type ValueGetter interface {
-	GetValue(*ExecContext) Valuer
+type ContextValuer interface {
+	ContextValue(*ExecContext) Valuer
 }
 
 func (v *Value) value() *Value {

@@ -14,7 +14,7 @@ import (
 )
 
 type Templater interface {
-	templater()
+	Set(name string, val Templater, attributes ...PropertyAttribute) error
 }
 
 type template struct {
@@ -41,7 +41,7 @@ func (t *template) Set(name string, val Templater, attributes ...PropertyAttribu
 	case *FunctionTemplate:
 		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 	case *ValueTemplate:
-		C.TemplateSetValue(t.ptr, cname, v.ptr, C.int(attrs))
+		C.TemplateSetValue(t.ptr, cname, v.Value.ptr, C.int(attrs))
 	default:
 		return fmt.Errorf("v8go: unsupported property type `%T`, must be one of string, int32, uint32, int64, uint64, float64, *big.Int, *v8go.Value, *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
 	}

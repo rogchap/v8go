@@ -28,8 +28,11 @@ func NewValueTemplate(iso *Isolate, val interface{}) (*ValueTemplate, error) {
 }
 
 // GetObject creates a new Object based on the template.
-func (o *ValueTemplate) GetValue(ctx *ExecContext) (Valuer, error) {
+func (o *ValueTemplate) ContextValue(ctx *ExecContext) (Valuer, error) {
 	return o.Value, nil
 }
 
-func (o *ValueTemplate) templater() {}
+// Set is here to comply with Templater interface, othwerwise useless.
+func (t *ValueTemplate) Set(name string, val Templater, attributes ...PropertyAttribute) error {
+	return errors.New("ValueTemplate does not allow to set any property")
+}

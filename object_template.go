@@ -60,7 +60,7 @@ func (o *ObjectTemplate) GetObject(ctx *ExecContext) (*Object, error) {
 }
 
 // GetObject creates a new Object based on the template.
-func (o *ObjectTemplate) GetValue(ctx *ExecContext) (Valuer, error) {
+func (o *ObjectTemplate) ContextValue(ctx *ExecContext) (Valuer, error) {
 	return o.GetObject(ctx)
 }
 
