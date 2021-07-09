@@ -67,5 +67,3 @@ func (o *ObjectTemplate) ContextValue(ctx *ExecContext) (Valuer, error) {
 func (o *ObjectTemplate) apply(opts *execContextOptions) {
 	opts.gTmpl = o
 }
-
-func (o *ObjectTemplate) templater() {}
