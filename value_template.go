@@ -27,8 +27,8 @@ func NewValueTemplate(iso *Isolate, val interface{}) (*ValueTemplate, error) {
 	return &ValueTemplate{Value: v}, nil
 }
 
-// GetObject creates a new Object based on the template.
-func (o *ValueTemplate) ContextValue(ctx *ExecContext) (Valuer, error) {
+// ToValue creates a new Value based on the template.
+func (o *ValueTemplate) ToValue(ctx *ExecContext) (Valuer, error) {
 	return o.Value, nil
 }
 

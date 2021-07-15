@@ -59,8 +59,8 @@ func (o *ObjectTemplate) GetObject(ctx *ExecContext) (*Object, error) {
 	return &Object{&Value{valPtr, ctx}}, nil
 }
 
-// GetObject creates a new Object based on the template.
-func (o *ObjectTemplate) ContextValue(ctx *ExecContext) (Valuer, error) {
+// ToValue creates a new Object based on the template.
+func (o *ObjectTemplate) ToValue(ctx *ExecContext) (Valuer, error) {
 	return o.GetObject(ctx)
 }
 

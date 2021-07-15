@@ -70,8 +70,8 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *ExecContext) *Function {
 	return &Function{&Value{val_ptr, ctx}}
 }
 
-// GetObject creates a new Object based on the template.
-func (tmpl *FunctionTemplate) ContextValue(ctx *ExecContext) (Valuer, error) {
+// ToValue creates a new Function based on the template.
+func (tmpl *FunctionTemplate) ToValue(ctx *ExecContext) (Valuer, error) {
 	return tmpl.GetFunction(ctx), nil
 }
 

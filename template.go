@@ -16,7 +16,6 @@ import (
 // Templater allows composition of templates and will
 // return actual *Value if context is provided.
 type Templater interface {
-	ContextValue(ctx *ExecContext) (Valuer, error)
 	Set(name string, val Templater, attributes ...PropertyAttribute) error
 }
 
