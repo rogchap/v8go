@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.module": "php",
+        "cstddef": "cpp"
+    }
+}

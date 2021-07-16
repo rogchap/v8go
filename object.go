@@ -22,7 +22,7 @@ type Object struct {
 // Instantiate a new blank object without any properties.
 // Add properties on the object using Set.
 func NewObject(ctx *ExecContext) *Object {
-	return &Object{&Value{C.NewObject(ctx.iso.ptr), ctx}}
+	return &Object{&Value{C.NewObject(ctx.ptr), ctx}}
 }
 
 // Set will set a property on the Object to a given value.
@@ -47,12 +47,15 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 func set(o *Object, key string, idx uint32, val interface{}) error {
 	var value *Value
 	switch v := val.(type) {
-	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:
+	case string, int, int32, uint32, int64, uint, uint64, float64, bool, *big.Int:
 		// ignoring error as code cannot reach the error state as we are already
 		// validating the new value types in this case statement
 		value, _ = NewValue(o.ctx.iso, v)
 	case Valuer:
 		value = v.value()
+		if value == nil {
+			return errors.New("empty valuer given")
+		}
 	default:
 		return fmt.Errorf("v8go: unsupported object property type `%T`", v)
 	}

@@ -15,6 +15,13 @@ import (
 	"unsafe"
 )
 
+type specialT int
+
+const (
+	Undefined specialT = iota
+	Null
+)
+
 // Value represents all Javascript values and objects
 type Value struct {
 	ptr C.ValuePtr
@@ -50,7 +57,13 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	switch v := val.(type) {
 	case Valuer:
 		rtnVal = v.value()
-	// case nil: todo
+		if rtnVal == nil {
+			return nil, errors.New("empty valuer given")
+		}
+	case nil:
+		rtnVal = &Value{
+			ptr: C.NewValueNull(iso.ptr),
+		}
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
@@ -65,9 +78,17 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		rtnVal = &Value{
 			ptr: C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v)),
 		}
+	case int:
+		rtnVal = &Value{
+			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(int64(v))),
+		}
 	case int64:
 		rtnVal = &Value{
 			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v)),
+		}
+	case uint:
+		rtnVal = &Value{
+			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(uint64(v))),
 		}
 	case uint64:
 		rtnVal = &Value{
@@ -85,13 +106,6 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		rtnVal = &Value{
 			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
 		}
-	case []uint8:
-		rtnVal = &Value{
-			//NOTE: C.CBytes() allocates memory, must be freed
-			ptr: C.NewValueUint8Array(iso.ptr, (*C.uchar)(C.CBytes(v)), C.int(len(v))),
-		}
-	case *Value:
-		rtnVal = v
 	case *big.Int:
 		if v.IsInt64() {
 			rtnVal = &Value{
@@ -121,6 +135,19 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 
 		rtnVal = &Value{
 			ptr: C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0]),
+		}
+	case specialT:
+		switch v {
+		case Undefined:
+			rtnVal = &Value{
+				ptr: C.NewValueUndefined(iso.ptr),
+			}
+		case Null:
+			rtnVal = &Value{
+				ptr: C.NewValueNull(iso.ptr),
+			}
+		default:
+			return nil, fmt.Errorf("no case for type %v", v)
 		}
 	default:
 		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
@@ -187,9 +214,15 @@ func (v *Value) Uint8Array() []uint8 {
 	return C.GoBytes(bytes, C.int(C.ValueToArrayLength(v.ptr)))
 }
 
+func (v *Value) Bytes() []byte {
+	return v.Uint8Array()
+}
+
 // Get the value as an ArrayBuffer.
 func (v *Value) ArrayBuffer() *ArrayBuffer {
-	return &ArrayBuffer{v}
+	buf := &ArrayBuffer{v, 0}
+	buf.written = int(buf.Len())
+	return buf
 }
 
 // Boolean perform the equivalent of `Boolean(value)` in JS. This can never fail.
@@ -453,6 +486,11 @@ func (v *Value) IsTypedArray() bool {
 // IsUint8Array returns true if this value is an `Uint8Array`.
 func (v *Value) IsUint8Array() bool {
 	return C.ValueIsUint8Array(v.ptr) != 0
+}
+
+// IsBytes returns true if this value is an `Uint8Array`.
+func (v *Value) IsBytes() bool {
+	return v.IsUint8Array()
 }
 
 // IsUint8ClampedArray returns true if this value is an `Uint8ClampedArray`.

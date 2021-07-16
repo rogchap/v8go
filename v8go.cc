@@ -508,24 +508,6 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
 
 /********** Value **********/
 
-#define LOCAL_VALUE(ptr)                        \
-  m_value* val = static_cast<m_value*>(ptr);    \
-  Isolate* iso = val->iso;                      \
-  Locker locker(iso);                           \
-  Isolate::Scope isolate_scope(iso);            \
-  HandleScope handle_scope(iso);                \
-  TryCatch try_catch(iso);                      \
-  m_ctx* ctx = val->ctx;                        \
-  Local<Context> local_ctx;                     \
-  if (ctx != nullptr) {                         \
-    local_ctx = ctx->ptr.Get(iso);              \
-  } else {                                      \
-    ctx = static_cast<m_ctx*>(iso->GetData(0)); \
-    local_ctx = ctx->ptr.Get(iso);              \
-  }                                             \
-  Context::Scope context_scope(local_ctx);      \
-  Local<Value> value = val->ptr.Get(iso);
-
 #define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
   ISOLATE_SCOPE(iso_ptr);                       \
   m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
@@ -560,36 +542,23 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   return tracked_value(ctx, val);
 }
 
-// Create a new v8go Value representing a uint8_t array.
-// The function takes ownership over the incoming array's memory.
-ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
+ValuePtr NewValueNull(IsolatePtr iso_ptr) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
-  Local<Context> c = ctx->ptr.Get(iso);
-
-  // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
-  // otherwise ArrayBuffer::New() trips over missing context.
-  // They are not needed when this code gets called through an executing script.
-  c->Enter();
-
-  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
-    static_cast<void*>(const_cast<uint8_t*>(v)), len,
-    [](void* data, size_t length, void *deleter_data) {
-      free(data);
-      }, nullptr);
-
-  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
-
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Uint8Array::New(arbuf, 0, len));
-
-  c->Exit(); // see comment above
-
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, v8::Null(iso));
   return tracked_value(ctx, val);
 }
 
+ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, v8::Undefined(iso));
+  return tracked_value(ctx, val);
+}
 
 ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
@@ -647,6 +616,7 @@ ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
   return tracked_value(ctx, val);
 }
 
+
 void ValueFree(ValuePtr ptr) {
   if (ptr == nullptr) {
     return;
@@ -655,6 +625,24 @@ void ValueFree(ValuePtr ptr) {
   val->ptr.Reset();
   delete val;
 }
+
+#define LOCAL_VALUE(ptr)                        \
+  m_value* val = static_cast<m_value*>(ptr);    \
+  Isolate* iso = val->iso;                      \
+  Locker locker(iso);                           \
+  Isolate::Scope isolate_scope(iso);            \
+  HandleScope handle_scope(iso);                \
+  TryCatch try_catch(iso);                      \
+  m_ctx* ctx = val->ctx;                        \
+  Local<Context> local_ctx;                     \
+  if (ctx != nullptr) {                         \
+    local_ctx = ctx->ptr.Get(iso);              \
+  } else {                                      \
+    ctx = static_cast<m_ctx*>(iso->GetData(0)); \
+    local_ctx = ctx->ptr.Get(iso);              \
+  }                                             \
+  Context::Scope context_scope(local_ctx);      \
+  Local<Value> value = val->ptr.Get(iso);
 
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
@@ -1024,14 +1012,9 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr)        \
   Local<Object> obj = value.As<Object>()
 
-ValuePtr NewObject(IsolatePtr iso_ptr) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
-  Local<Context> c = ctx->ptr.Get(iso);
 
-  // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
-  // otherwise ArrayBuffer::New() trips over missing context.
-  // They are not needed when this code gets called through an executing script.
-  c->Enter();
+ValuePtr NewObject(ContextPtr ctx_ptr) {
+  LOCAL_CONTEXT(ctx_ptr);
 
   Local<Object> obj = Object::New(iso);
 
@@ -1040,10 +1023,105 @@ ValuePtr NewObject(IsolatePtr iso_ptr) {
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
 
-  c->Exit(); // see comment above
+  return tracked_value(ctx, val);
+}
+
+// Create a new array of given size
+ValuePtr NewArray(ContextPtr ctx_ptr, size_t length) {
+  LOCAL_CONTEXT(ctx_ptr);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Array::New(iso, length));
 
   return tracked_value(ctx, val);
 }
+
+// Create a new ArrayBuffer value of the requested size
+ValuePtr NewArrayBuffer(ContextPtr ctx_ptr, size_t byte_length) {
+  LOCAL_CONTEXT(ctx_ptr);
+
+  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(iso, byte_length);
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, arbuf);
+
+  return tracked_value(ctx, val);
+}
+
+// Obtain length in bytes of this ArrayBuffer
+size_t ArrayBufferByteLength(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  return ab->ByteLength();
+}
+
+// Returns pointer into ArrayBuffer's BackingStore.
+// The caller is supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
+void* GetArrayBufferBytes(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  return ab->GetBackingStore()->Data();
+}
+
+// Writes into the ArrayBuffer's BackingStore.
+// The caller is responsible for respecting buffer boundaries.
+// The caller is also supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
+void PutArrayBufferBytes(ValuePtr ptr, size_t byteOffset, const char *bytes, size_t byteLength) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  uint8_t *data = (uint8_t*) ab->GetBackingStore()->Data();
+  memcpy(data+byteOffset, bytes, byteLength);
+}
+
+// Create a new ArrayBuffer value of the requested size
+ValuePtr NewTypedUint8ArrayFromBuffer(ValuePtr ptr, size_t byteLength) {
+  LOCAL_VALUE(ptr);
+
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+
+  m_value* nval = new m_value;
+  nval->iso = iso;
+  nval->ctx = ctx;
+  nval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Uint8Array::New(ab, 0, byteLength));
+
+  return tracked_value(ctx, nval);
+}
+
+
+// // Create a new v8go Value representing a uint8_t array.
+// // The function takes ownership over the incoming array's memory.
+// // To create new uint8 array use:
+// // Uint8Array::New(arbuf, 0, len)
+// //
+// ValuePtr NewArrayBufferFromUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
+//   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+//   Local<Context> c = ctx->ptr.Get(iso);
+
+//   c->Enter();
+
+//   std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
+//     static_cast<void*>(const_cast<uint8_t*>(v)), len,
+//     [](void* data, size_t length, void *deleter_data) {
+//       free(data);
+//       }, nullptr);
+
+//   Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+
+//   m_value* val = new m_value;
+//   val->iso = iso;
+//   val->ctx = ctx;
+//   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, arbuf);
+
+//   c->Exit();
+
+//   return tracked_value(ctx, val);
+// }
+
 
 void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
@@ -1355,56 +1433,6 @@ const char* Version() {
 
 void SetFlags(const char* flags) {
   V8::SetFlagsFromString(flags);
-}
-
-/************** ArrayBuffer support *****************/
-
-// Create a new ArrayBuffer value of the requested size
-ValuePtr NewArrayBuffer(IsolatePtr iso_ptr, size_t byte_length) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
-  Local<Context> c = ctx->ptr.Get(iso);
-
-  // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
-  // otherwise ArrayBuffer::New() trips over missing context.
-  // They are not needed when this code gets called through an executing script.
-  c->Enter();
-
-  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(iso, byte_length);
-  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
-
-  m_value* val = new m_value;
-  val->iso = iso;
-  val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, arbuf);
-
-  c->Exit(); // see comment above
-
-  return tracked_value(ctx, val);
-}
-
-// Obtain length in bytes of this ArrayBuffer
-size_t ArrayBufferByteLength(ValuePtr ptr) {
-  LOCAL_VALUE(ptr);
-  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
-  return ab->ByteLength();
-}
-
-// Returns pointer into ArrayBuffer's BackingStore.
-// The caller is supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
-void* GetArrayBufferBytes(ValuePtr ptr) {
-  LOCAL_VALUE(ptr);
-  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
-  return ab->GetBackingStore()->Data();
-}
-
-// Writes into the ArrayBuffer's BackingStore.
-// The caller is responsible for respecting buffer boundaries.
-// The caller is also supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
-void PutArrayBufferBytes(ValuePtr ptr, size_t byteOffset, const char *bytes, size_t byteLength) {
-  LOCAL_VALUE(ptr);
-  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
-  uint8_t *data = (uint8_t*) ab->GetBackingStore()->Data();
-  memcpy(data+byteOffset, bytes, byteLength);
 }
 
 }

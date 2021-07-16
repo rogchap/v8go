@@ -18,15 +18,18 @@ type IsolatePool struct {
 type IsolatePoolResource struct {
 	*Isolate
 	resource *puddle.Resource
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
 // Release will put resource back to pool.
 func (r IsolatePoolResource) Release() {
 	r.resource.Release()
+	r.cancel()
 }
 
 // NewIsolatePool creates new pool of isolates.
-func NewIsolatePool(poolSize int32) *IsolatePool {
+func NewIsolatePool(poolSize int) *IsolatePool {
 	constructor := func(ctx context.Context) (interface{}, error) {
 		return NewIsolateContext(ctx)
 	}
@@ -44,6 +47,16 @@ func (p *IsolatePool) Acquire(ctx context.Context) (*IsolatePoolResource, error)
 		return nil, err
 	}
 	iso := res.Value().(*Isolate)
-	pr := &IsolatePoolResource{resource: res, Isolate: iso.WithContext(ctx)}
+	ctx, cancel := context.WithCancel(ctx)
+	pr := &IsolatePoolResource{
+		resource: res,
+		Isolate:  iso.WithContext(ctx),
+		ctx:      ctx,
+		cancel:   cancel,
+	}
+	go func() {
+		<-ctx.Done()
+		iso.TerminateExecution()
+	}()
 	return pr, nil
 }

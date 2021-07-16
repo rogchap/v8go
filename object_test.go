@@ -24,12 +24,6 @@ func TestObjectSet(t *testing.T) {
 	if baz.String() != "baz" {
 		t.Errorf("unexpected value: %q", baz)
 	}
-	if err := obj.Set("", nil); err == nil {
-		t.Error("expected error but got <nil>")
-	}
-	if err := obj.Set("a", 0); err == nil {
-		t.Error("expected error but got <nil>")
-	}
 	obj.SetIdx(10, "ten")
 	if ten, _ := ctx.RunScript("foo[10]", ""); ten.String() != "ten" {
 		t.Errorf("unexpected value: %q", ten)
@@ -210,8 +204,7 @@ func TestObjectCreate(t *testing.T) {
 
 func TestNewObject(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewExecContext(iso)
+	ctx, _ := v8go.NewExecContext()
 
 	obj := v8go.NewObject(ctx)
 	err := obj.Set("test", "ok")

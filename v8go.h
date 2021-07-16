@@ -48,52 +48,46 @@ typedef struct {
   int sign_bit;
 } ValueBigInt;
 
+const char* Version();
+extern void SetFlags(const char* flags);
+
 extern void Init();
+
+// Isolate
 extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern ContextPtr NewContext(IsolatePtr iso_ptr,
-                             TemplatePtr global_template_ptr,
-                             int ref);
+// Context
+extern ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr, int ref);
 extern void ContextFree(ContextPtr ptr);
-extern RtnValue RunScript(ContextPtr ctx_ptr,
-                          const char* source,
-                          const char* origin);
-extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
-const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
 extern ValuePtr ContextGlobal(ContextPtr ctx_ptr);
+extern RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
 
+
+// Templates
 extern void TemplateFree(TemplatePtr ptr);
-extern void TemplateSetValue(TemplatePtr ptr,
-                             const char* name,
-                             ValuePtr val_ptr,
-                             int attributes);
-extern void TemplateSetTemplate(TemplatePtr ptr,
-                                const char* name,
-                                TemplatePtr obj_ptr,
-                                int attributes);
-
+extern void TemplateSetValue(TemplatePtr ptr, const char* name, ValuePtr val_ptr, int attributes);
+extern void TemplateSetTemplate(TemplatePtr ptr, const char* name, TemplatePtr obj_ptr, int attributes);
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
-
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr);
 
+// Values
+extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
+extern ValuePtr NewValueUndefined(IsolatePtr iso_ptr);
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
 extern ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v);
-extern ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t* v, int len);
 extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
 extern ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v);
-extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
-                                        int sign_bit,
-                                        int word_count,
-                                        const uint64_t* words);
+extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_count, const uint64_t* words);
+
 extern void ValueFree(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
@@ -162,7 +156,8 @@ int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
-extern ValuePtr NewObject(IsolatePtr iso_ptr);
+// Objects
+extern ValuePtr NewObject(ContextPtr ctx_ptr);
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
@@ -172,6 +167,19 @@ int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
 
+// Arrays
+extern ValuePtr NewArray(ContextPtr ctx_ptr, size_t length);
+
+// Array Buffer
+extern ValuePtr NewArrayBuffer(ContextPtr ctx_ptr, size_t byte_length);
+extern size_t ArrayBufferByteLength(ValuePtr val_ptr);
+extern void* GetArrayBufferBytes(ValuePtr val_ptr);
+extern void PutArrayBufferBytes(ValuePtr val_ptr, size_t byteOffset, const char *bytes, size_t byteLength); 
+
+// Typed array
+extern ValuePtr NewTypedUint8ArrayFromBuffer(ValuePtr ptr, size_t byte_length);
+
+// Promise
 extern ValuePtr NewPromiseResolver(ContextPtr ctx_ptr);
 extern ValuePtr PromiseResolverGetPromise(ValuePtr ptr);
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr);
@@ -182,26 +190,22 @@ ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
 ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref);
 extern ValuePtr PromiseResult(ValuePtr ptr);
 
+// Functions
 extern RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 
+// Exceptions
 extern void ThrowException(IsolatePtr iso_ptr, const char* message);
-
 extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,
-                                        const char* message);
+extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,const char* message);
 extern ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
 
-const char* Version();
-extern void SetFlags(const char* flags);
+// Utils
+extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
+const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
 
-// ArrayBuffer support
-extern ValuePtr NewArrayBuffer(IsolatePtr iso_ptr, size_t byte_length);
-extern size_t ArrayBufferByteLength(ValuePtr val_ptr);
-extern void* GetArrayBufferBytes(ValuePtr val_ptr); // returns pointer into BackingStore data buffer
-extern void PutArrayBufferBytes(ValuePtr val_ptr, size_t byteOffset, const char *bytes, size_t byteLength); // writes byteLength bytes into BackingStore data buffer at byteOffset
 
 #ifdef __cplusplus
 }  // extern "C"
