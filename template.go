@@ -9,6 +9,7 @@ package v8go
 import "C"
 import (
 	"fmt"
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -38,6 +39,7 @@ func (t *template) Set(name string, val Templater, attributes ...PropertyAttribu
 	}
 
 	switch v := val.(type) {
+	// case nil: todo
 	case *ObjectTemplate:
 		C.TemplateSetTemplate(t.ptr, cname, v.ptr, C.int(attrs))
 	case *FunctionTemplate:
@@ -45,7 +47,12 @@ func (t *template) Set(name string, val Templater, attributes ...PropertyAttribu
 	case *ValueTemplate:
 		C.TemplateSetValue(t.ptr, cname, v.Value.ptr, C.int(attrs))
 	default:
-		return fmt.Errorf("v8go: unsupported property type `%T`, must be one of string, int32, uint32, int64, uint64, float64, *big.Int, *v8go.Value, *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
+		// underlying templates allows to embed templates into your own
+		// structs, allowing further composition
+		if valx, ok := underlayingTmpl(val); ok {
+			return t.Set(name, valx, attributes...)
+		}
+		return fmt.Errorf("v8go: unsupported property type `%T`, must be one of *v8go.ValueTemplate, *v8go.ObjectTemplate or *v8go.FunctionTemplate", v)
 	}
 
 	return nil
@@ -55,4 +62,30 @@ func (t *template) finalizer() {
 	C.TemplateFree(t.ptr)
 	t.ptr = nil
 	runtime.SetFinalizer(t, nil)
+}
+
+var templaterType = reflect.TypeOf((*Templater)(nil)).Elem()
+
+func underlayingTmpl(val Templater) (Templater, bool) {
+	if val == nil {
+		return nil, false
+	}
+	s := reflect.ValueOf(val).Elem()
+	if s.Kind() == reflect.Ptr {
+		s = s.Elem()
+	}
+	if s.Kind() != reflect.Struct {
+		return nil, false
+	}
+	for i := 0; i < s.NumField(); i++ {
+		v := s.Field(i)
+		if !v.Type().Implements(templaterType) {
+			continue
+		}
+		if !v.CanInterface() {
+			continue
+		}
+		return v.Interface().(Templater), true
+	}
+	return nil, false
 }
