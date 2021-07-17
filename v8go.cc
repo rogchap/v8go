@@ -341,7 +341,8 @@ ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, fn.ToLocalChecked());
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, fn.ToLocalChecked());
   return tracked_value(ctx, val);
 }
 
@@ -547,7 +548,8 @@ ValuePtr NewValueNull(IsolatePtr iso_ptr) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, v8::Null(iso));
+  val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, v8::Null(iso));
   return tracked_value(ctx, val);
 }
 
@@ -556,7 +558,8 @@ ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, v8::Undefined(iso));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, v8::Undefined(iso));
   return tracked_value(ctx, val);
 }
 
@@ -615,7 +618,6 @@ ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
       iso, bigint.ToLocalChecked());
   return tracked_value(ctx, val);
 }
-
 
 void ValueFree(ValuePtr ptr) {
   if (ptr == nullptr) {
@@ -715,7 +717,8 @@ uint8_t* ValueToUint8Array(ValuePtr ptr) {
   MaybeLocal<Uint8Array> array = value.As<Uint8Array>();
   int length = array.ToLocalChecked()->ByteLength();
   uint8_t* bytes = new uint8_t[length];
-  memcpy(bytes, array.ToLocalChecked()->Buffer()->GetBackingStore()->Data(), length);
+  memcpy(bytes, array.ToLocalChecked()->Buffer()->GetBackingStore()->Data(),
+         length);
   return bytes;
 }
 
@@ -1012,7 +1015,6 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr)        \
   Local<Object> obj = value.As<Object>()
 
-
 ValuePtr NewObject(ContextPtr ctx_ptr) {
   LOCAL_CONTEXT(ctx_ptr);
 
@@ -1033,7 +1035,8 @@ ValuePtr NewArray(ContextPtr ctx_ptr, size_t length) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Array::New(iso, length));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Array::New(iso, length));
 
   return tracked_value(ctx, val);
 }
@@ -1042,7 +1045,8 @@ ValuePtr NewArray(ContextPtr ctx_ptr, size_t length) {
 ValuePtr NewArrayBuffer(ContextPtr ctx_ptr, size_t byte_length) {
   LOCAL_CONTEXT(ctx_ptr);
 
-  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(iso, byte_length);
+  std::unique_ptr<BackingStore> bs =
+      ArrayBuffer::NewBackingStore(iso, byte_length);
   Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
 
   m_value* val = new m_value;
@@ -1061,7 +1065,8 @@ size_t ArrayBufferByteLength(ValuePtr ptr) {
 }
 
 // Returns pointer into ArrayBuffer's BackingStore.
-// The caller is supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
+// The caller is supposed to have a ref on the ArrayBuffer so that the
+// BackingStore stays valid.
 void* GetArrayBufferBytes(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
@@ -1070,12 +1075,16 @@ void* GetArrayBufferBytes(ValuePtr ptr) {
 
 // Writes into the ArrayBuffer's BackingStore.
 // The caller is responsible for respecting buffer boundaries.
-// The caller is also supposed to have a ref on the ArrayBuffer so that the BackingStore stays valid.
-void PutArrayBufferBytes(ValuePtr ptr, size_t byteOffset, const char *bytes, size_t byteLength) {
+// The caller is also supposed to have a ref on the ArrayBuffer so that the
+// BackingStore stays valid.
+void PutArrayBufferBytes(ValuePtr ptr,
+                         size_t byteOffset,
+                         const char* bytes,
+                         size_t byteLength) {
   LOCAL_VALUE(ptr);
   Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
-  uint8_t *data = (uint8_t*) ab->GetBackingStore()->Data();
-  memcpy(data+byteOffset, bytes, byteLength);
+  uint8_t* data = (uint8_t*)ab->GetBackingStore()->Data();
+  memcpy(data + byteOffset, bytes, byteLength);
 }
 
 // Create a new ArrayBuffer value of the requested size
@@ -1087,18 +1096,19 @@ ValuePtr NewTypedUint8ArrayFromBuffer(ValuePtr ptr, size_t byteLength) {
   m_value* nval = new m_value;
   nval->iso = iso;
   nval->ctx = ctx;
-  nval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Uint8Array::New(ab, 0, byteLength));
+  nval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Uint8Array::New(ab, 0, byteLength));
 
   return tracked_value(ctx, nval);
 }
-
 
 // // Create a new v8go Value representing a uint8_t array.
 // // The function takes ownership over the incoming array's memory.
 // // To create new uint8 array use:
 // // Uint8Array::New(arbuf, 0, len)
 // //
-// ValuePtr NewArrayBufferFromUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
+// ValuePtr NewArrayBufferFromUint8Array(IsolatePtr iso_ptr, const uint8_t *v,
+// int len) {
 //   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
 //   Local<Context> c = ctx->ptr.Get(iso);
 
@@ -1121,7 +1131,6 @@ ValuePtr NewTypedUint8ArrayFromBuffer(ValuePtr ptr, size_t byteLength) {
 
 //   return tracked_value(ctx, val);
 // }
-
 
 void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
@@ -1250,8 +1259,9 @@ ValuePtr PromiseThen(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func = Function::New(local_ctx, FunctionTemplateCallback, cbData)
-    .ToLocalChecked();
+  Local<Function> func =
+      Function::New(local_ctx, FunctionTemplateCallback, cbData)
+          .ToLocalChecked();
   Local<Promise> result = promise->Then(local_ctx, func).ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
@@ -1265,12 +1275,16 @@ ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> onFulfilledData = Integer::New(iso, on_fulfilled_ref);
-  Local<Function> onFulfilledFunc = Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
-    .ToLocalChecked();
+  Local<Function> onFulfilledFunc =
+      Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
+          .ToLocalChecked();
   Local<Integer> onRejectedData = Integer::New(iso, on_rejected_ref);
-  Local<Function> onRejectedFunc = Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
-    .ToLocalChecked();
-  Local<Promise> result = promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc).ToLocalChecked();
+  Local<Function> onRejectedFunc =
+      Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
+          .ToLocalChecked();
+  Local<Promise> result =
+      promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc)
+          .ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
   promise_val->ctx = ctx;
@@ -1283,8 +1297,9 @@ ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func = Function::New(local_ctx, FunctionTemplateCallback, cbData)
-    .ToLocalChecked();
+  Local<Function> func =
+      Function::New(local_ctx, FunctionTemplateCallback, cbData)
+          .ToLocalChecked();
   Local<Promise> result = promise->Catch(local_ctx, func).ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
@@ -1308,8 +1323,10 @@ ValuePtr PromiseResult(ValuePtr ptr) {
 
 /********** Function **********/
 
-static void buildCallArguments(Isolate* iso, Local<Value> *argv, int argc, ValuePtr args[])
-{
+static void buildCallArguments(Isolate* iso,
+                               Local<Value>* argv,
+                               int argc,
+                               ValuePtr args[]) {
   for (int i = 0; i < argc; i++) {
     m_value* arg = static_cast<m_value*>(args[i]);
     argv[i] = arg->ptr.Get(iso);
@@ -1331,7 +1348,8 @@ RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
@@ -1350,7 +1368,8 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
@@ -1434,5 +1453,4 @@ const char* Version() {
 void SetFlags(const char* flags) {
   V8::SetFlagsFromString(flags);
 }
-
 }

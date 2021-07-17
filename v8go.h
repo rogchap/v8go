@@ -61,20 +61,30 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
 // Context
-extern ContextPtr NewContext(IsolatePtr iso_ptr, TemplatePtr global_template_ptr, int ref);
+extern ContextPtr NewContext(IsolatePtr iso_ptr,
+                             TemplatePtr global_template_ptr,
+                             int ref);
 extern void ContextFree(ContextPtr ptr);
 extern ValuePtr ContextGlobal(ContextPtr ctx_ptr);
-extern RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin);
-
+extern RtnValue RunScript(ContextPtr ctx_ptr,
+                          const char* source,
+                          const char* origin);
 
 // Templates
 extern void TemplateFree(TemplatePtr ptr);
-extern void TemplateSetValue(TemplatePtr ptr, const char* name, ValuePtr val_ptr, int attributes);
-extern void TemplateSetTemplate(TemplatePtr ptr, const char* name, TemplatePtr obj_ptr, int attributes);
+extern void TemplateSetValue(TemplatePtr ptr,
+                             const char* name,
+                             ValuePtr val_ptr,
+                             int attributes);
+extern void TemplateSetTemplate(TemplatePtr ptr,
+                                const char* name,
+                                TemplatePtr obj_ptr,
+                                int attributes);
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
-extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr);
+extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr,
+                                            ContextPtr ctx_ptr);
 
 // Values
 extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
@@ -86,7 +96,10 @@ extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
 extern ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v);
-extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr, int sign_bit, int word_count, const uint64_t* words);
+extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
+                                        int sign_bit,
+                                        int word_count,
+                                        const uint64_t* words);
 
 extern void ValueFree(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
@@ -174,7 +187,10 @@ extern ValuePtr NewArray(ContextPtr ctx_ptr, size_t length);
 extern ValuePtr NewArrayBuffer(ContextPtr ctx_ptr, size_t byte_length);
 extern size_t ArrayBufferByteLength(ValuePtr val_ptr);
 extern void* GetArrayBufferBytes(ValuePtr val_ptr);
-extern void PutArrayBufferBytes(ValuePtr val_ptr, size_t byteOffset, const char *bytes, size_t byteLength); 
+extern void PutArrayBufferBytes(ValuePtr val_ptr,
+                                size_t byteOffset,
+                                const char* bytes,
+                                size_t byteLength);
 
 // Typed array
 extern ValuePtr NewTypedUint8ArrayFromBuffer(ValuePtr ptr, size_t byte_length);
@@ -198,14 +214,14 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 extern void ThrowException(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,const char* message);
+extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,
+                                        const char* message);
 extern ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
 
 // Utils
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
 const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
-
 
 #ifdef __cplusplus
 }  // extern "C"
