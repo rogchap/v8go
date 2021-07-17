@@ -166,18 +166,32 @@ void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr) {
 }
 
 void IsolateDispose(IsolatePtr ptr) {
-  if (ptr == nullptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  if (iso->IsDead()) {
     return;
   }
-  Isolate* iso = static_cast<Isolate*>(ptr);
   ContextFree(iso->GetData(0));
-
   iso->Dispose();
+}
+
+int IsolateIsInUse(IsolatePtr ptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  return iso->IsInUse();
 }
 
 void IsolateTerminateExecution(IsolatePtr ptr) {
   Isolate* iso = static_cast<Isolate*>(ptr);
   iso->TerminateExecution();
+}
+
+void IsolateAcquireLock(IsolatePtr ptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  Locker locker(iso);
+}
+
+int IsolateIsExecutionTerminating(IsolatePtr ptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  return iso->IsExecutionTerminating();
 }
 
 IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {

@@ -43,4 +43,5 @@ func TestPool(t *testing.T) {
 	}
 
 	wg.Wait()
+	p.Close()
 }

@@ -10,11 +10,19 @@ import "C"
 
 import (
 	"context"
+	"errors"
+	"runtime"
 	"sync"
 	"unsafe"
 )
 
 var v8once sync.Once
+
+// ErrIsolateDisposed means isolate has been terminated
+var ErrIsolateDisposed = errors.New("v8go: isolate disposed")
+
+// ErrIsolateInUse means isolate is currently in use and cannot be disposed
+var ErrIsolateInUse = errors.New("v8go: isolate in use")
 
 // Isolate is a JavaScript VM instance with its own heap and
 // garbage collector. Most applications will create one isolate
@@ -25,8 +33,8 @@ type Isolate struct {
 	cbMutex *sync.RWMutex
 	cbSeq   int
 	cbs     map[int]FunctionCallback
-
-	ctx context.Context
+	ctx     context.Context
+	emux    *sync.Mutex
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -71,6 +79,7 @@ func NewIsolateContext(ctx context.Context) (*Isolate, error) {
 		cbs:     make(map[int]FunctionCallback),
 		ctx:     ctx,
 		cbMutex: &sync.RWMutex{},
+		emux:    &sync.Mutex{},
 	}
 	// TODO: [RC] catch any C++ exceptions and return as error
 	return iso, nil
@@ -95,7 +104,44 @@ func (i *Isolate) Context() context.Context {
 // TerminateExecution terminates forcefully the current thread
 // of JavaScript execution in the given isolate.
 func (i *Isolate) TerminateExecution() {
+	if i.ptr == nil {
+		return
+	}
 	C.IsolateTerminateExecution(i.ptr)
+}
+
+// TerminateExecutionWithLock terminates forcefully the current thread
+// and aquires lock. This is useful when you need to wait until
+// it is fully terminated. There is a possibility that if multiple go routines
+// runs into dead-lock.
+func (i *Isolate) TerminateExecutionWithLock() {
+	if i.ptr == nil {
+		return
+	}
+	C.IsolateTerminateExecution(i.ptr)
+	C.IsolateAcquireLock(i.ptr)
+}
+
+// IsolateTerminateExecution returns if is V8 terminating JavaScript execution.
+// Returns true if JavaScript execution is currently terminating
+// because of a call to TerminateExecution. In that case there are
+// still JavaScript frames on the stack and the termination
+// exception is still active.
+func (i *Isolate) IsExecutionTerminating() bool {
+	if i.ptr == nil {
+		return false
+	}
+	return C.IsolateIsExecutionTerminating(i.ptr) != 0
+}
+
+// IsInUse checks if this isolate is in use.
+// True if at least one thread Enter'ed this isolate.
+// This will block if any context entered.
+func (i *Isolate) IsInUse() bool {
+	if i.ptr == nil {
+		return false
+	}
+	return C.IsolateIsInUse(i.ptr) != 0
 }
 
 // GetHeapStatistics returns heap statistics for an isolate.
@@ -117,18 +163,70 @@ func (i *Isolate) GetHeapStatistics() HeapStatistics {
 	}
 }
 
-// Dispose will dispose the Isolate VM; subsequent calls will panic.
-func (i *Isolate) Dispose() {
+// Dispose will dispose the Isolate VM.
+func (i *Isolate) Dispose() error {
 	if i.ptr == nil {
-		return
+		return ErrIsolateDisposed
 	}
+	// In case of Exec method we want to lock
+	// dispose. Safe() should be safe to execute and
+	// should always finish, if you wish to interrupt safe
+	// call TerminateExecution() first
+	i.emux.Lock()
+	defer i.emux.Unlock()
+
+	// If isolate is in use, aka long running script
+	// it should not be allowed to be dispossed as
+	// that would cause SIGILL
+	if i.IsInUse() {
+		return ErrIsolateInUse
+	}
+
+	// we do not want to dispose entered context.
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil
+	return nil
 }
 
-// Deprecated: use `iso.Dispose()`.
-func (i *Isolate) Close() {
-	i.Dispose()
+// Throw an exception into javascript land from within a go function callback
+func (i *Isolate) ThrowException(msg string) error {
+	if i.ptr == nil {
+		return ErrIsolateDisposed
+	}
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+	C.ThrowException(i.ptr, cmsg)
+	return nil
+}
+
+// Exec will spawn goroutine and run given callback safely.
+// While goroutine is running we lock routine to os thread.
+// This is necessary for long running scripts as goroutines
+// can be moved from one thread to another.
+func (i *Isolate) Exec(fn func(*Isolate) error) error {
+	ch := make(chan error, 1)
+	ctx, cancel := context.WithCancel(i.Context())
+	defer cancel()
+
+	i.emux.Lock()
+	defer i.emux.Unlock()
+
+	// If isolate is dipised return
+	if i.ptr == nil {
+		return ErrIsolateDisposed
+	}
+
+	// if context has been canceled return
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	go func() {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		ch <- fn(i)
+	}()
+
+	return <-ch
 }
 
 func (i *Isolate) apply(opts *execContextOptions) {
@@ -148,12 +246,4 @@ func (i *Isolate) getCallback(ref int) FunctionCallback {
 	i.cbMutex.RLock()
 	defer i.cbMutex.RUnlock()
 	return i.cbs[ref]
-}
-
-// Throw an exception into javascript land from within a go function callback
-func (i *Isolate) ThrowException(msg string) *Value {
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
-	C.ThrowException(i.ptr, cmsg)
-	return nil
 }

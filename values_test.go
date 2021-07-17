@@ -14,9 +14,9 @@ func TestValues(t *testing.T) {
 		ValueCondLen("must have 3 arguments", 3),
 		ValueCondMinLen("must have 3 arguments", 3),
 
-		ValueCondType("must be number", 0, IsNumber),
-		ValueCondType("must be string", 1, IsString),
-		ValueCondType("must be bool", 2, IsBoolean),
+		ValueCondTypeOf("must be number", 0, IsNumber),
+		ValueCondTypeOf("must be string", 1, IsString),
+		ValueCondTypeOf("must be bool", 2, IsBoolean),
 
 		ValueCondOptionalType("must be number", 0, IsNumber),
 		ValueCondOptionalType("must be string", 1, IsString),

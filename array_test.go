@@ -252,7 +252,7 @@ func injectArrayBufferTester(ctx *ExecContext, funcName string, funcCb FunctionC
 		return fmt.Errorf("injectArrayBufferTester: %v", err)
 	}
 
-	global := ctx.Global()
+	global, _ := ctx.Global()
 
 	if err := global.Set("native", nativeObj); err != nil {
 		return fmt.Errorf("injectArrayBufferTester: %v", err)
@@ -309,7 +309,7 @@ func injectUint8ArrayTester(ctx *ExecContext) error {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
-	global := ctx.Global()
+	global, _ := ctx.Global()
 
 	if err := global.Set("native", nativeObj); err != nil {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)

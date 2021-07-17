@@ -17,7 +17,8 @@ func TestFunctionCall(t *testing.T) {
 	failIf(t, err)
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }", "")
 	failIf(t, err)
-	addValue, err := ctx.Global().Get("add")
+	g, _ := ctx.Global()
+	addValue, err := g.Get("add")
 	failIf(t, err)
 	iso, _ := ctx.Isolate()
 
@@ -71,7 +72,8 @@ func TestFunctionCallError(t *testing.T) {
 	failIf(t, err)
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
-	addValue, err := ctx.Global().Get("throws")
+	g, _ := ctx.Global()
+	addValue, err := g.Get("throws")
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
@@ -94,7 +96,8 @@ func TestFunctionNewInstance(t *testing.T) {
 	iso, err := ctx.Isolate()
 	failIf(t, err)
 
-	value, err := ctx.Global().Get("Error")
+	g, _ := ctx.Global()
+	value, err := g.Get("Error")
 	failIf(t, err)
 	fn, err := value.AsFunction()
 	failIf(t, err)
@@ -122,7 +125,8 @@ func TestFunctionNewInstanceError(t *testing.T) {
 	failIf(t, err)
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
-	throwsValue, err := ctx.Global().Get("throws")
+	g, _ := ctx.Global()
+	throwsValue, err := g.Get("throws")
 	failIf(t, err)
 	fn, _ := throwsValue.AsFunction()
 

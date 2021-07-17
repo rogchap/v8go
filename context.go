@@ -9,10 +9,14 @@ package v8go
 import "C"
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"unsafe"
 )
+
+// ErrContextClosed means context has been disposed
+var ErrContextClosed = errors.New("v8go: exec context closed")
 
 // Due to the limitations of passing pointers to C from Go we need to create
 // a registry so that we can lookup the Context from any given callback from V8.
@@ -64,6 +68,10 @@ func NewExecContext(opt ...ExecContextOption) (*ExecContext, error) {
 		}
 	}
 
+	if opts.iso.ptr == nil {
+		return nil, ErrIsolateDisposed
+	}
+
 	if opts.gTmpl == nil {
 		opts.gTmpl = &ObjectTemplate{&template{}}
 	}
@@ -85,7 +93,9 @@ func NewExecContext(opt ...ExecContextOption) (*ExecContext, error) {
 // Isolate gets the current context's parent isolate.An  error is returned
 // if the isolate has been terninated.
 func (c *ExecContext) Isolate() (*Isolate, error) {
-	// TODO: [RC] check to see if the isolate has not been terninated
+	if c.iso.ptr == nil {
+		return nil, ErrIsolateDisposed
+	}
 	return c.iso, nil
 }
 
@@ -101,6 +111,13 @@ func (c *ExecContext) Context() context.Context {
 // reference for the script and used in the stack trace if there is an error.
 // error will be of type `JSError` of not nil.
 func (c *ExecContext) RunScript(source string, origin string) (*Value, error) {
+	if c.iso.ptr == nil {
+		return nil, ErrIsolateDisposed
+	}
+	if c.ptr == nil {
+		return nil, ErrContextClosed
+	}
+
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
@@ -120,25 +137,36 @@ func (c *ExecContext) RunScript(source string, origin string) (*Value, error) {
 // Please note that changes to global proxy object prototype most probably
 // would break the VM — V8 expects only global object as a prototype of
 // global proxy object.
-func (c *ExecContext) Global() *Object {
+func (c *ExecContext) Global() (*Object, error) {
+	if c.ptr == nil {
+		return nil, ErrContextClosed
+	}
 	valPtr := C.ContextGlobal(c.ptr)
 	v := &Value{valPtr, c}
-	return &Object{v}
+	return &Object{v}, nil
 }
 
 // PerformMicrotaskCheckpoint runs the default MicrotaskQueue until empty.
 // This is used to make progress on Promises.
-func (c *ExecContext) PerformMicrotaskCheckpoint() {
+func (c *ExecContext) PerformMicrotaskCheckpoint() error {
+	if c.iso.ptr == nil {
+		return ErrIsolateDisposed
+	}
 	c.register()
 	defer c.deregister()
 	C.IsolatePerformMicrotaskCheckpoint(c.iso.ptr)
+	return nil
 }
 
 // Close will dispose the context and free the memory.
 // Access to any values assosiated with the context after calling Close may panic.
-func (c *ExecContext) Close() {
+func (c *ExecContext) Close() error {
+	if c.ptr == nil {
+		return ErrContextClosed
+	}
 	C.ContextFree(c.ptr)
 	c.ptr = nil
+	return nil
 }
 
 func (c *ExecContext) register() {

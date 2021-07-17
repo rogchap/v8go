@@ -58,6 +58,9 @@ extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
+extern void IsolateAcquireLock(IsolatePtr ptr);
+extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
+extern int IsolateIsInUse(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
 // Context

@@ -99,7 +99,7 @@ func TestMemoryLeak(t *testing.T) {
 
 	for i := 0; i < 6000; i++ {
 		ctx, _ := v8go.NewExecContext(iso)
-		obj := ctx.Global()
+		obj, _ := ctx.Global()
 		_ = obj.String()
 		_, _ = ctx.RunScript("2", "")
 		ctx.Close()
@@ -112,7 +112,7 @@ func TestMemoryLeak(t *testing.T) {
 func BenchmarkContext(b *testing.B) {
 	b.ReportAllocs()
 	vm, _ := v8go.NewIsolate()
-	defer vm.Close()
+	defer vm.Dispose()
 	for n := 0; n < b.N; n++ {
 		ctx, _ := v8go.NewExecContext(vm)
 		ctx.RunScript(script, "main.js")

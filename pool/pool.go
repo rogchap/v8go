@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"runtime"
 
 	"github.com/jackc/puddle"
 	"rogchap.com/v8go"
@@ -19,14 +20,13 @@ type Pool struct {
 type Resource struct {
 	*v8go.Isolate
 	resource *puddle.Resource
-	ctx      context.Context
-	cancel   context.CancelFunc
 }
 
-// Release will put resource back to pool.
+// Release will put resource back to pool and
+// terminates the execution.
 func (r Resource) Release() {
+	r.Isolate.TerminateExecution()
 	r.resource.Release()
-	r.cancel()
 }
 
 // New creates new pool of isolates.
@@ -35,29 +35,35 @@ func New(poolSize int) *Pool {
 		return v8go.NewIsolateContext(ctx)
 	}
 	destructor := func(value interface{}) {
-		value.(*v8go.Isolate).Dispose()
+		iso := value.(*v8go.Isolate)
+		iso.TerminateExecutionWithLock()
+		err := iso.Dispose()
+		if err != nil {
+			panic(err)
+		}
 	}
 	pool := puddle.NewPool(constructor, destructor, int32(poolSize))
 	return &Pool{pool: pool}
 }
 
-// Acquire will get new free resource ot of pool
+// Default is the default pool based on number of cpus.
+var Default = New(runtime.NumCPU())
+
+// Acquire will get new free resource ot of pool.
 func (p *Pool) Acquire(ctx context.Context) (*Resource, error) {
 	res, err := p.pool.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
 	iso := res.Value().(*v8go.Isolate)
-	ctx, cancel := context.WithCancel(ctx)
 	pr := &Resource{
 		resource: res,
 		Isolate:  iso.WithContext(ctx),
-		ctx:      ctx,
-		cancel:   cancel,
 	}
-	go func() {
-		<-ctx.Done()
-		iso.TerminateExecution()
-	}()
 	return pr, nil
+}
+
+// Close will close the pool and dipose all vms.
+func (p *Pool) Close() {
+	p.pool.Close()
 }

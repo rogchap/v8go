@@ -78,18 +78,20 @@ func ValueCondMinLen(message string, l int) ValueCond {
 	}
 }
 
-// ValueCondType asserts given type at given index.
-func ValueCondType(message string, i int, x func(*Value) bool) ValueCond {
+// ValueCondTypeOf asserts any given with logical OR.
+func ValueCondTypeOf(message string, i int, xx ...func(*Value) bool) ValueCond {
 	return func(vv Values) error {
 		arg, ok := vv.Get(i)
 		if !ok {
 			return NewValueCondErr(message)
 		}
-		ok = x(arg)
-		if !ok {
-			return NewValueCondErr(message)
+		for _, x := range xx {
+			ok := x(arg)
+			if ok {
+				return nil
+			}
 		}
-		return nil
+		return NewValueCondErr(message)
 	}
 }
 

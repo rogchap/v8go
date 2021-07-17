@@ -95,7 +95,7 @@ func TestObjectDelete(t *testing.T) {
 func ExampleObject_global() {
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewExecContext(iso)
-	global := ctx.Global()
+	global, _ := ctx.Global()
 
 	console, _ := v8go.NewObjectTemplate(iso)
 	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
@@ -162,7 +162,7 @@ func injectObjectTester(ctx *v8go.ExecContext, funcName string, funcCb v8go.Func
 		return fmt.Errorf("ObjectTemplate.NewInstance: %v", err)
 	}
 
-	global := ctx.Global()
+	global, _ := ctx.Global()
 
 	if err := global.Set("native", nativeObj); err != nil {
 		return fmt.Errorf("global.Set: %v", err)
