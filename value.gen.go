@@ -7,23 +7,19 @@ package v8go
 import "math/big"
 
 // NewStringValue creates new Value of string
-func NewStringValue(iso *Isolate, val string) (v *Value, err error) {
+func NewStringValue(iso *Isolate, val string) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewStringValueTemplate creates new ValueTemplate of string
-func NewStringValueTemplate(iso *Isolate, val ...string) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewStringValuer creates new Valuer of string. Same as NewStringValue
 // except it is casted to interface.
-func NewStringValuer(iso *Isolate, val string) (v Valuer, err error) {
+func NewStringValuer(iso *Isolate, val string) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewStringValuers creates new list of string Valuer.
-func NewStringValuers(iso *Isolate, vals ...string) (vv []Valuer, err error) {
+// NewStringValues creates new list of string.
+func NewStringValues(iso *Isolate, vals ...string) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -31,27 +27,29 @@ func NewStringValuers(iso *Isolate, vals ...string) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewStringValuers creates new list of string Valuer.
+func NewStringValuers(iso *Isolate, vals ...string) ([]Valuer, error) {
+	vv, err := NewStringValues(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewIntValue creates new Value of int
-func NewIntValue(iso *Isolate, val int) (v *Value, err error) {
+func NewIntValue(iso *Isolate, val int) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewIntValueTemplate creates new ValueTemplate of int
-func NewIntValueTemplate(iso *Isolate, val ...int) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewIntValuer creates new Valuer of int. Same as NewIntValue
 // except it is casted to interface.
-func NewIntValuer(iso *Isolate, val int) (v Valuer, err error) {
+func NewIntValuer(iso *Isolate, val int) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewIntValuers creates new list of int Valuer.
-func NewIntValuers(iso *Isolate, vals ...int) (vv []Valuer, err error) {
+// NewIntValues creates new list of int.
+func NewIntValues(iso *Isolate, vals ...int) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -59,27 +57,29 @@ func NewIntValuers(iso *Isolate, vals ...int) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewIntValuers creates new list of int Valuer.
+func NewIntValuers(iso *Isolate, vals ...int) ([]Valuer, error) {
+	vv, err := NewIntValues(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewInt32Value creates new Value of int32
-func NewInt32Value(iso *Isolate, val int32) (v *Value, err error) {
+func NewInt32Value(iso *Isolate, val int32) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewInt32ValueTemplate creates new ValueTemplate of int32
-func NewInt32ValueTemplate(iso *Isolate, val ...int32) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewInt32Valuer creates new Valuer of int32. Same as NewInt32Value
 // except it is casted to interface.
-func NewInt32Valuer(iso *Isolate, val int32) (v Valuer, err error) {
+func NewInt32Valuer(iso *Isolate, val int32) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewInt32Valuers creates new list of int32 Valuer.
-func NewInt32Valuers(iso *Isolate, vals ...int32) (vv []Valuer, err error) {
+// NewInt32Values creates new list of int32.
+func NewInt32Values(iso *Isolate, vals ...int32) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -87,27 +87,29 @@ func NewInt32Valuers(iso *Isolate, vals ...int32) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewInt32Valuers creates new list of int32 Valuer.
+func NewInt32Valuers(iso *Isolate, vals ...int32) ([]Valuer, error) {
+	vv, err := NewInt32Values(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewInt64Value creates new Value of int64
-func NewInt64Value(iso *Isolate, val int64) (v *Value, err error) {
+func NewInt64Value(iso *Isolate, val int64) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewInt64ValueTemplate creates new ValueTemplate of int64
-func NewInt64ValueTemplate(iso *Isolate, val ...int64) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewInt64Valuer creates new Valuer of int64. Same as NewInt64Value
 // except it is casted to interface.
-func NewInt64Valuer(iso *Isolate, val int64) (v Valuer, err error) {
+func NewInt64Valuer(iso *Isolate, val int64) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewInt64Valuers creates new list of int64 Valuer.
-func NewInt64Valuers(iso *Isolate, vals ...int64) (vv []Valuer, err error) {
+// NewInt64Values creates new list of int64.
+func NewInt64Values(iso *Isolate, vals ...int64) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -115,27 +117,29 @@ func NewInt64Valuers(iso *Isolate, vals ...int64) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewInt64Valuers creates new list of int64 Valuer.
+func NewInt64Valuers(iso *Isolate, vals ...int64) ([]Valuer, error) {
+	vv, err := NewInt64Values(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewUintValue creates new Value of uint
-func NewUintValue(iso *Isolate, val uint) (v *Value, err error) {
+func NewUintValue(iso *Isolate, val uint) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewUintValueTemplate creates new ValueTemplate of uint
-func NewUintValueTemplate(iso *Isolate, val ...uint) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewUintValuer creates new Valuer of uint. Same as NewUintValue
 // except it is casted to interface.
-func NewUintValuer(iso *Isolate, val uint) (v Valuer, err error) {
+func NewUintValuer(iso *Isolate, val uint) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewUintValuers creates new list of uint Valuer.
-func NewUintValuers(iso *Isolate, vals ...uint) (vv []Valuer, err error) {
+// NewUintValues creates new list of uint.
+func NewUintValues(iso *Isolate, vals ...uint) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -143,27 +147,29 @@ func NewUintValuers(iso *Isolate, vals ...uint) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewUintValuers creates new list of uint Valuer.
+func NewUintValuers(iso *Isolate, vals ...uint) ([]Valuer, error) {
+	vv, err := NewUintValues(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewUint32Value creates new Value of uint32
-func NewUint32Value(iso *Isolate, val uint32) (v *Value, err error) {
+func NewUint32Value(iso *Isolate, val uint32) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewUint32ValueTemplate creates new ValueTemplate of uint32
-func NewUint32ValueTemplate(iso *Isolate, val ...uint32) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewUint32Valuer creates new Valuer of uint32. Same as NewUint32Value
 // except it is casted to interface.
-func NewUint32Valuer(iso *Isolate, val uint32) (v Valuer, err error) {
+func NewUint32Valuer(iso *Isolate, val uint32) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewUint32Valuers creates new list of uint32 Valuer.
-func NewUint32Valuers(iso *Isolate, vals ...uint32) (vv []Valuer, err error) {
+// NewUint32Values creates new list of uint32.
+func NewUint32Values(iso *Isolate, vals ...uint32) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -171,27 +177,29 @@ func NewUint32Valuers(iso *Isolate, vals ...uint32) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewUint32Valuers creates new list of uint32 Valuer.
+func NewUint32Valuers(iso *Isolate, vals ...uint32) ([]Valuer, error) {
+	vv, err := NewUint32Values(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewUint64Value creates new Value of uint64
-func NewUint64Value(iso *Isolate, val uint64) (v *Value, err error) {
+func NewUint64Value(iso *Isolate, val uint64) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewUint64ValueTemplate creates new ValueTemplate of uint64
-func NewUint64ValueTemplate(iso *Isolate, val ...uint64) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewUint64Valuer creates new Valuer of uint64. Same as NewUint64Value
 // except it is casted to interface.
-func NewUint64Valuer(iso *Isolate, val uint64) (v Valuer, err error) {
+func NewUint64Valuer(iso *Isolate, val uint64) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewUint64Valuers creates new list of uint64 Valuer.
-func NewUint64Valuers(iso *Isolate, vals ...uint64) (vv []Valuer, err error) {
+// NewUint64Values creates new list of uint64.
+func NewUint64Values(iso *Isolate, vals ...uint64) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -199,27 +207,29 @@ func NewUint64Valuers(iso *Isolate, vals ...uint64) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewUint64Valuers creates new list of uint64 Valuer.
+func NewUint64Valuers(iso *Isolate, vals ...uint64) ([]Valuer, error) {
+	vv, err := NewUint64Values(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewBigIntValue creates new Value of *big.Int
-func NewBigIntValue(iso *Isolate, val *big.Int) (v *Value, err error) {
+func NewBigIntValue(iso *Isolate, val *big.Int) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewBigIntValueTemplate creates new ValueTemplate of *big.Int
-func NewBigIntValueTemplate(iso *Isolate, val ...*big.Int) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewBigIntValuer creates new Valuer of bigInt. Same as NewBigIntValue
 // except it is casted to interface.
-func NewBigIntValuer(iso *Isolate, val *big.Int) (v Valuer, err error) {
+func NewBigIntValuer(iso *Isolate, val *big.Int) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewBigIntValuers creates new list of *big.Int Valuer.
-func NewBigIntValuers(iso *Isolate, vals ...*big.Int) (vv []Valuer, err error) {
+// NewBigIntValues creates new list of bigInt.
+func NewBigIntValues(iso *Isolate, vals ...*big.Int) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -227,27 +237,29 @@ func NewBigIntValuers(iso *Isolate, vals ...*big.Int) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewBigIntValuers creates new list of *big.Int Valuer.
+func NewBigIntValuers(iso *Isolate, vals ...*big.Int) ([]Valuer, error) {
+	vv, err := NewBigIntValues(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewBoolValue creates new Value of bool
-func NewBoolValue(iso *Isolate, val bool) (v *Value, err error) {
+func NewBoolValue(iso *Isolate, val bool) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewBoolValueTemplate creates new ValueTemplate of bool
-func NewBoolValueTemplate(iso *Isolate, val ...bool) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewBoolValuer creates new Valuer of bool. Same as NewBoolValue
 // except it is casted to interface.
-func NewBoolValuer(iso *Isolate, val bool) (v Valuer, err error) {
+func NewBoolValuer(iso *Isolate, val bool) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewBoolValuers creates new list of bool Valuer.
-func NewBoolValuers(iso *Isolate, vals ...bool) (vv []Valuer, err error) {
+// NewBoolValues creates new list of bool.
+func NewBoolValues(iso *Isolate, vals ...bool) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -255,27 +267,29 @@ func NewBoolValuers(iso *Isolate, vals ...bool) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewBoolValuers creates new list of bool Valuer.
+func NewBoolValuers(iso *Isolate, vals ...bool) ([]Valuer, error) {
+	vv, err := NewBoolValues(iso, vals...)
+	return vv.Valuers(), err
 }
 
 // NewFloat64Value creates new Value of float64
-func NewFloat64Value(iso *Isolate, val float64) (v *Value, err error) {
+func NewFloat64Value(iso *Isolate, val float64) (*Value, error) {
 	return NewValue(iso, val)
-}
-
-// NewFloat64ValueTemplate creates new ValueTemplate of float64
-func NewFloat64ValueTemplate(iso *Isolate, val ...float64) (vv *ValueTemplate, err error) {
-	return NewValueTemplate(iso, val)
 }
 
 // NewFloat64Valuer creates new Valuer of float64. Same as NewFloat64Value
 // except it is casted to interface.
-func NewFloat64Valuer(iso *Isolate, val float64) (v Valuer, err error) {
+func NewFloat64Valuer(iso *Isolate, val float64) (Valuer, error) {
 	return NewValue(iso, val)
 }
 
-// NewFloat64Valuers creates new list of float64 Valuer.
-func NewFloat64Valuers(iso *Isolate, vals ...float64) (vv []Valuer, err error) {
+// NewFloat64Values creates new list of float64.
+func NewFloat64Values(iso *Isolate, vals ...float64) (Values, error) {
+	vv := make(Values, len(vals))
 	for _, v := range vals {
 		vx, err := NewValue(iso, v)
 		if err != nil {
@@ -283,5 +297,11 @@ func NewFloat64Valuers(iso *Isolate, vals ...float64) (vv []Valuer, err error) {
 		}
 		vv = append(vv, vx)
 	}
-	return
+	return vv, nil
+}
+
+// NewFloat64Valuers creates new list of float64 Valuer.
+func NewFloat64Valuers(iso *Isolate, vals ...float64) ([]Valuer, error) {
+	vv, err := NewFloat64Values(iso, vals...)
+	return vv.Valuers(), err
 }

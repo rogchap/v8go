@@ -1,54 +1,55 @@
-package v8go
+package pool
 
 import (
 	"context"
 
 	"github.com/jackc/puddle"
+	"rogchap.com/v8go"
 )
 
-// IsolatePool provides pools for isolates.
+// Pool provides pools for isolates.
 // Main advantage of using pool is the ability not to dispose
 // Isolates when its not needed.
-type IsolatePool struct {
+type Pool struct {
 	pool *puddle.Pool
 }
 
-// IsolatePoolResource wrap Isolate and add additional method
+// Resource wrap Isolate and add additional method
 // to release resource.
-type IsolatePoolResource struct {
-	*Isolate
+type Resource struct {
+	*v8go.Isolate
 	resource *puddle.Resource
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
 
 // Release will put resource back to pool.
-func (r IsolatePoolResource) Release() {
+func (r Resource) Release() {
 	r.resource.Release()
 	r.cancel()
 }
 
-// NewIsolatePool creates new pool of isolates.
-func NewIsolatePool(poolSize int) *IsolatePool {
+// New creates new pool of isolates.
+func New(poolSize int) *Pool {
 	constructor := func(ctx context.Context) (interface{}, error) {
-		return NewIsolateContext(ctx)
+		return v8go.NewIsolateContext(ctx)
 	}
 	destructor := func(value interface{}) {
-		value.(*Isolate).Dispose()
+		value.(*v8go.Isolate).Dispose()
 	}
 	pool := puddle.NewPool(constructor, destructor, int32(poolSize))
-	return &IsolatePool{pool: pool}
+	return &Pool{pool: pool}
 }
 
 // Acquire will get new free resource ot of pool
-func (p *IsolatePool) Acquire(ctx context.Context) (*IsolatePoolResource, error) {
+func (p *Pool) Acquire(ctx context.Context) (*Resource, error) {
 	res, err := p.pool.Acquire(ctx)
 	if err != nil {
 		return nil, err
 	}
-	iso := res.Value().(*Isolate)
+	iso := res.Value().(*v8go.Isolate)
 	ctx, cancel := context.WithCancel(ctx)
-	pr := &IsolatePoolResource{
+	pr := &Resource{
 		resource: res,
 		Isolate:  iso.WithContext(ctx),
 		ctx:      ctx,

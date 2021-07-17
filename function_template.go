@@ -34,8 +34,8 @@ func (i *FunctionCallbackInfo) Context() context.Context {
 }
 
 // Args returns a slice of the value arguments that are passed to the JS function.
-func (i *FunctionCallbackInfo) Args() []*Value {
-	return i.args
+func (i *FunctionCallbackInfo) Args() Values {
+	return Values(i.args)
 }
 
 // FunctionTemplate is used to create functions at runtime.

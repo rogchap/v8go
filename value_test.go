@@ -246,6 +246,72 @@ func TestValueInt32(t *testing.T) {
 	}
 }
 
+func TestNumericValues(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	tests := [...]struct {
+		source           interface{}
+		isInt32          bool
+		isUint32         bool
+		isNumber         bool
+		isBigInt         bool
+		isBigIntUnsigned bool
+	}{
+		{int64(math.MaxInt64), false, false, false, true, false},
+		{int64(math.MinInt64), false, false, false, true, false},
+
+		{int32(math.MaxInt32), true, false, true, false, false},
+		{int32(math.MinInt32), true, false, true, false, false},
+
+		{math.MaxInt64, false, false, false, true, false},
+		{math.MinInt64, false, false, false, true, false},
+
+		{math.MaxInt32, true, false, true, false, false},
+		{math.MinInt32, true, false, true, false, false},
+
+		{uint64(math.MaxUint64), false, false, false, true, true},
+		{uint64(0), false, false, false, true, true},
+
+		{uint32(math.MaxUint32), false, true, true, false, false},
+		{uint32(0), false, true, true, false, false},
+
+		{uint(math.MaxUint64), false, false, false, true, true},
+		{uint(math.MaxUint32), false, true, true, false, false},
+		{uint(0), false, true, true, false, false},
+
+		{float64(math.MaxFloat64), false, false, true, false, false},
+		{float64(math.MaxFloat32), false, false, true, false, false},
+		{float32(math.MaxFloat32), false, false, true, false, false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(fmt.Sprintf("%d", tt.source), func(t *testing.T) {
+			t.Parallel()
+			val, err := v8go.NewValue(iso, tt.source)
+			if err != nil {
+				t.Fatalf("error from new Value %s", err.Error())
+			}
+			// t.Logf("%s, %v, %v %v %v %v", val.DetailString(), tt, val.IsInt32(), val.IsUint32(), val.IsNumber(), val.IsBigInt())
+			if tt.isInt32 && !val.IsInt32() {
+				t.Fatalf("not an int32 bit")
+			}
+			if tt.isUint32 && !val.IsUint32() {
+				t.Fatalf("not an uint32 bit")
+			}
+			if tt.isNumber && !val.IsNumber() {
+				t.Fatalf("not an number")
+			}
+			if tt.isBigInt && !val.IsBigInt() {
+				t.Fatalf("not an bigint")
+			}
+			if tt.isBigIntUnsigned && (!val.IsBigInt() || !val.BigInt().IsUint64()) {
+				t.Fatalf("not an uint bigint")
+			}
+		})
+	}
+}
+
 func TestValueInteger(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewExecContext(nil)
