@@ -16,15 +16,18 @@ import (
 func TestObjectSet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewExecContext()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
 	obj, _ := val.AsObject()
-	obj.Set("bar", "baz")
+	bazv, _ := v8go.NewValue(iso, "baz")
+	obj.Set("bar", bazv)
 	baz, _ := ctx.RunScript("foo.bar", "")
 	if baz.String() != "baz" {
 		t.Errorf("unexpected value: %q", baz)
 	}
-	obj.SetIdx(10, "ten")
+	tenv, _ := v8go.NewValue(iso, "ten")
+	obj.SetIdx(10, tenv)
 	if ten, _ := ctx.RunScript("foo[10]", ""); ten.String() != "ten" {
 		t.Errorf("unexpected value: %q", ten)
 	}
@@ -33,7 +36,8 @@ func TestObjectSet(t *testing.T) {
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewExecContext()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
 	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
 	obj, _ := val.AsObject()
 	if bar, _ := obj.Get("bar"); bar.String() != "baz" {
@@ -125,11 +129,11 @@ func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) (v8go.Valuer,
 		iso.ThrowException("Function createObject expects 2 Int32 parameters")
 		return nil, nil
 	}
-	read := args[0].Int32()
-	written := args[1].Int32()
-	obj := v8go.NewObject(info.ExecContext()) // create object
-	obj.Set("read", read)                     // set some properties
-	obj.Set("written", written)
+	ctx, _ := v8go.NewExecContext(iso)
+
+	obj := v8go.NewObject(ctx) // create object
+	obj.Set("read", args[0])   // set some properties
+	obj.Set("written", args[1])
 	return obj.Value, nil
 }
 
@@ -204,10 +208,12 @@ func TestObjectCreate(t *testing.T) {
 
 func TestNewObject(t *testing.T) {
 	t.Parallel()
+	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewExecContext()
+	ok, _ := v8go.NewValue(iso, "ok")
 
 	obj := v8go.NewObject(ctx)
-	err := obj.Set("test", "ok")
+	err := obj.Set("test", ok)
 	if err != nil {
 		t.Errorf("Got error from setting object property: %v", err)
 	}
@@ -217,10 +223,11 @@ func TestNewObjectWithFunctionalTemplate(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
 	ctx, _ := v8go.NewExecContext(iso)
+	ok, _ := v8go.NewValue(iso, "ok")
 
 	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 		obj := v8go.NewObject(ctx)
-		err := obj.Set("test", "ok")
+		err := obj.Set("test", ok)
 		if err != nil {
 			t.Errorf("Got error from setting object property: %v", err)
 		}

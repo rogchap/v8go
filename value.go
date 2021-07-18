@@ -91,7 +91,7 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		}
 	case int:
 		// by default int is 64bit depending on where go is running.
-		// However for developer friendliness we if int is 32 bit
+		// However for developer friendliness, if int is 32 bit
 		// we use 32bit number. This is due to fact that BigInt behaves
 		// differently (for example cannot be serialized to json).
 		rtnVal = &Value{}

@@ -10,7 +10,8 @@ import (
 func TestNewArray(t *testing.T) {
 	ctx, _ := NewExecContext()
 	arr := NewArray(ctx, 2)
-	err := arr.SetIdx(0, true)
+	val, _ := NewValue(ctx.iso, true)
+	err := arr.SetIdx(0, val)
 	if err != nil {
 		t.Error(err.Error())
 	}

@@ -9,8 +9,6 @@ package v8go
 import "C"
 import (
 	"errors"
-	"fmt"
-	"math/big"
 	"unsafe"
 )
 
@@ -26,47 +24,26 @@ func NewObject(ctx *ExecContext) *Object {
 }
 
 // Set will set a property on the Object to a given value.
-// Supports all value types, eg: Object, Array, Date, Set, Map etc
-// If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
-// then a *Value will be created and set as the value property.
-func (o *Object) Set(key string, val interface{}) error {
+func (o *Object) Set(key string, val Valuer) error {
 	if len(key) == 0 {
 		return errors.New("v8go: You must provide a valid property key")
 	}
-	return set(o, key, 0, val)
+	value := val.value()
+	if value == nil {
+		return errors.New("empty valuer given")
+	}
+	ckey := C.CString(key)
+	defer C.free(unsafe.Pointer(ckey))
+	C.ObjectSet(o.ptr, ckey, value.ptr)
+	return nil
 }
 
 // Set will set a given index on the Object to a given value.
-// Supports all value types, eg: Object, Array, Date, Set, Map etc
-// If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
-// then a *Value will be created and set as the value property.
-func (o *Object) SetIdx(idx uint32, val interface{}) error {
-	return set(o, "", idx, val)
-}
-
-func set(o *Object, key string, idx uint32, val interface{}) error {
-	var value *Value
-	switch v := val.(type) {
-	case string, int, int32, uint32, int64, uint, uint64, float64, bool, *big.Int:
-		// ignoring error as code cannot reach the error state as we are already
-		// validating the new value types in this case statement
-		value, _ = NewValue(o.ctx.iso, v)
-	case Valuer:
-		value = v.value()
-		if value == nil {
-			return errors.New("empty valuer given")
-		}
-	default:
-		return fmt.Errorf("v8go: unsupported object property type `%T`", v)
+func (o *Object) SetIdx(idx uint32, val Valuer) error {
+	value := val.value()
+	if value == nil {
+		return errors.New("empty valuer given")
 	}
-
-	if len(key) > 0 {
-		ckey := C.CString(key)
-		defer C.free(unsafe.Pointer(ckey))
-		C.ObjectSet(o.ptr, ckey, value.ptr)
-		return nil
-	}
-
 	C.ObjectSetIdx(o.ptr, C.uint32_t(idx), value.ptr)
 	return nil
 }
