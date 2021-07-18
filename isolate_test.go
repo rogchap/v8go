@@ -5,11 +5,14 @@
 package v8go_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"runtime"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,7 +22,8 @@ import (
 func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	iso = iso.WithContext(context.Background())
+	ctx, _ := v8go.NewExecContext(iso)
 	//	ctx2, _ := v8go.NewContext(iso)
 
 	err := make(chan error, 1)
@@ -43,8 +47,8 @@ func TestIsolateTermination(t *testing.T) {
 func TestGetHeapStatistics(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	v8go.NewContext(iso)
-	v8go.NewContext(iso)
+	v8go.NewExecContext(iso)
+	v8go.NewExecContext(iso)
 
 	hs := iso.GetHeapStatistics()
 
@@ -61,7 +65,8 @@ func TestCallbackRegistry(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
-	cb := func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }
+	iso = iso.WithContext(context.Background())
+	cb := func(*v8go.FunctionCallbackInfo) (v8go.Valuer, error) { return nil, nil }
 
 	cb0 := iso.GetCallback(0)
 	if cb0 != nil {
@@ -88,8 +93,6 @@ func TestIsolateDispose(t *testing.T) {
 	iso.Dispose()
 	// noop when called multiple times
 	iso.Dispose()
-	// deprecated
-	iso.Close()
 
 	if iso.GetHeapStatistics().TotalHeapSize != 0 {
 		t.Error("Isolate not disposed correctly")
@@ -104,8 +107,10 @@ func TestIsolateGarbageCollection(t *testing.T) {
 	fmt.Println(val.String())
 
 	tmpl, _ := v8go.NewObjectTemplate(iso)
-	tmpl.Set("foo", "bar")
-	v8go.NewContext(iso, tmpl)
+	v, _ := v8go.NewValueTemplate(iso, "bar")
+
+	tmpl.Set("foo", v)
+	v8go.NewExecContext(iso, tmpl)
 
 	iso.Dispose()
 
@@ -118,7 +123,7 @@ func BenchmarkIsolateInitialization(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
 		vm, _ := v8go.NewIsolate()
-		vm.Close() // force disposal of the VM
+		vm.Dispose() // force disposal of the VM
 	}
 }
 
@@ -126,13 +131,13 @@ func BenchmarkIsolateInitAndRun(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
 		vm, _ := v8go.NewIsolate()
-		ctx, _ := v8go.NewContext(vm)
+		ctx, _ := v8go.NewExecContext(vm)
 		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)
 		ctx.RunScript(cmd, "cmd.js")
 		ctx.Close()
-		vm.Close() // force disposal of the VM
+		vm.Dispose() // force disposal of the VM
 	}
 }
 
@@ -153,5 +158,58 @@ func makeObject() interface{} {
 	return map[string]interface{}{
 		"a": rand.Intn(1000000),
 		"b": "AAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBB",
+	}
+}
+
+func TestDisposal(t *testing.T) {
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
+	m := make(chan struct{})
+	go func() {
+		m <- struct{}{}
+		ctx.RunScript("while(true) {}", "")
+	}()
+	<-m
+	err := iso.Dispose()
+	if err != v8go.ErrIsolateInUse {
+		t.Error("error should be IsolateInUse")
+	}
+	iso.TerminateExecutionWithLock()
+	err = iso.Dispose()
+	if err != nil {
+		t.Error("not possible to dispose")
+	}
+}
+
+func TestExecReturnValues(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	iso, _ := v8go.NewIsolateContext(ctx)
+
+	var wg1 sync.WaitGroup
+	wg1.Add(10)
+
+	var vv []string
+
+	for i := 0; i < 10; i++ {
+		go func(i int) {
+			defer wg1.Done()
+			err := iso.Exec(func(iso *v8go.Isolate) error {
+				v, _ := v8go.NewExecContext(iso)
+				vx, err := v.RunScript(fmt.Sprintf("%d", i), "")
+				vv = append(vv, vx.String())
+				return err
+			})
+			if err != nil {
+				t.Errorf("error from safe: %s", err.Error())
+			}
+		}(i)
+	}
+	// All go routines has been spawned
+	wg1.Wait()
+	sort.Strings(vv)
+	joined := strings.Join(vv, ",")
+	if joined != "0,1,2,3,4,5,6,7,8,9" {
+		t.Errorf("invalid result returned: %s expects %s", joined, "0,1,2,3,4,5,6,7,8,9")
 	}
 }

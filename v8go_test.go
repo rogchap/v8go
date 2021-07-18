@@ -22,7 +22,7 @@ func TestVersion(t *testing.T) {
 
 func TestSetFlag(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	if _, err := ctx.RunScript("a = 1", "default.js"); err != nil {
 		t.Errorf("expected <nil> error, but got: %v", err)
 	}

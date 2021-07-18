@@ -5,7 +5,9 @@
 package v8go_test
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"testing"
 
 	"rogchap.com/v8go"
@@ -14,21 +16,18 @@ import (
 func TestObjectSet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
 	obj, _ := val.AsObject()
-	obj.Set("bar", "baz")
+	bazv, _ := v8go.NewValue(iso, "baz")
+	obj.Set("bar", bazv)
 	baz, _ := ctx.RunScript("foo.bar", "")
 	if baz.String() != "baz" {
 		t.Errorf("unexpected value: %q", baz)
 	}
-	if err := obj.Set("", nil); err == nil {
-		t.Error("expected error but got <nil>")
-	}
-	if err := obj.Set("a", 0); err == nil {
-		t.Error("expected error but got <nil>")
-	}
-	obj.SetIdx(10, "ten")
+	tenv, _ := v8go.NewValue(iso, "ten")
+	obj.SetIdx(10, tenv)
 	if ten, _ := ctx.RunScript("foo[10]", ""); ten.String() != "ten" {
 		t.Errorf("unexpected value: %q", ten)
 	}
@@ -37,7 +36,8 @@ func TestObjectSet(t *testing.T) {
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
 	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
 	obj, _ := val.AsObject()
 	if bar, _ := obj.Get("bar"); bar.String() != "baz" {
@@ -58,7 +58,7 @@ func TestObjectGet(t *testing.T) {
 func TestObjectHas(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("a") {
@@ -78,7 +78,7 @@ func TestObjectHas(t *testing.T) {
 func TestObjectDelete(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx, _ := v8go.NewExecContext()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("bar") {
@@ -98,19 +98,151 @@ func TestObjectDelete(t *testing.T) {
 
 func ExampleObject_global() {
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
-	global := ctx.Global()
+	ctx, _ := v8go.NewExecContext(iso)
+	global, _ := ctx.Global()
 
 	console, _ := v8go.NewObjectTemplate(iso)
-	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 		fmt.Println(info.Args()[0])
-		return nil
+		return nil, nil
 	})
 	console.Set("log", logfn)
-	consoleObj, _ := console.NewInstance(ctx)
+	consoleObj, _ := console.GetObject(ctx)
 
 	global.Set("console", consoleObj)
 	ctx.RunScript("console.log('foo')", "")
 	// Output:
 	// foo
+}
+
+func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
+	iso, err := info.ExecContext().Isolate()
+	if err != nil {
+		log.Fatalf("Could not get isolate from context: %v\n", err)
+	}
+	args := info.Args()
+	if len(args) != 2 {
+		iso.ThrowException("Function createObject expects 2 parameters")
+		return nil, nil
+	}
+	if !args[0].IsInt32() || !args[1].IsInt32() {
+		iso.ThrowException("Function createObject expects 2 Int32 parameters")
+		return nil, nil
+	}
+	ctx, _ := v8go.NewExecContext(iso)
+
+	obj := v8go.NewObject(ctx) // create object
+	obj.Set("read", args[0])   // set some properties
+	obj.Set("written", args[1])
+	return obj.Value, nil
+}
+
+func injectObjectTester(ctx *v8go.ExecContext, funcName string, funcCb v8go.FunctionCallback) error {
+	if ctx == nil {
+		return errors.New("ctx is required")
+	}
+
+	iso, err := ctx.Isolate()
+	if err != nil {
+		return fmt.Errorf("ctx.Isolate: %v", err)
+	}
+
+	con, err := v8go.NewObjectTemplate(iso)
+	if err != nil {
+		return fmt.Errorf("NewObjectTemplate: %v", err)
+	}
+
+	funcTempl, err := v8go.NewFunctionTemplate(iso, funcCb)
+	if err != nil {
+		return fmt.Errorf("NewFunctionTemplate: %v", err)
+	}
+
+	if err := con.Set(funcName, funcTempl, v8go.ReadOnly); err != nil {
+		return fmt.Errorf("ObjectTemplate.Set: %v", err)
+	}
+
+	nativeObj, err := con.GetObject(ctx)
+	if err != nil {
+		return fmt.Errorf("ObjectTemplate.NewInstance: %v", err)
+	}
+
+	global, _ := ctx.Global()
+
+	if err := global.Set("native", nativeObj); err != nil {
+		return fmt.Errorf("global.Set: %v", err)
+	}
+
+	return nil
+}
+
+// Test that golang can create an object with "read", "written" int32 properties and pass that back to JS.
+func TestObjectCreate(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
+
+	if err := injectObjectTester(ctx, "createObject", createObjectFunctionCallback); err != nil {
+		t.Error(err)
+	}
+
+	js := `
+		obj = native.createObject(123, 456);
+		obj.read + obj.written;
+	`
+
+	val, err := ctx.RunScript(js, "")
+	if err != nil {
+		t.Errorf("Got error from script: %v", err)
+	}
+	if val == nil {
+		t.Errorf("Got nil value from script")
+	}
+	if !val.IsInt32() {
+		t.Errorf("Expected int32 value from script")
+	}
+	fmt.Printf("Script return value: %d\n", val.Int32())
+	if val.Int32() != 123+456 {
+		t.Errorf("Got wrong return value from script: %d", val.Int32())
+	}
+}
+
+func TestNewObject(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext()
+	ok, _ := v8go.NewValue(iso, "ok")
+
+	obj := v8go.NewObject(ctx)
+	err := obj.Set("test", ok)
+	if err != nil {
+		t.Errorf("Got error from setting object property: %v", err)
+	}
+}
+
+func TestNewObjectWithFunctionalTemplate(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
+	ok, _ := v8go.NewValue(iso, "ok")
+
+	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
+		obj := v8go.NewObject(ctx)
+		err := obj.Set("test", ok)
+		if err != nil {
+			t.Errorf("Got error from setting object property: %v", err)
+		}
+
+		return obj.Value, nil
+	})
+
+	res, err := fn.GetFunction(ctx).Call()
+	if err != nil {
+		t.Errorf("Got error from calling function: %v", err)
+	}
+
+	obj, _ := res.AsObject()
+	test, _ := obj.Get("test")
+	if test.String() != "ok" {
+		t.Errorf("functional template: new object: test needs to pass %q but returned %q", "ok", test.String())
+	}
 }

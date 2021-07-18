@@ -11,14 +11,22 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"unsafe"
+)
+
+type specialT int
+
+const (
+	Undefined specialT = iota
+	Null
 )
 
 // Value represents all Javascript values and objects
 type Value struct {
 	ptr C.ValuePtr
-	ctx *Context
+	ctx *ExecContext
 }
 
 // Valuer is an interface that reperesents anything that extends from a Value
@@ -31,15 +39,7 @@ func (v *Value) value() *Value {
 	return v
 }
 
-// NewValue will create a primitive value. Supported values types to create are:
-//   string -> V8::String
-//   int32 -> V8::Integer
-//   uint32 -> V8::Integer
-//   bool -> V8::Boolean
-//   int64 -> V8::BigInt
-//   uint64 -> V8::BigInt
-//   bool -> V8::Boolean
-//   *big.Int -> V8::BigInt
+// NewValue will create a primitive value.
 func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	if iso == nil {
 		return nil, errors.New("v8go: failed to create new Value: Isolate cannot be <nil>")
@@ -48,27 +48,63 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	var rtnVal *Value
 
 	switch v := val.(type) {
+	case Valuer:
+		rtnVal = v.value()
+		if rtnVal == nil {
+			return nil, errors.New("empty valuer given")
+		}
+	case nil:
+		rtnVal = &Value{
+			ptr: C.NewValueNull(iso.ptr),
+		}
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
 		rtnVal = &Value{
 			ptr: C.NewValueString(iso.ptr, cstr),
 		}
+	case int64:
+		rtnVal = &Value{
+			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v)),
+		}
 	case int32:
 		rtnVal = &Value{
 			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
+		}
+	case uint64:
+		rtnVal = &Value{
+			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v)),
 		}
 	case uint32:
 		rtnVal = &Value{
 			ptr: C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v)),
 		}
-	case int64:
-		rtnVal = &Value{
-			ptr: C.NewValueBigInt(iso.ptr, C.int64_t(v)),
+	case uint:
+		// see int case comment
+		rtnVal = &Value{}
+
+		switch {
+		case v <= math.MaxUint32:
+			rtnVal.ptr = C.NewValueIntegerFromUnsigned(iso.ptr, C.uint(v))
+		default:
+			rtnVal.ptr = C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v))
 		}
-	case uint64:
-		rtnVal = &Value{
-			ptr: C.NewValueBigIntFromUnsigned(iso.ptr, C.uint64_t(v)),
+	case int:
+		// by default int is 64bit depending on where go is running.
+		// However for developer friendliness, if int is 32 bit
+		// we use 32bit number. This is due to fact that BigInt behaves
+		// differently (for example cannot be serialized to json).
+		rtnVal = &Value{}
+
+		switch {
+		case v >= 0 && v <= math.MaxInt32:
+			rtnVal.ptr = C.NewValueInteger(iso.ptr, C.int(v))
+		case v >= 0: // int64 case
+			rtnVal.ptr = C.NewValueBigInt(iso.ptr, C.int64_t(int64(v)))
+		case v < 0 && v >= math.MinInt32:
+			rtnVal.ptr = C.NewValueInteger(iso.ptr, C.int(v))
+		default: // int64 case
+			rtnVal.ptr = C.NewValueBigInt(iso.ptr, C.int64_t(int64(v)))
 		}
 	case bool:
 		var b int
@@ -79,6 +115,10 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			ptr: C.NewValueBoolean(iso.ptr, C.int(b)),
 		}
 	case float64:
+		rtnVal = &Value{
+			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
+		}
+	case float32:
 		rtnVal = &Value{
 			ptr: C.NewValueNumber(iso.ptr, C.double(v)),
 		}
@@ -111,6 +151,19 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 
 		rtnVal = &Value{
 			ptr: C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0]),
+		}
+	case specialT:
+		switch v {
+		case Undefined:
+			rtnVal = &Value{
+				ptr: C.NewValueUndefined(iso.ptr),
+			}
+		case Null:
+			rtnVal = &Value{
+				ptr: C.NewValueNull(iso.ptr),
+			}
+		default:
+			return nil, fmt.Errorf("no case for type %v", v)
 		}
 	default:
 		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
@@ -171,6 +224,23 @@ func (v *Value) BigInt() *big.Int {
 	return b
 }
 
+func (v *Value) Uint8Array() []uint8 {
+	bytes := unsafe.Pointer(C.ValueToUint8Array(v.ptr)) // allocates copy on the heap
+	defer C.free(bytes)
+	return C.GoBytes(bytes, C.int(C.ValueToArrayLength(v.ptr)))
+}
+
+func (v *Value) Bytes() []byte {
+	return v.Uint8Array()
+}
+
+// Get the value as an ArrayBuffer.
+func (v *Value) ArrayBuffer() *ArrayBuffer {
+	buf := &ArrayBuffer{v, 0}
+	buf.written = int(buf.Len())
+	return buf
+}
+
 // Boolean perform the equivalent of `Boolean(value)` in JS. This can never fail.
 func (v *Value) Boolean() bool {
 	return C.ValueToBoolean(v.ptr) != 0
@@ -229,9 +299,19 @@ func (v *Value) IsUndefined() bool {
 	return C.ValueIsUndefined(v.ptr) != 0
 }
 
+// IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
+func IsUndefined(v *Value) bool {
+	return v.IsUndefined()
+}
+
 // IsNull returns true if this value is the null value. See ECMA-262 4.3.11.
 func (v *Value) IsNull() bool {
 	return C.ValueIsNull(v.ptr) != 0
+}
+
+// IsNull returns true if this value is the null value. See ECMA-262 4.3.11.
+func IsNull(v *Value) bool {
+	return v.IsNull()
 }
 
 // IsNullOrUndefined returns true if this value is either the null or the undefined value.
@@ -241,11 +321,25 @@ func (v *Value) IsNullOrUndefined() bool {
 	return C.ValueIsNullOrUndefined(v.ptr) != 0
 }
 
+// IsNullOrUndefined returns true if this value is either the null or the undefined value.
+// See ECMA-262 4.3.11. and 4.3.12
+// This is equivalent to `value == null` in JS.
+func IsNullOrUndefined(v *Value) bool {
+	return v.IsNullOrUndefined()
+}
+
 // IsTrue returns true if this value is true.
 // This is not the same as `BooleanValue()`. The latter performs a conversion to boolean,
 // i.e. the result of `Boolean(value)` in JS, whereas this checks `value === true`.
 func (v *Value) IsTrue() bool {
 	return C.ValueIsTrue(v.ptr) != 0
+}
+
+// IsTrue returns true if this value is true.
+// This is not the same as `BooleanValue()`. The latter performs a conversion to boolean,
+// i.e. the result of `Boolean(value)` in JS, whereas this checks `value === true`.
+func IsTrue(v *Value) bool {
+	return v.IsTrue()
 }
 
 // IsFalse returns true if this value is false.
@@ -255,10 +349,23 @@ func (v *Value) IsFalse() bool {
 	return C.ValueIsFalse(v.ptr) != 0
 }
 
+// IsFalse returns true if this value is false.
+// This is not the same as `!BooleanValue()`. The latter performs a conversion to boolean,
+// i.e. the result of `!Boolean(value)` in JS, whereas this checks `value === false`.
+func IsFalse(v *Value) bool {
+	return v.IsFalse()
+}
+
 // IsName returns true if this value is a symbol or a string.
 // This is equivalent to `typeof value === 'string' || typeof value === 'symbol'` in JS.
 func (v *Value) IsName() bool {
 	return C.ValueIsName(v.ptr) != 0
+}
+
+// IsName returns true if this value is a symbol or a string.
+// This is equivalent to `typeof value === 'string' || typeof value === 'symbol'` in JS.
+func IsName(v *Value) bool {
+	return v.IsName()
 }
 
 // IsString returns true if this value is an instance of the String type. See ECMA-262 8.4.
@@ -267,10 +374,22 @@ func (v *Value) IsString() bool {
 	return C.ValueIsString(v.ptr) != 0
 }
 
+// IsString returns true if this value is an instance of the String type. See ECMA-262 8.4.
+// This is equivalent to `typeof value === 'string'` in JS.
+func IsString(v *Value) bool {
+	return v.IsString()
+}
+
 // IsSymbol returns true if this value is a symbol.
 // This is equivalent to `typeof value === 'symbol'` in JS.
 func (v *Value) IsSymbol() bool {
 	return C.ValueIsSymbol(v.ptr) != 0
+}
+
+// IsSymbol returns true if this value is a symbol.
+// This is equivalent to `typeof value === 'symbol'` in JS.
+func IsSymbol(v *Value) bool {
+	return v.IsSymbol()
 }
 
 // IsFunction returns true if this value is a function.
@@ -279,9 +398,20 @@ func (v *Value) IsFunction() bool {
 	return C.ValueIsFunction(v.ptr) != 0
 }
 
+// IsFunction returns true if this value is a function.
+// This is equivalent to `typeof value === 'function'` in JS.
+func IsFunction(v *Value) bool {
+	return v.IsFunction()
+}
+
 // IsObject returns true if this value is an object.
 func (v *Value) IsObject() bool {
 	return v.ctx != nil && C.ValueIsObject(v.ptr) != 0
+}
+
+// IsObject returns true if this value is an object.
+func IsObject(v *Value) bool {
+	return v.IsObject()
 }
 
 // IsBigInt returns true if this value is a bigint.
@@ -290,10 +420,22 @@ func (v *Value) IsBigInt() bool {
 	return C.ValueIsBigInt(v.ptr) != 0
 }
 
+// IsBigInt returns true if this value is a bigint.
+// This is equivalent to `typeof value === 'bigint'` in JS.
+func IsBigInt(v *Value) bool {
+	return v.IsBigInt()
+}
+
 // IsBoolean returns true if this value is boolean.
 // This is equivalent to `typeof value === 'boolean'` in JS.
 func (v *Value) IsBoolean() bool {
 	return C.ValueIsBoolean(v.ptr) != 0
+}
+
+// IsBoolean returns true if this value is boolean.
+// This is equivalent to `typeof value === 'boolean'` in JS.
+func IsBoolean(v *Value) bool {
+	return v.IsBoolean()
 }
 
 // IsNumber returns true if this value is a number.
@@ -302,10 +444,21 @@ func (v *Value) IsNumber() bool {
 	return C.ValueIsNumber(v.ptr) != 0
 }
 
+// IsNumber returns true if this value is a number.
+// This is equivalent to `typeof value === 'number'` in JS.
+func IsNumber(v *Value) bool {
+	return v.IsNumber()
+}
+
 // IsExternal returns true if this value is an `External` object.
 func (v *Value) IsExternal() bool {
 	// TODO(rogchap): requires test case
 	return v.ctx != nil && C.ValueIsExternal(v.ptr) != 0
+}
+
+// IsExternal returns true if this value is an `External` object.
+func IsExternal(v *Value) bool {
+	return v.IsExternal()
 }
 
 // IsInt32 returns true if this value is a 32-bit signed integer.
@@ -313,9 +466,19 @@ func (v *Value) IsInt32() bool {
 	return C.ValueIsInt32(v.ptr) != 0
 }
 
+// IsInt32 returns true if this value is a 32-bit signed integer.
+func IsInt32(v *Value) bool {
+	return v.IsInt32()
+}
+
 // IsUint32 returns true if this value is a 32-bit unsigned integer.
 func (v *Value) IsUint32() bool {
 	return C.ValueIsUint32(v.ptr) != 0
+}
+
+// IsUint32 returns true if this value is a 32-bit unsigned integer.
+func IsUint32(v *Value) bool {
+	return v.IsUint32()
 }
 
 // IsDate returns true if this value is a `Date`.
@@ -323,9 +486,19 @@ func (v *Value) IsDate() bool {
 	return C.ValueIsDate(v.ptr) != 0
 }
 
+// IsDate returns true if this value is a `Date`.
+func IsDate(v *Value) bool {
+	return v.IsDate()
+}
+
 // IsArgumentsObject returns true if this value is an Arguments object.
 func (v *Value) IsArgumentsObject() bool {
 	return C.ValueIsArgumentsObject(v.ptr) != 0
+}
+
+// IsArgumentsObject returns true if this value is an Arguments object.
+func IsArgumentsObject(v *Value) bool {
+	return v.IsArgumentsObject()
 }
 
 // IsBigIntObject returns true if this value is a BigInt object.
@@ -333,9 +506,19 @@ func (v *Value) IsBigIntObject() bool {
 	return C.ValueIsBigIntObject(v.ptr) != 0
 }
 
+// IsBigIntObject returns true if this value is a BigInt object.
+func IsBigIntObject(v *Value) bool {
+	return v.IsBigIntObject()
+}
+
 // IsNumberObject returns true if this value is a `Number` object.
 func (v *Value) IsNumberObject() bool {
 	return C.ValueIsNumberObject(v.ptr) != 0
+}
+
+// IsNumberObject returns true if this value is a `Number` object.
+func IsNumberObject(v *Value) bool {
+	return v.IsNumberObject()
 }
 
 // IsStringObject returns true if this value is a `String` object.
@@ -343,9 +526,19 @@ func (v *Value) IsStringObject() bool {
 	return C.ValueIsStringObject(v.ptr) != 0
 }
 
+// IsStringObject returns true if this value is a `String` object.
+func IsStringObject(v *Value) bool {
+	return v.IsStringObject()
+}
+
 // IsSymbolObject returns true if this value is a `Symbol` object.
 func (v *Value) IsSymbolObject() bool {
 	return C.ValueIsSymbolObject(v.ptr) != 0
+}
+
+// IsSymbolObject returns true if this value is a `Symbol` object.
+func IsSymbolObject(v *Value) bool {
+	return v.IsSymbolObject()
 }
 
 // IsNativeError returns true if this value is a NativeError.
@@ -353,19 +546,39 @@ func (v *Value) IsNativeError() bool {
 	return C.ValueIsNativeError(v.ptr) != 0
 }
 
+// IsNativeError returns true if this value is a NativeError.
+func IsNativeError(v *Value) bool {
+	return v.IsNativeError()
+}
+
 // IsRegExp returns true if this value is a `RegExp`.
 func (v *Value) IsRegExp() bool {
 	return C.ValueIsRegExp(v.ptr) != 0
 }
 
-// IsAsyncFunc returns true if this value is an async function.
+// IsRegExp returns true if this value is a `RegExp`.
+func IsRegExp(v *Value) bool {
+	return v.IsRegExp()
+}
+
+// IsAsyncFunction returns true if this value is an async function.
 func (v *Value) IsAsyncFunction() bool {
 	return C.ValueIsAsyncFunction(v.ptr) != 0
 }
 
-// Is IsGeneratorFunc returns true if this value is a Generator function.
+// IsAsyncFunction returns true if this value is an async function.
+func IsAsyncFunction(v *Value) bool {
+	return v.IsAsyncFunction()
+}
+
+// IsGeneratorFunction returns true if this value is a Generator function.
 func (v *Value) IsGeneratorFunction() bool {
 	return C.ValueIsGeneratorFunction(v.ptr) != 0
+}
+
+// IsGeneratorFunction returns true if this value is a Generator function.
+func IsGeneratorFunc(v *Value) bool {
+	return v.IsGeneratorFunction()
 }
 
 // IsGeneratorObject returns true if this value is a Generator object (iterator).
@@ -373,9 +586,19 @@ func (v *Value) IsGeneratorObject() bool {
 	return C.ValueIsGeneratorObject(v.ptr) != 0
 }
 
+// IsGeneratorObject returns true if this value is a Generator object (iterator).
+func IsGeneratorObject(v *Value) bool {
+	return v.IsGeneratorObject()
+}
+
 // IsPromise returns true if this value is a `Promise`.
 func (v *Value) IsPromise() bool {
 	return C.ValueIsPromise(v.ptr) != 0
+}
+
+// IsPromise returns true if this value is a `Promise`.
+func IsPromise(v *Value) bool {
+	return v.IsPromise()
 }
 
 // IsMap returns true if this value is a `Map`.
@@ -383,9 +606,19 @@ func (v *Value) IsMap() bool {
 	return C.ValueIsMap(v.ptr) != 0
 }
 
+// IsMap returns true if this value is a `Map`.
+func IsMap(v *Value) bool {
+	return v.IsMap()
+}
+
 // IsSet returns true if this value is a `Set`.
 func (v *Value) IsSet() bool {
 	return C.ValueIsSet(v.ptr) != 0
+}
+
+// IsSet returns true if this value is a `Set`.
+func IsSet(v *Value) bool {
+	return v.IsSet()
 }
 
 // IsMapIterator returns true if this value is a `Map` Iterator.
@@ -393,9 +626,19 @@ func (v *Value) IsMapIterator() bool {
 	return C.ValueIsMapIterator(v.ptr) != 0
 }
 
+// IsMapIterator returns true if this value is a `Map` Iterator.
+func IsMapIterator(v *Value) bool {
+	return v.IsMapIterator()
+}
+
 // IsSetIterator returns true if this value is a `Set` Iterator.
 func (v *Value) IsSetIterator() bool {
 	return C.ValueIsSetIterator(v.ptr) != 0
+}
+
+// IsSetIterator returns true if this value is a `Set` Iterator.
+func IsSetIterator(v *Value) bool {
+	return v.IsSetIterator()
 }
 
 // IsWeakMap returns true if this value is a `WeakMap`.
@@ -403,9 +646,19 @@ func (v *Value) IsWeakMap() bool {
 	return C.ValueIsWeakMap(v.ptr) != 0
 }
 
+// IsWeakMap returns true if this value is a `WeakMap`.
+func IsWeakMap(v *Value) bool {
+	return v.IsWeakMap()
+}
+
 // IsWeakSet returns true if this value is a `WeakSet`.
 func (v *Value) IsWeakSet() bool {
 	return C.ValueIsWeakSet(v.ptr) != 0
+}
+
+// IsWeakSet returns true if this value is a `WeakSet`.
+func IsWeakSet(v *Value) bool {
+	return v.IsWeakSet()
 }
 
 // IsArray returns true if this value is an array.
@@ -414,9 +667,20 @@ func (v *Value) IsArray() bool {
 	return C.ValueIsArray(v.ptr) != 0
 }
 
+// IsArray returns true if this value is an array.
+// Note that it will return false for a `Proxy` of an array.
+func IsArray(v *Value) bool {
+	return v.IsArray()
+}
+
 // IsArrayBuffer returns true if this value is an `ArrayBuffer`.
 func (v *Value) IsArrayBuffer() bool {
 	return C.ValueIsArrayBuffer(v.ptr) != 0
+}
+
+// IsArrayBuffer returns true if this value is an `ArrayBuffer`.
+func IsArrayBuffer(v *Value) bool {
+	return v.IsArrayBuffer()
 }
 
 // IsArrayBufferView returns true if this value is an `ArrayBufferView`.
@@ -424,9 +688,19 @@ func (v *Value) IsArrayBufferView() bool {
 	return C.ValueIsArrayBufferView(v.ptr) != 0
 }
 
+// IsArrayBufferView returns true if this value is an `ArrayBufferView`.
+func IsArrayBufferView(v *Value) bool {
+	return v.IsArrayBufferView()
+}
+
 // IsTypedArray returns true if this value is one of TypedArrays.
 func (v *Value) IsTypedArray() bool {
 	return C.ValueIsTypedArray(v.ptr) != 0
+}
+
+// IsTypedArray returns true if this value is one of TypedArrays.
+func IsTypedArray(v *Value) bool {
+	return v.IsTypedArray()
 }
 
 // IsUint8Array returns true if this value is an `Uint8Array`.
@@ -434,9 +708,29 @@ func (v *Value) IsUint8Array() bool {
 	return C.ValueIsUint8Array(v.ptr) != 0
 }
 
+// IsUint8Array returns true if this value is an `Uint8Array`.
+func IsUint8Array(v *Value) bool {
+	return v.IsUint8Array()
+}
+
+// IsBytes returns true if this value is an `Uint8Array`.
+func (v *Value) IsBytes() bool {
+	return v.IsUint8Array()
+}
+
+// IsBytes returns true if this value is an `Uint8Array`.
+func IsBytes(v *Value) bool {
+	return v.IsBytes()
+}
+
 // IsUint8ClampedArray returns true if this value is an `Uint8ClampedArray`.
 func (v *Value) IsUint8ClampedArray() bool {
 	return C.ValueIsUint8ClampedArray(v.ptr) != 0
+}
+
+// IsUint8ClampedArray returns true if this value is an `Uint8ClampedArray`.
+func IsUint8ClampedArray(v *Value) bool {
+	return v.IsUint8ClampedArray()
 }
 
 // IsInt8Array returns true if this value is an `Int8Array`.
@@ -444,9 +738,19 @@ func (v *Value) IsInt8Array() bool {
 	return C.ValueIsInt8Array(v.ptr) != 0
 }
 
+// IsInt8Array returns true if this value is an `Int8Array`.
+func IsInt8Array(v *Value) bool {
+	return v.IsInt8Array()
+}
+
 // IsUint16Array returns true if this value is an `Uint16Array`.
 func (v *Value) IsUint16Array() bool {
 	return C.ValueIsUint16Array(v.ptr) != 0
+}
+
+// IsUint16Array returns true if this value is an `Uint16Array`.
+func IsUint16Array(v *Value) bool {
+	return v.IsUint16Array()
 }
 
 // IsInt16Array returns true if this value is an `Int16Array`.
@@ -454,9 +758,19 @@ func (v *Value) IsInt16Array() bool {
 	return C.ValueIsInt16Array(v.ptr) != 0
 }
 
+// IsInt16Array returns true if this value is an `Int16Array`.
+func IsInt16Array(v *Value) bool {
+	return v.IsInt16Array()
+}
+
 // IsUint32Array returns true if this value is an `Uint32Array`.
 func (v *Value) IsUint32Array() bool {
 	return C.ValueIsUint32Array(v.ptr) != 0
+}
+
+// IsUint32Array returns true if this value is an `Uint32Array`.
+func IsUint32Array(v *Value) bool {
+	return v.IsUint32Array()
 }
 
 // IsInt32Array returns true if this value is an `Int32Array`.
@@ -464,9 +778,19 @@ func (v *Value) IsInt32Array() bool {
 	return C.ValueIsInt32Array(v.ptr) != 0
 }
 
+// IsInt32Array returns true if this value is an `Int32Array`.
+func IsInt32Array(v *Value) bool {
+	return v.IsInt32Array()
+}
+
 // IsFloat32Array returns true if this value is a `Float32Array`.
 func (v *Value) IsFloat32Array() bool {
 	return C.ValueIsFloat32Array(v.ptr) != 0
+}
+
+// IsFloat32Array returns true if this value is a `Float32Array`.
+func IsFloat32Array(v *Value) bool {
+	return v.IsFloat32Array()
 }
 
 // IsFloat64Array returns true if this value is a `Float64Array`.
@@ -474,9 +798,19 @@ func (v *Value) IsFloat64Array() bool {
 	return C.ValueIsFloat64Array(v.ptr) != 0
 }
 
+// IsFloat64Array returns true if this value is a `Float64Array`.
+func IsFloat64Array(v *Value) bool {
+	return v.IsFloat64Array()
+}
+
 // IsBigInt64Array returns true if this value is a `BigInt64Array`.
 func (v *Value) IsBigInt64Array() bool {
 	return C.ValueIsBigInt64Array(v.ptr) != 0
+}
+
+// IsBigInt64Array returns true if this value is a `BigInt64Array`.
+func IsBigInt64Array(v *Value) bool {
+	return v.IsBigInt64Array()
 }
 
 // IsBigUint64Array returns true if this value is a BigUint64Array`.
@@ -484,9 +818,19 @@ func (v *Value) IsBigUint64Array() bool {
 	return C.ValueIsBigUint64Array(v.ptr) != 0
 }
 
+// IsBigUint64Array returns true if this value is a BigUint64Array`.
+func IsBigUint64Array(v *Value) bool {
+	return v.IsBigUint64Array()
+}
+
 // IsDataView returns true if this value is a `DataView`.
 func (v *Value) IsDataView() bool {
 	return C.ValueIsDataView(v.ptr) != 0
+}
+
+// IsDataView returns true if this value is a `DataView`.
+func IsDataView(v *Value) bool {
+	return v.IsDataView()
 }
 
 // IsSharedArrayBuffer returns true if this value is a `SharedArrayBuffer`.
@@ -494,9 +838,19 @@ func (v *Value) IsSharedArrayBuffer() bool {
 	return C.ValueIsSharedArrayBuffer(v.ptr) != 0
 }
 
+// IsSharedArrayBuffer returns true if this value is a `SharedArrayBuffer`.
+func IsSharedArrayBuffer(v *Value) bool {
+	return v.IsSharedArrayBuffer()
+}
+
 // IsProxy returns true if this value is a JavaScript `Proxy`.
 func (v *Value) IsProxy() bool {
 	return C.ValueIsProxy(v.ptr) != 0
+}
+
+// IsProxy returns true if this value is a JavaScript `Proxy`.
+func IsProxy(v *Value) bool {
+	return v.IsProxy()
 }
 
 // IsWasmModuleObject returns true if this value is a `WasmModuleObject`.
@@ -505,10 +859,20 @@ func (v *Value) IsWasmModuleObject() bool {
 	return C.ValueIsWasmModuleObject(v.ptr) != 0
 }
 
+// IsWasmModuleObject returns true if this value is a `WasmModuleObject`.
+func IsWasmModuleObject(v *Value) bool {
+	return v.IsWasmModuleObject()
+}
+
 // IsModuleNamespaceObject returns true if the value is a `Module` Namespace `Object`.
 func (v *Value) IsModuleNamespaceObject() bool {
 	// TODO(rogchap): requires test case
 	return C.ValueIsModuleNamespaceObject(v.ptr) != 0
+}
+
+// IsModuleNamespaceObject returns true if the value is a `Module` Namespace `Object`.
+func IsModuleNamespaceObject(v *Value) bool {
+	return v.IsModuleNamespaceObject()
 }
 
 // AsObject will cast the value to the Object type. If the value is not an Object

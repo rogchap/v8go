@@ -47,7 +47,7 @@ func TestErrorFormatting(t *testing.T) {
 
 func TestJSErrorOutput(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx, _ := v8go.NewExecContext(nil)
 
 	math := `
 	function add(a, b) {

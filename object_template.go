@@ -49,8 +49,8 @@ func NewObjectTemplate(iso *Isolate) (*ObjectTemplate, error) {
 	return &ObjectTemplate{tmpl}, nil
 }
 
-// NewInstance creates a new Object based on the template.
-func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
+// GetObject creates a new Object based on the template.
+func (o *ObjectTemplate) GetObject(ctx *ExecContext) (*Object, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context cannot be <nil>")
 	}
@@ -59,6 +59,11 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 	return &Object{&Value{valPtr, ctx}}, nil
 }
 
-func (o *ObjectTemplate) apply(opts *contextOptions) {
+// ToValue creates a new Object based on the template.
+func (o *ObjectTemplate) ToValue(ctx *ExecContext) (Valuer, error) {
+	return o.GetObject(ctx)
+}
+
+func (o *ObjectTemplate) apply(opts *execContextOptions) {
 	opts.gTmpl = o
 }

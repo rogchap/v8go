@@ -13,11 +13,12 @@ import (
 func TestFunctionCall(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }", "")
 	failIf(t, err)
-	addValue, err := ctx.Global().Get("add")
+	g, _ := ctx.Global()
+	addValue, err := g.Get("add")
 	failIf(t, err)
 	iso, _ := ctx.Isolate()
 
@@ -40,14 +41,14 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	global, _ := v8go.NewObjectTemplate(iso)
 
 	called := false
-	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 		called = true
-		return nil
+		return nil, nil
 	})
 
 	global.Set("print", printfn, v8go.ReadOnly)
 
-	ctx, err := v8go.NewContext(iso, global)
+	ctx, err := v8go.NewExecContext(iso, global)
 	failIf(t, err)
 	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
 	failIf(t, err)
@@ -67,11 +68,12 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 func TestFunctionCallError(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
-	addValue, err := ctx.Global().Get("throws")
+	g, _ := ctx.Global()
+	addValue, err := g.Get("throws")
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
@@ -89,12 +91,13 @@ func TestFunctionCallError(t *testing.T) {
 func TestFunctionNewInstance(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	iso, err := ctx.Isolate()
 	failIf(t, err)
 
-	value, err := ctx.Global().Get("Error")
+	g, _ := ctx.Global()
+	value, err := g.Get("Error")
 	failIf(t, err)
 	fn, err := value.AsFunction()
 	failIf(t, err)
@@ -118,11 +121,12 @@ func TestFunctionNewInstance(t *testing.T) {
 func TestFunctionNewInstanceError(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
+	ctx, err := v8go.NewExecContext()
 	failIf(t, err)
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
-	throwsValue, err := ctx.Global().Get("throws")
+	g, _ := ctx.Global()
+	throwsValue, err := g.Get("throws")
 	failIf(t, err)
 	fn, _ := throwsValue.AsFunction()
 

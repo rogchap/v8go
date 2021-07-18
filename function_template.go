@@ -8,28 +8,34 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"context"
 	"errors"
 	"runtime"
 	"unsafe"
 )
 
 // FunctionCallback is a callback that is executed in Go when a function is executed in JS.
-type FunctionCallback func(info *FunctionCallbackInfo) *Value
+type FunctionCallback func(info *FunctionCallbackInfo) (Valuer, error)
 
 // FunctionCallbackInfo is the argument that is passed to a FunctionCallback.
 type FunctionCallbackInfo struct {
-	ctx  *Context
+	ctx  *ExecContext
 	args []*Value
 }
 
 // Context is the current context that the callback is being executed in.
-func (i *FunctionCallbackInfo) Context() *Context {
+func (i *FunctionCallbackInfo) ExecContext() *ExecContext {
 	return i.ctx
 }
 
+// Context will return context.
+func (i *FunctionCallbackInfo) Context() context.Context {
+	return i.ctx.Context()
+}
+
 // Args returns a slice of the value arguments that are passed to the JS function.
-func (i *FunctionCallbackInfo) Args() []*Value {
-	return i.args
+func (i *FunctionCallbackInfo) Args() Values {
+	return Values(i.args)
 }
 
 // FunctionTemplate is used to create functions at runtime.
@@ -59,9 +65,14 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) (*FunctionTemp
 }
 
 // GetFunction returns an instance of this function template bound to the given context.
-func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
+func (tmpl *FunctionTemplate) GetFunction(ctx *ExecContext) *Function {
 	val_ptr := C.FunctionTemplateGetFunction(tmpl.ptr, ctx.ptr)
 	return &Function{&Value{val_ptr, ctx}}
+}
+
+// ToValue creates a new Function based on the template.
+func (tmpl *FunctionTemplate) ToValue(ctx *ExecContext) (Valuer, error) {
+	return tmpl.GetFunction(ctx), nil
 }
 
 //export goFunctionCallback
@@ -80,8 +91,17 @@ func goFunctionCallback(ctxref int, cbref int, args *C.ValuePtr, argsCount int) 
 	}
 
 	callbackFunc := ctx.iso.getCallback(cbref)
-	if val := callbackFunc(info); val != nil {
-		return val.ptr
+	val, err := callbackFunc(info)
+
+	if err != nil {
+		cmsg := C.CString(err.Error())
+		defer C.free(unsafe.Pointer(cmsg))
+		C.ThrowException(ctx.iso.ptr, cmsg)
+		return nil
+	}
+
+	if val != nil && val.value() != nil {
+		return val.value().ptr
 	}
 	return nil
 }

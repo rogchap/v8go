@@ -166,18 +166,32 @@ void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr) {
 }
 
 void IsolateDispose(IsolatePtr ptr) {
-  if (ptr == nullptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  if (iso->IsDead()) {
     return;
   }
-  Isolate* iso = static_cast<Isolate*>(ptr);
   ContextFree(iso->GetData(0));
-
   iso->Dispose();
+}
+
+int IsolateIsInUse(IsolatePtr ptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  return iso->IsInUse();
 }
 
 void IsolateTerminateExecution(IsolatePtr ptr) {
   Isolate* iso = static_cast<Isolate*>(ptr);
   iso->TerminateExecution();
+}
+
+void IsolateAcquireLock(IsolatePtr ptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  Locker locker(iso);
+}
+
+int IsolateIsExecutionTerminating(IsolatePtr ptr) {
+  Isolate* iso = static_cast<Isolate*>(ptr);
+  return iso->IsExecutionTerminating();
 }
 
 IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
@@ -341,7 +355,8 @@ ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, fn.ToLocalChecked());
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, fn.ToLocalChecked());
   return tracked_value(ctx, val);
 }
 
@@ -508,24 +523,6 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
 
 /********** Value **********/
 
-#define LOCAL_VALUE(ptr)                        \
-  m_value* val = static_cast<m_value*>(ptr);    \
-  Isolate* iso = val->iso;                      \
-  Locker locker(iso);                           \
-  Isolate::Scope isolate_scope(iso);            \
-  HandleScope handle_scope(iso);                \
-  TryCatch try_catch(iso);                      \
-  m_ctx* ctx = val->ctx;                        \
-  Local<Context> local_ctx;                     \
-  if (ctx != nullptr) {                         \
-    local_ctx = ctx->ptr.Get(iso);              \
-  } else {                                      \
-    ctx = static_cast<m_ctx*>(iso->GetData(0)); \
-    local_ctx = ctx->ptr.Get(iso);              \
-  }                                             \
-  Context::Scope context_scope(local_ctx);      \
-  Local<Value> value = val->ptr.Get(iso);
-
 #define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
   ISOLATE_SCOPE(iso_ptr);                       \
   m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
@@ -557,6 +554,26 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, String::NewFromUtf8(iso, v).ToLocalChecked());
+  return tracked_value(ctx, val);
+}
+
+ValuePtr NewValueNull(IsolatePtr iso_ptr) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, v8::Null(iso));
+  return tracked_value(ctx, val);
+}
+
+ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, v8::Undefined(iso));
   return tracked_value(ctx, val);
 }
 
@@ -625,6 +642,24 @@ void ValueFree(ValuePtr ptr) {
   delete val;
 }
 
+#define LOCAL_VALUE(ptr)                        \
+  m_value* val = static_cast<m_value*>(ptr);    \
+  Isolate* iso = val->iso;                      \
+  Locker locker(iso);                           \
+  Isolate::Scope isolate_scope(iso);            \
+  HandleScope handle_scope(iso);                \
+  TryCatch try_catch(iso);                      \
+  m_ctx* ctx = val->ctx;                        \
+  Local<Context> local_ctx;                     \
+  if (ctx != nullptr) {                         \
+    local_ctx = ctx->ptr.Get(iso);              \
+  } else {                                      \
+    ctx = static_cast<m_ctx*>(iso->GetData(0)); \
+    local_ctx = ctx->ptr.Get(iso);              \
+  }                                             \
+  Context::Scope context_scope(local_ctx);      \
+  Local<Value> value = val->ptr.Get(iso);
+
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   MaybeLocal<Uint32> array_index = value->ToArrayIndex(local_ctx);
@@ -687,6 +722,25 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
   bint.ToLocalChecked()->ToWordsArray(&sign_bit, &word_count, words);
   ValueBigInt rtn = {words, word_count, sign_bit};
   return rtn;
+}
+
+// Returns copy of uint8 array, allocated on the heap.
+// The caller is responsible for freeing it.
+uint8_t* ValueToUint8Array(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  MaybeLocal<Uint8Array> array = value.As<Uint8Array>();
+  int length = array.ToLocalChecked()->ByteLength();
+  uint8_t* bytes = new uint8_t[length];
+  memcpy(bytes, array.ToLocalChecked()->Buffer()->GetBackingStore()->Data(),
+         length);
+  return bytes;
+}
+
+// Returns length of the array (number of elements, not number of bytes)
+uint64_t ValueToArrayLength(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  MaybeLocal<TypedArray> array = value.As<TypedArray>();
+  return array.ToLocalChecked()->Length();
 }
 
 ValuePtr ValueToObject(ValuePtr ptr) {
@@ -975,6 +1029,123 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr)        \
   Local<Object> obj = value.As<Object>()
 
+ValuePtr NewObject(ContextPtr ctx_ptr) {
+  LOCAL_CONTEXT(ctx_ptr);
+
+  Local<Object> obj = Object::New(iso);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
+
+  return tracked_value(ctx, val);
+}
+
+// Create a new array of given size
+ValuePtr NewArray(ContextPtr ctx_ptr, size_t length) {
+  LOCAL_CONTEXT(ctx_ptr);
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Array::New(iso, length));
+
+  return tracked_value(ctx, val);
+}
+
+// Create a new ArrayBuffer value of the requested size
+ValuePtr NewArrayBuffer(ContextPtr ctx_ptr, size_t byte_length) {
+  LOCAL_CONTEXT(ctx_ptr);
+
+  std::unique_ptr<BackingStore> bs =
+      ArrayBuffer::NewBackingStore(iso, byte_length);
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, arbuf);
+
+  return tracked_value(ctx, val);
+}
+
+// Obtain length in bytes of this ArrayBuffer
+size_t ArrayBufferByteLength(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  return ab->ByteLength();
+}
+
+// Returns pointer into ArrayBuffer's BackingStore.
+// The caller is supposed to have a ref on the ArrayBuffer so that the
+// BackingStore stays valid.
+void* GetArrayBufferBytes(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  return ab->GetBackingStore()->Data();
+}
+
+// Writes into the ArrayBuffer's BackingStore.
+// The caller is responsible for respecting buffer boundaries.
+// The caller is also supposed to have a ref on the ArrayBuffer so that the
+// BackingStore stays valid.
+void PutArrayBufferBytes(ValuePtr ptr,
+                         size_t byteOffset,
+                         const char* bytes,
+                         size_t byteLength) {
+  LOCAL_VALUE(ptr);
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+  uint8_t* data = (uint8_t*)ab->GetBackingStore()->Data();
+  memcpy(data + byteOffset, bytes, byteLength);
+}
+
+// Create a new ArrayBuffer value of the requested size
+ValuePtr NewTypedUint8ArrayFromBuffer(ValuePtr ptr, size_t byteLength) {
+  LOCAL_VALUE(ptr);
+
+  Local<ArrayBuffer> ab = value.As<ArrayBuffer>();
+
+  m_value* nval = new m_value;
+  nval->iso = iso;
+  nval->ctx = ctx;
+  nval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Uint8Array::New(ab, 0, byteLength));
+
+  return tracked_value(ctx, nval);
+}
+
+// // Create a new v8go Value representing a uint8_t array.
+// // The function takes ownership over the incoming array's memory.
+// // To create new uint8 array use:
+// // Uint8Array::New(arbuf, 0, len)
+// //
+// ValuePtr NewArrayBufferFromUint8Array(IsolatePtr iso_ptr, const uint8_t *v,
+// int len) {
+//   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+//   Local<Context> c = ctx->ptr.Get(iso);
+
+//   c->Enter();
+
+//   std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
+//     static_cast<void*>(const_cast<uint8_t*>(v)), len,
+//     [](void* data, size_t length, void *deleter_data) {
+//       free(data);
+//       }, nullptr);
+
+//   Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+
+//   m_value* val = new m_value;
+//   val->iso = iso;
+//   val->ctx = ctx;
+//   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, arbuf);
+
+//   c->Exit();
+
+//   return tracked_value(ctx, val);
+// }
+
 void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   Local<String> key_val =
@@ -1102,8 +1273,9 @@ ValuePtr PromiseThen(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func = Function::New(local_ctx, FunctionTemplateCallback, cbData)
-    .ToLocalChecked();
+  Local<Function> func =
+      Function::New(local_ctx, FunctionTemplateCallback, cbData)
+          .ToLocalChecked();
   Local<Promise> result = promise->Then(local_ctx, func).ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
@@ -1117,12 +1289,16 @@ ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> onFulfilledData = Integer::New(iso, on_fulfilled_ref);
-  Local<Function> onFulfilledFunc = Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
-    .ToLocalChecked();
+  Local<Function> onFulfilledFunc =
+      Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
+          .ToLocalChecked();
   Local<Integer> onRejectedData = Integer::New(iso, on_rejected_ref);
-  Local<Function> onRejectedFunc = Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
-    .ToLocalChecked();
-  Local<Promise> result = promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc).ToLocalChecked();
+  Local<Function> onRejectedFunc =
+      Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
+          .ToLocalChecked();
+  Local<Promise> result =
+      promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc)
+          .ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
   promise_val->ctx = ctx;
@@ -1135,8 +1311,9 @@ ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func = Function::New(local_ctx, FunctionTemplateCallback, cbData)
-    .ToLocalChecked();
+  Local<Function> func =
+      Function::New(local_ctx, FunctionTemplateCallback, cbData)
+          .ToLocalChecked();
   Local<Promise> result = promise->Catch(local_ctx, func).ToLocalChecked();
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
@@ -1160,8 +1337,10 @@ ValuePtr PromiseResult(ValuePtr ptr) {
 
 /********** Function **********/
 
-static void buildCallArguments(Isolate* iso, Local<Value> *argv, int argc, ValuePtr args[])
-{
+static void buildCallArguments(Isolate* iso,
+                               Local<Value>* argv,
+                               int argc,
+                               ValuePtr args[]) {
   for (int i = 0; i < argc; i++) {
     m_value* arg = static_cast<m_value*>(args[i]);
     argv[i] = arg->ptr.Get(iso);
@@ -1183,7 +1362,8 @@ RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
@@ -1202,12 +1382,19 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result.ToLocalChecked());
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
 
 /******** Exceptions *********/
+
+void ThrowException(IsolatePtr iso_ptr, const char* message) {
+  ISOLATE_SCOPE(iso_ptr);
+  Local<String> msg = String::NewFromUtf8(iso, message).ToLocalChecked();
+  iso->ThrowException(msg);
+}
 
 ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message) {
   ISOLATE_SCOPE(iso_ptr);

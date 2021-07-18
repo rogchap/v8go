@@ -14,7 +14,7 @@ import (
 
 // JSONParse tries to parse the string and returns it as *Value if successful.
 // Any JS errors will be returned as `JSError`.
-func JSONParse(ctx *Context, str string) (*Value, error) {
+func JSONParse(ctx *ExecContext, str string) (*Value, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context is required")
 	}
@@ -26,7 +26,7 @@ func JSONParse(ctx *Context, str string) (*Value, error) {
 }
 
 // JSONStringify tries to stringify the JSON-serializable object value and returns it as string.
-func JSONStringify(ctx *Context, val Valuer) (string, error) {
+func JSONStringify(ctx *ExecContext, val Valuer) (string, error) {
 	if val == nil || val.value() == nil {
 		return "", errors.New("v8go: Value is required")
 	}

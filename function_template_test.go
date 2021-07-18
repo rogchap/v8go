@@ -5,9 +5,8 @@
 package v8go_test
 
 import (
+	"errors"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -17,7 +16,7 @@ import (
 func TestFunctionTemplate(t *testing.T) {
 	t.Parallel()
 
-	if _, err := v8go.NewFunctionTemplate(nil, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }); err == nil {
+	if _, err := v8go.NewFunctionTemplate(nil, func(*v8go.FunctionCallbackInfo) (v8go.Valuer, error) { return nil, nil }); err == nil {
 		t.Error("expected error but got <nil>")
 	}
 
@@ -26,7 +25,7 @@ func TestFunctionTemplate(t *testing.T) {
 		t.Error("expected error but got <nil>")
 	}
 
-	fn, err := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil })
+	fn, err := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) (v8go.Valuer, error) { return nil, nil })
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -35,17 +34,33 @@ func TestFunctionTemplate(t *testing.T) {
 	}
 }
 
+func TestFunctionTemplateError(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	ctx, _ := v8go.NewExecContext(iso)
+
+	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
+		return nil, errors.New("test")
+	})
+	fn := tmpl.GetFunction(ctx)
+	_, err := fn.Call()
+	if err == nil {
+		t.Error("function should throw new exception")
+	}
+}
+
 func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	ctx, _ := v8go.NewExecContext(iso)
 
 	var args *v8go.FunctionCallbackInfo
-	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	tmpl, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 		args = info
 		reply, _ := v8go.NewValue(iso, "hello")
-		return reply
+		return reply, nil
 	})
 	fn := tmpl.GetFunction(ctx)
 	ten, err := v8go.NewValue(iso, int32(10))
@@ -67,39 +82,34 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 func ExampleFunctionTemplate() {
 	iso, _ := v8go.NewIsolate()
 	global, _ := v8go.NewObjectTemplate(iso)
-	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
 		fmt.Printf("%+v\n", info.Args())
-		return nil
+		return nil, nil
 	})
 	global.Set("print", printfn, v8go.ReadOnly)
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx, _ := v8go.NewExecContext(iso, global)
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
 	// Output:
 	// [foo bar 0 1]
 }
 
-func ExampleFunctionTemplate_fetch() {
+func ExampleFunctionTemplate_promise() {
 	iso, _ := v8go.NewIsolate()
 	global, _ := v8go.NewObjectTemplate(iso)
 
-	fetchfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		args := info.Args()
-		url := args[0].String()
-
-		resolver, _ := v8go.NewPromiseResolver(info.Context())
+	fn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) (v8go.Valuer, error) {
+		resolver, _ := v8go.NewPromiseResolver(info.ExecContext())
 
 		go func() {
-			res, _ := http.Get(url)
-			body, _ := ioutil.ReadAll(res.Body)
-			val, _ := v8go.NewValue(iso, string(body))
+			val, _ := v8go.NewValue(iso, "ZOMGBBQ it works!")
 			resolver.Resolve(val)
 		}()
-		return resolver.GetPromise().Value
+		return resolver.GetPromise().Value, nil
 	})
-	global.Set("fetch", fetchfn, v8go.ReadOnly)
+	global.Set("resolve", fn, v8go.ReadOnly)
 
-	ctx, _ := v8go.NewContext(iso, global)
-	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
+	ctx, _ := v8go.NewExecContext(iso, global)
+	val, _ := ctx.RunScript("resolve()", "")
 	prom, _ := val.AsPromise()
 
 	// wait for the promise to resolve
@@ -108,5 +118,5 @@ func ExampleFunctionTemplate_fetch() {
 	}
 	fmt.Printf("%s\n", strings.Split(prom.Result().String(), "\n")[0])
 	// Output:
-	// <!DOCTYPE html>
+	// ZOMGBBQ it works!
 }
