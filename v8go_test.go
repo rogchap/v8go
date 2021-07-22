@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"testing"
 
-	"rogchap.com/v8go"
+	"github.com/Shopify/v8go"
 )
 
 func TestVersion(t *testing.T) {
