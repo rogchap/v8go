@@ -4,7 +4,7 @@
 
 package v8go
 
-//go:generate clang-format -i --verbose -style=Chromium v8go.h v8go.cc
+//go:generate clang-format -i --verbose -style=Chromium v8go.h v8go.cc v8go-profiler.h  v8go-profiler.cc
 
 // #cgo CXXFLAGS: -fno-rtti -fpic -std=c++14 -DV8_COMPRESS_POINTERS -DV8_31BIT_SMIS_ON_64BIT_ARCH -I${SRCDIR}/deps/include
 // #cgo LDFLAGS: -pthread -lv8

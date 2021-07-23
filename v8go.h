@@ -16,6 +16,7 @@ typedef void* IsolatePtr;
 typedef void* ContextPtr;
 typedef void* ValuePtr;
 typedef void* TemplatePtr;
+typedef void* ProfilerPtr;
 
 typedef struct {
   const char* msg;
@@ -187,6 +188,11 @@ extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,
                                         const char* message);
 extern ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message);
 extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
+
+extern ProfilerPtr NewProfiler(ContextPtr ctx);
+extern void ProfilerStart(ProfilerPtr ptr);
+extern const char* ProfilerStop(ProfilerPtr ptr, int *length);
+extern void ProfilerFree(ProfilerPtr ptr);
 
 const char* Version();
 extern void SetFlags(const char* flags);

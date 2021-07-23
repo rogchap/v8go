@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "v8go.h"
+#include "v8go-internal.h"
+#include "v8go-profiler.h"
 
 #include <stdio.h>
 
@@ -12,14 +13,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-#if defined(__MINGW32__) || defined(__MINGW64__)
-// MinGW header files do not implicitly include windows.h
-struct _EXCEPTION_POINTERS;
-#endif
-
-#include "libplatform/libplatform.h"
-#include "v8.h"
 
 using namespace v8;
 
@@ -1269,6 +1262,30 @@ ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message) {
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
       iso, Exception::TypeError(msg));
   return static_cast<ValuePtr>(val);
+}
+
+/********** Profiler **********/
+
+ProfilerPtr NewProfiler(ContextPtr ctx_ptr) {
+  LOCAL_CONTEXT(ctx_ptr);
+  Profiler* profiler = new Profiler(local_ctx);
+  return static_cast<ProfilerPtr>(profiler);
+}
+
+void ProfilerStart(ProfilerPtr ptr) {
+  Profiler* profiler = static_cast<Profiler*>(ptr);
+  Locker lock(profiler->isolate);
+  profiler->start();
+}
+
+const char* ProfilerStop(ProfilerPtr ptr, int *length) {
+  Profiler* profiler = static_cast<Profiler*>(ptr);
+  Locker lock(profiler->isolate);
+  return profiler->stop(length);
+}
+
+void ProfilerFree(ProfilerPtr ptr) {
+  delete static_cast<Profiler*>(ptr);
 }
 
 /********** v8::V8 **********/
