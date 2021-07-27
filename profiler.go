@@ -25,14 +25,12 @@ type ProfileMessage struct {
 	Result ProfileResult `json:"result"`
 }
 
-func extractProfileData(jsonInspectorMessage string) (string, error) {
+func extractProfileData(jsonInspectorMessage string) (json.RawMessage, error) {
 	var profile ProfileMessage
-	err := json.Unmarshal([]byte(jsonInspectorMessage), &profile)
-	if err != nil {
-		return "", err
-	} else {
-		return string(profile.Result.Profile), nil
+	if err := json.Unmarshal([]byte(jsonInspectorMessage), &profile); err != nil {
+		return []byte{}, err
 	}
+	return profile.Result.Profile, nil
 }
 
 type Profiler struct {
@@ -58,7 +56,7 @@ func (p *Profiler) Start() {
 	C.ProfilerStart(p.ptr)
 }
 
-func (p *Profiler) Stop() (string, error) {
+func (p *Profiler) Stop() (json.RawMessage, error) {
 	var length C.int = 0
 	s := C.ProfilerStop(p.ptr, &length)
 	data, err := extractProfileData(C.GoStringN(s, length))
