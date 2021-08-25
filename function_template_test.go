@@ -99,7 +99,7 @@ func ExampleFunctionTemplate_fetch() {
 	global.Set("fetch", fetchfn, v8go.ReadOnly)
 
 	ctx, _ := v8go.NewContext(iso, global)
-	val, _ := ctx.RunScript("fetch('https://github.com/airplanedev/v8go')", "")
+	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
 	prom, _ := val.AsPromise()
 
 	// wait for the promise to resolve

@@ -9,47 +9,26 @@ on:
 
 jobs:
   test:
-    name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
+    name: Tests on Go ${{ matrix.go-version }} ${{ matrix.platform }}
     strategy:
       matrix:
-        go-version: [1.12.17, 1.16.4]
+        go-version: [1.16.6]
         platform: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.platform }}
-    
+
     steps:
     - name: Install Go
       uses: actions/setup-go@v2
       with:
         go-version: ${{ matrix.go-version }}
+
     - name: Checkout
       uses: actions/checkout@v2
+
     - name: Add MINGW to PATH
       if: matrix.platform == 'windows-latest'
       run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
       shell: bash
+
     - name: Go Test
       run: go test -v -coverprofile c.out ./...
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v1
-      env:
-        OS: ${{ matrix.platform }}
-        GO: ${{ matrix.go-version }}
-      with:
-        files: ./c.out
-        env_vars: OS,GO
-    - name: Add GOPATH to GITHUB_ENV
-      run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
-    - name: Scan and upload FOSSA data (Linux/Mac)
-      if: github.ref == 'refs/heads/master' && matrix.platform != 'windows-latest'
-      run: |
-        curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
-        fossa analyze
-      env:
-        FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-    - name: Scan and upload FOSSA data (Windows)
-      if: github.ref == 'refs/heads/master' && matrix.platform == 'windows-latest'
-      run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force; iex  ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/fossas/fossa-cli/master/install.ps1'))
-        C:\ProgramData\fossa-cli\fossa.exe analyze
-      env:
-        FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
