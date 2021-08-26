@@ -12,10 +12,11 @@ jobs:
             matrix:
                 arch: [x86_64]
                 platform: [ubuntu-18.04, macos-latest, windows-latest]
+                include:
+                  # This cross-compiles for linux arm64 on the amd64 hosted runners:
+                  - arch: arm64
+                    platform: ubuntu-18.04
                 # TODO: hook up GHA w/ an arm64 self-hosted agent
-                # include:
-                #   - arch: arm64
-                #     platform: ubuntu-18.04
                 #   - arch: arm64
                 #     platform: macos-latest
         runs-on: ${{ matrix.platform }}
@@ -53,10 +54,10 @@ jobs:
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
-                commit-message: Update V8 static library for ${{ matrix.platform  }}
+                commit-message: Update V8 static library for ${{ matrix.platform  }} on ${{ matrix.arch }}
                 branch: v8-lib
                 branch-suffix: random
                 delete-branch: true
-                title: V8 static library for ${{ matrix.platform  }}
-                body: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
+                title: V8 static library for ${{ matrix.platform  }} on ${{ matrix.arch }}
+                body: Auto-generated pull request to build V8 for ${{ matrix.platform  }} on ${{ matrix.arch }}
 

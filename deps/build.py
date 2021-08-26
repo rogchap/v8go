@@ -8,7 +8,7 @@ import argparse
 valid_archs = ['arm64', 'x86_64']
 # "x86_64" is called "amd64" on Windows
 current_arch = platform.uname()[4].lower().replace("amd64", "x86_64")
-default_arch = current_arch if current_arch in valid_archs else None
+current_arch = current_arch if current_arch in valid_archs else None
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', dest='debug', action='store_true')
@@ -17,8 +17,8 @@ parser.add_argument('--arch',
     dest='arch',
     action='store',
     choices=valid_archs,
-    default=default_arch,
-    required=default_arch is None)
+    default=current_arch,
+    required=current_arch is None)
 parser.set_defaults(debug=False, clang=True)
 args = parser.parse_args()
 
@@ -124,8 +124,7 @@ def main():
 
     is_debug = 'true' if args.debug else 'false'
     is_clang = 'true' if args.clang else 'false'
-    arch = v8_arch()
-    gnargs = gn_args % (is_debug, is_clang, arch, arch)
+    gnargs = gn_args % (is_debug, is_clang, current_arch, v8_arch())
     print(gnargs)
     gen_args = gnargs.replace('\n', ' ')
 
