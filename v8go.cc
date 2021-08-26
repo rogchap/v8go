@@ -1176,14 +1176,18 @@ static void buildCallArguments(Isolate* iso,
   }
 }
 
-RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
+RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
+
+  m_value* objVal = static_cast<m_value*>(recv);
+  Local<Value> objValue = objVal->ptr.Get(iso);
+  Local<Object> obj = objValue.As<Object>();
+
   RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
-  Local<Value> recv = Undefined(iso);
-  MaybeLocal<Value> result = fn->Call(local_ctx, recv, argc, argv);
+  MaybeLocal<Value> result = fn->Call(local_ctx, obj, argc, argv);
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
@@ -1191,8 +1195,7 @@ RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result.ToLocalChecked());
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
