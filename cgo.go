@@ -24,6 +24,7 @@ import (
 	_ "github.com/airplanedev/v8go/deps/include"
 	_ "github.com/airplanedev/v8go/deps/include/cppgc"
 	_ "github.com/airplanedev/v8go/deps/include/libplatform"
+	_ "github.com/airplanedev/v8go/deps/linux_arm64"
 	_ "github.com/airplanedev/v8go/deps/linux_x86_64"
 	_ "github.com/airplanedev/v8go/deps/windows_x86_64"
 )
