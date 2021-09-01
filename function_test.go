@@ -27,7 +27,7 @@ func TestFunctionCall(t *testing.T) {
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	resultValue, err := fn.Call(arg1, arg1)
+	resultValue, err := fn.Call(ctx.Global(), arg1, arg1)
 	failIf(t, err)
 
 	if resultValue.Int32() != 2 {
@@ -78,7 +78,8 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 		return nil
 	})
 
-	global.Set("print", printfn, v8go.ReadOnly)
+	err := global.Set("print", printfn, v8go.ReadOnly)
+	failIf(t, err)
 
 	ctx := v8go.NewContext(iso, global)
 	defer ctx.Close()
@@ -87,7 +88,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	failIf(t, err)
 	fn, err := val.AsFunction()
 	failIf(t, err)
-	resultValue, err := fn.Call()
+	resultValue, err := fn.Call(ctx.Global())
 	failIf(t, err)
 
 	if !called {
@@ -111,7 +112,7 @@ func TestFunctionCallError(t *testing.T) {
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	_, err = fn.Call()
+	_, err = fn.Call(ctx.Global())
 	if err == nil {
 		t.Errorf("expected an error, got none")
 	}
