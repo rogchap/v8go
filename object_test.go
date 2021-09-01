@@ -16,7 +16,7 @@ func TestObjectMethodCall(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
-	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	failIf(t, err)
 	obj, err := val.AsObject()
 	failIf(t, err)
@@ -24,6 +24,10 @@ func TestObjectMethodCall(t *testing.T) {
 	failIf(t, err)
 	if val.String() != "some val" {
 		t.Errorf("unexpected value: %q", val)
+	}
+	_, err = obj.MethodCall("prop")
+	if err == nil {
+		t.Errorf("expected an error, got none")
 	}
 	_, err = obj.MethodCall("nope")
 	if err == nil {
