@@ -35,36 +35,6 @@ func TestFunctionCall(t *testing.T) {
 	}
 }
 
-func TestFunctionSourceMapUrl(t *testing.T) {
-	t.Parallel()
-
-	ctx := v8go.NewContext()
-	defer ctx.Isolate().Dispose()
-	defer ctx.Close()
-	_, err := ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
-	failIf(t, err)
-	addValue, err := ctx.Global().Get("add")
-	failIf(t, err)
-
-	fn, _ := addValue.AsFunction()
-
-	resultVal := fn.SourceMapUrl()
-	if resultVal.String() != "main.js.map" {
-		t.Errorf("expected main.js.map, got %v", resultVal.String())
-	}
-
-	_, err = ctx.RunScript("function sub(a, b) { return a - b; };", "")
-	failIf(t, err)
-	subValue, err := ctx.Global().Get("sub")
-	failIf(t, err)
-
-	subFn, _ := subValue.AsFunction()
-	resultVal = subFn.SourceMapUrl()
-	if !resultVal.IsUndefined() {
-		t.Errorf("expected undefined, got: %v", resultVal.DetailString())
-	}
-}
-
 func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
@@ -99,6 +69,29 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	}
 }
 
+func TestFunctionCallWithObjectReceiver(t *testing.T) {
+	t.Parallel()
+
+	iso := v8go.NewIsolate()
+	global := v8go.NewObjectTemplate(iso)
+
+	ctx := v8go.NewContext(iso, global)
+	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	failIf(t, err)
+	obj, err := val.AsObject()
+	failIf(t, err)
+	fnVal, err := obj.Get("print")
+	failIf(t, err)
+	fn, err := fnVal.AsFunction()
+	failIf(t, err)
+	resultValue, err := fn.Call(obj)
+	failIf(t, err)
+
+	if !resultValue.IsString() || resultValue.String() != "some val" {
+		t.Errorf("expected 'some val', got: %v", resultValue.DetailString())
+	}
+}
+
 func TestFunctionCallError(t *testing.T) {
 	t.Parallel()
 
@@ -120,6 +113,36 @@ func TestFunctionCallError(t *testing.T) {
 	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)
+	}
+}
+
+func TestFunctionSourceMapUrl(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+	_, err := ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
+	failIf(t, err)
+	addValue, err := ctx.Global().Get("add")
+	failIf(t, err)
+
+	fn, _ := addValue.AsFunction()
+
+	resultVal := fn.SourceMapUrl()
+	if resultVal.String() != "main.js.map" {
+		t.Errorf("expected main.js.map, got %v", resultVal.String())
+	}
+
+	_, err = ctx.RunScript("function sub(a, b) { return a - b; };", "")
+	failIf(t, err)
+	subValue, err := ctx.Global().Get("sub")
+	failIf(t, err)
+
+	subFn, _ := subValue.AsFunction()
+	resultVal = subFn.SourceMapUrl()
+	if !resultVal.IsUndefined() {
+		t.Errorf("expected undefined, got: %v", resultVal.DetailString())
 	}
 }
 
