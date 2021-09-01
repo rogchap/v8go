@@ -182,7 +182,7 @@ ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
 ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref);
 extern ValuePtr PromiseResult(ValuePtr ptr);
 
-extern RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr argv[]);
+extern RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
