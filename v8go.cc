@@ -294,7 +294,9 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
                             iso, info.This()));
 
   int args_count = info.Length();
-  ValuePtr args[args_count];
+  ValuePtr thisAndArgs[args_count + 1];
+  thisAndArgs[0] = tracked_value(ctx, _this);
+  ValuePtr* args = thisAndArgs + 1;
   for (int i = 0; i < args_count; i++) {
     m_value* val = new m_value;
     val->iso = iso;
@@ -304,10 +306,10 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref, ValuePtr _this,
-                              const ValuePtr* args, int args_count);
+  ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* thisAndArgs,
+                              int args_count);
   ValuePtr val_ptr = goFunctionCallback(
-      ctx_ref, callback_ref, tracked_value(ctx, _this), args, args_count);
+      ctx_ref, callback_ref, thisAndArgs, args_count);
   if (val_ptr != nullptr) {
     m_value* val = static_cast<m_value*>(val_ptr);
     info.GetReturnValue().Set(val->ptr.Get(iso));
