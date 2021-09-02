@@ -28,9 +28,7 @@ func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	fnVal := getValue(o.ctx, getRtn)
-
-	fn, err := fnVal.AsFunction()
+	fn, err := getValue(o.ctx, getRtn).AsFunction()
 	if err != nil {
 		return nil, err
 	}

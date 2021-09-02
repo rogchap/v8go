@@ -14,22 +14,23 @@ import (
 func TestObjectMethodCall(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
-	failIf(t, err)
-	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
-	failIf(t, err)
-	obj, err := val.AsObject()
-	failIf(t, err)
-	val, err = obj.MethodCall("print")
+	ctx, _ := v8go.NewContext()
+	iso := ctx.Isolate()
+	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	obj, _ := val.AsObject()
+	val, err := obj.MethodCall("print")
 	failIf(t, err)
 	if val.String() != "some val" {
 		t.Errorf("unexpected value: %q", val)
 	}
-	_, err = obj.MethodCall("prop")
-	if err == nil {
-		t.Errorf("expected an error, got none")
-	}
-	_, err = obj.MethodCall("nope")
+
+	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() } }; new Obj2()`, "")
+	failIf(t, err)
+	obj, _ = val.AsObject()
+	arg, _ := v8go.NewValue(iso, "arg")
+	_, err = obj.MethodCall("print", arg)
+	failIf(t, err)
+	_, err = obj.MethodCall("notamethod")
 	if err == nil {
 		t.Errorf("expected an error, got none")
 	}
