@@ -15,6 +15,7 @@ func TestFunctionCall(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }", "")
@@ -40,6 +41,8 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("add")
@@ -68,6 +71,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 
 	called := false
@@ -102,6 +106,7 @@ func TestFunctionCallError(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
@@ -126,6 +131,7 @@ func TestFunctionNewInstance(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
 	iso := ctx.Isolate()
@@ -156,6 +162,7 @@ func TestFunctionNewInstanceError(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")

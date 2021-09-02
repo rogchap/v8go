@@ -14,6 +14,7 @@ func TestPromiseFulfilled(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()
 
@@ -63,6 +64,7 @@ func TestPromiseRejected(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()
 
@@ -112,6 +114,7 @@ func TestPromiseThenPanic(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()
 

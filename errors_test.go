@@ -48,6 +48,8 @@ func TestErrorFormatting(t *testing.T) {
 func TestJSErrorOutput(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 
 	math := `
 	function add(a, b) {
