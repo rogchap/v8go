@@ -23,14 +23,18 @@ func TestObjectMethodCall(t *testing.T) {
 	if val.String() != "some val" {
 		t.Errorf("unexpected value: %q", val)
 	}
+	_, err = obj.MethodCall("prop")
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
 
-	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() } }; new Obj2()`, "")
+	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
 	failIf(t, err)
 	obj, _ = val.AsObject()
 	arg, _ := v8go.NewValue(iso, "arg")
 	_, err = obj.MethodCall("print", arg)
 	failIf(t, err)
-	_, err = obj.MethodCall("notamethod")
+	_, err = obj.MethodCall("fails")
 	if err == nil {
 		t.Errorf("expected an error, got none")
 	}
