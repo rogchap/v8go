@@ -45,11 +45,11 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 ```go
 iso, _ := v8go.NewIsolate() // create a new VM
 // a template that represents a JS function
-printfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
     fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
     return nil // you can return a value back to the JS caller if required
 })
-global, _ := v8go.NewObjectTemplate(iso) // a template that represents a JS Object
+global := v8go.NewObjectTemplate(iso) // a template that represents a JS Object
 global.Set("print", printfn) // sets the "print" property of the Object to our function
 ctx, _ := v8go.NewContext(iso, global) // new Context with the global Object set to our object template
 ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
@@ -105,7 +105,7 @@ case val := <- vals:
 case err := <- errs:
     // javascript error
 case <- time.After(200 * time.Milliseconds):
-    vm, _ := ctx.Isolate() // get the Isolate from the context
+    vm := ctx.Isolate() // get the Isolate from the context
     vm.TerminateExecution() // terminate the execution 
     err := <- errs // will get a termination error back from the running script
 }

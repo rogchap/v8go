@@ -101,8 +101,8 @@ func ExampleObject_global() {
 	ctx, _ := v8go.NewContext(iso)
 	global := ctx.Global()
 
-	console, _ := v8go.NewObjectTemplate(iso)
-	logfn, _ := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	console := v8go.NewObjectTemplate(iso)
+	logfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
 		fmt.Println(info.Args()[0])
 		return nil
 	})

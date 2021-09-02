@@ -83,9 +83,8 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 
 // Isolate gets the current context's parent isolate.An  error is returned
 // if the isolate has been terninated.
-func (c *Context) Isolate() (*Isolate, error) {
-	// TODO: [RC] check to see if the isolate has not been terninated
-	return c.iso, nil
+func (c *Context) Isolate() *Isolate {
+	return c.iso
 }
 
 // RunScript executes the source JavaScript; origin or filename provides a
