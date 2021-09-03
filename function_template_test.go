@@ -83,6 +83,33 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	}
 }
 
+func TestFunctionCallbackInfoThis(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+
+	foo := v8go.NewObjectTemplate(iso)
+	foo.Set("name", "foobar")
+
+	var this *v8go.Object
+	barfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		this = info.This()
+		return nil
+	})
+	foo.Set("bar", barfn)
+
+	global := v8go.NewObjectTemplate(iso)
+	global.Set("foo", foo)
+
+	ctx, _ := v8go.NewContext(iso, global)
+	ctx.RunScript("foo.bar()", "")
+
+	v, _ := this.Get("name")
+	if v.String() != "foobar" {
+		t.Errorf("expected this.name to be foobar, but got %q", v)
+	}
+}
+
 func ExampleFunctionTemplate() {
 	iso, _ := v8go.NewIsolate()
 	defer iso.Dispose()
