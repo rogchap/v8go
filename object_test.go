@@ -137,7 +137,7 @@ func TestObjectDelete(t *testing.T) {
 }
 
 func ExampleObject_global() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()

@@ -103,7 +103,7 @@ func TestContextRegistry(t *testing.T) {
 func TestMemoryLeak(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 
 	for i := 0; i < 6000; i++ {
@@ -120,7 +120,7 @@ func TestMemoryLeak(t *testing.T) {
 
 func BenchmarkContext(b *testing.B) {
 	b.ReportAllocs()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	for n := 0; n < b.N; n++ {
 		ctx, _ := v8go.NewContext(iso)
@@ -145,7 +145,7 @@ func ExampleContext() {
 }
 
 func ExampleContext_isolate() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	ctx1, _ := v8go.NewContext(iso)
 	defer ctx1.Close()
@@ -163,7 +163,7 @@ func ExampleContext_isolate() {
 }
 
 func ExampleContext_globalTemplate() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	obj := v8go.NewObjectTemplate(iso)
 	obj.Set("version", "v1.0.0")

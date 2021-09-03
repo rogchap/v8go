@@ -21,7 +21,7 @@ func TestValueNewBaseCases(t *testing.T) {
 	if _, err := v8go.NewValue(nil, ""); err == nil {
 		t.Error("expected error, but got <nil>")
 	}
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	if _, err := v8go.NewValue(iso, nil); err == nil {
 		t.Error("expected error, but got <nil>")
@@ -162,7 +162,7 @@ func TestValueBoolean(t *testing.T) {
 
 func TestValueConstants(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()
@@ -378,7 +378,7 @@ func TestValueUint32(t *testing.T) {
 
 func TestValueBigInt(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 
 	x, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
@@ -475,7 +475,7 @@ func TestValueFunction(t *testing.T) {
 
 func TestValueSameValue(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()
@@ -496,7 +496,7 @@ func TestValueSameValue(t *testing.T) {
 
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	tests := [...]struct {
 		source string
@@ -612,7 +612,7 @@ func TestValueIsXXX(t *testing.T) {
 
 func TestValueMarshalJSON(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 
 	tests := [...]struct {

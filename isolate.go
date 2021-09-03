@@ -49,7 +49,7 @@ type HeapStatistics struct {
 // by calling iso.Dispose().
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
-func NewIsolate() (*Isolate, error) {
+func NewIsolate() *Isolate {
 	v8once.Do(func() {
 		C.Init()
 	})
@@ -59,8 +59,7 @@ func NewIsolate() (*Isolate, error) {
 	}
 	iso.null = newValueNull(iso)
 	iso.undefined = newValueUndefined(iso)
-	// TODO: [RC] catch any C++ exceptions and return as error
-	return iso, nil
+	return iso
 }
 
 // TerminateExecution terminates forcefully the current thread

@@ -30,7 +30,7 @@ fmt.Printf("addition result: %s", val)
 ### One VM, many contexts
 
 ```go
-iso, _ := v8go.NewIsolate() // creates a new JavaScript VM
+iso := v8go.NewIsolate() // creates a new JavaScript VM
 ctx1, _ := v8go.NewContext(iso) // new context within the VM
 ctx1.RunScript("const multiply = (a, b) => a * b", "math.js")
 
@@ -43,7 +43,7 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 ### JavaScript function with Go callback
 
 ```go
-iso, _ := v8go.NewIsolate() // create a new VM
+iso := v8go.NewIsolate() // create a new VM
 // a template that represents a JS function
 printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
     fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute

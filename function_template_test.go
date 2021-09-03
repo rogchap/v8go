@@ -17,7 +17,7 @@ import (
 func TestFunctionTemplate(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	fn := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil })
 	if fn == nil {
@@ -47,7 +47,7 @@ func TestFunctionTemplate_panic_on_nil_callback(t *testing.T) {
 			t.Error("expected panic")
 		}
 	}()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	v8go.NewFunctionTemplate(iso, nil)
 }
@@ -55,7 +55,7 @@ func TestFunctionTemplate_panic_on_nil_callback(t *testing.T) {
 func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()
@@ -86,7 +86,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 func TestFunctionCallbackInfoThis(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 
 	foo := v8go.NewObjectTemplate(iso)
 	foo.Set("name", "foobar")
@@ -111,7 +111,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 }
 
 func ExampleFunctionTemplate() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
@@ -127,7 +127,7 @@ func ExampleFunctionTemplate() {
 }
 
 func ExampleFunctionTemplate_fetch() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 

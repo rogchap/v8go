@@ -13,7 +13,7 @@ import (
 
 func TestObjectTemplate(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	obj := v8go.NewObjectTemplate(iso)
 
@@ -68,7 +68,7 @@ func TestObjectTemplate_panic_on_nil_isolate(t *testing.T) {
 
 func TestGlobalObjectTemplate(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	tests := [...]struct {
 		global   func() *v8go.ObjectTemplate
@@ -125,7 +125,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 
 func TestObjectTemplateNewInstance(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	tmpl := v8go.NewObjectTemplate(iso)
 	if _, err := tmpl.NewInstance(nil); err == nil {

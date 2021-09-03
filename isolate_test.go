@@ -18,7 +18,7 @@ import (
 
 func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
 	defer ctx.Close()
@@ -44,7 +44,7 @@ func TestIsolateTermination(t *testing.T) {
 
 func TestGetHeapStatistics(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	ctx1, _ := v8go.NewContext(iso)
 	defer ctx1.Close()
@@ -65,7 +65,7 @@ func TestGetHeapStatistics(t *testing.T) {
 func TestCallbackRegistry(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	cb := func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }
 
@@ -86,7 +86,7 @@ func TestCallbackRegistry(t *testing.T) {
 func TestIsolateDispose(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	if iso.GetHeapStatistics().TotalHeapSize == 0 {
 		t.Error("Isolate incorrectly allocated")
 	}
@@ -105,7 +105,7 @@ func TestIsolateDispose(t *testing.T) {
 func TestIsolateGarbageCollection(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	val, _ := v8go.NewValue(iso, "some string")
 	fmt.Println(val.String())
 
@@ -123,7 +123,7 @@ func TestIsolateGarbageCollection(t *testing.T) {
 func BenchmarkIsolateInitialization(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		vm, _ := v8go.NewIsolate()
+		vm := v8go.NewIsolate()
 		vm.Close() // force disposal of the VM
 	}
 }
@@ -131,7 +131,7 @@ func BenchmarkIsolateInitialization(b *testing.B) {
 func BenchmarkIsolateInitAndRun(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		vm, _ := v8go.NewIsolate()
+		vm := v8go.NewIsolate()
 		ctx, _ := v8go.NewContext(vm)
 		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())

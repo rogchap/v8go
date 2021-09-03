@@ -8,7 +8,6 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
-	"fmt"
 	"sync"
 	"unsafe"
 )
@@ -56,11 +55,7 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 	}
 
 	if opts.iso == nil {
-		var err error
-		opts.iso, err = NewIsolate()
-		if err != nil {
-			return nil, fmt.Errorf("v8go: failed to create new Isolate: %v", err)
-		}
+		opts.iso = NewIsolate()
 	}
 
 	if opts.gTmpl == nil {

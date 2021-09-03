@@ -70,7 +70,7 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 
