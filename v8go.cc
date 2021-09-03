@@ -1224,16 +1224,10 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
 
-  MaybeLocal<Value> result;
+  m_value* recv_val = static_cast<m_value*>(recv);
+  Local<Value> local_recv = recv_val->ptr.Get(iso);
 
-  if (recv == NULL) {
-    result = fn->Call(local_ctx, Undefined(iso), argc, argv);
-  } else {
-    m_value* objVal = static_cast<m_value*>(recv);
-    Local<Value> val = objVal->ptr.Get(iso);
-    Local<Object> obj = val.As<Object>();
-    result = fn->Call(local_ctx, obj, argc, argv);
-  }
+  MaybeLocal<Value> result = fn->Call(local_ctx, local_recv, argc, argv);
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
