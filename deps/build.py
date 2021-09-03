@@ -43,8 +43,8 @@ is_clang=%s
 clang_use_chrome_plugins=false
 use_custom_libcxx=false
 use_sysroot=false
-symbol_level=0
-strip_debug_info=true
+symbol_level=%s
+strip_debug_info=%s
 is_component_build=false
 v8_monolithic=true
 v8_use_external_startup_data=false
@@ -106,7 +106,12 @@ def main():
 
     is_debug = 'true' if args.debug else 'false'
     is_clang = 'true' if args.clang else 'false'
-    gnargs = gn_args % (is_debug, is_clang)
+    # symbol_level = 1 includes line number information
+    # symbol_level = 2 can be used for additional debug information, but it can increase the
+    #   compiled library by an order of magnitude and further slow down compilation
+    symbol_level = 1 if args.debug else 0
+    strip_debug_info = 'false' if args.debug else 'true'
+    gnargs = gn_args % (is_debug, is_clang, symbol_level, strip_debug_info)
     gen_args = gnargs.replace('\n', ' ')
     
     subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gen_args]),
