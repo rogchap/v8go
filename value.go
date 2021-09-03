@@ -224,6 +224,12 @@ func (v *Value) Uint32() uint32 {
 	return uint32(C.ValueToUint32(v.ptr))
 }
 
+// SameValue returns true if the other value is the same value.
+// This is equivalent to `Object.is(v, other)` in JS.
+func (v *Value) SameValue(other *Value) bool {
+	return C.ValueSameValue(v.ptr, other.ptr) != 0
+}
+
 // IsUndefined returns true if this value is the undefined value. See ECMA-262 4.3.10.
 func (v *Value) IsUndefined() bool {
 	return C.ValueIsUndefined(v.ptr) != 0
