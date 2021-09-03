@@ -15,6 +15,9 @@ import (
 func TestContextExec(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	ctx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	val, _ := ctx.RunScript(`add(3, 4)`, "main.js")
 	rtn := val.String()
@@ -49,10 +52,12 @@ func TestJSExceptions(t *testing.T) {
 	}
 
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			_, err := ctx.RunScript(tt.source, tt.origin)
 			if err == nil {
 				t.Error("error expected but got <nil>")
@@ -69,6 +74,9 @@ func TestContextRegistry(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	ctxref := ctx.Ref()
 
 	c1 := v8go.GetContext(ctxref)
@@ -96,6 +104,7 @@ func TestMemoryLeak(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 
 	for i := 0; i < 6000; i++ {
 		ctx, _ := v8go.NewContext(iso)
@@ -111,10 +120,10 @@ func TestMemoryLeak(t *testing.T) {
 
 func BenchmarkContext(b *testing.B) {
 	b.ReportAllocs()
-	vm, _ := v8go.NewIsolate()
-	defer vm.Close()
+	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	for n := 0; n < b.N; n++ {
-		ctx, _ := v8go.NewContext(vm)
+		ctx, _ := v8go.NewContext(iso)
 		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)
@@ -125,6 +134,8 @@ func BenchmarkContext(b *testing.B) {
 
 func ExampleContext() {
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 	ctx.RunScript("const add = (a, b) => a + b", "math.js")
 	ctx.RunScript("const result = add(3, 4)", "main.js")
 	val, _ := ctx.RunScript("result", "value.js")
@@ -135,12 +146,15 @@ func ExampleContext() {
 
 func ExampleContext_isolate() {
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx1, _ := v8go.NewContext(iso)
+	defer ctx1.Close()
 	ctx1.RunScript("const foo = 'bar'", "context_one.js")
 	val, _ := ctx1.RunScript("foo", "foo.js")
 	fmt.Println(val)
 
 	ctx2, _ := v8go.NewContext(iso)
+	defer ctx2.Close()
 	_, err := ctx2.RunScript("foo", "context_two.js")
 	fmt.Println(err)
 	// Output:
@@ -150,9 +164,11 @@ func ExampleContext_isolate() {
 
 func ExampleContext_globalTemplate() {
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	obj := v8go.NewObjectTemplate(iso)
 	obj.Set("version", "v1.0.0")
 	ctx, _ := v8go.NewContext(iso, obj)
+	defer ctx.Close()
 	val, _ := ctx.RunScript("version", "main.js")
 	fmt.Println(val)
 	// Output:

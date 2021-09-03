@@ -22,6 +22,7 @@ func TestValueNewBaseCases(t *testing.T) {
 		t.Error("expected error, but got <nil>")
 	}
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	if _, err := v8go.NewValue(iso, nil); err == nil {
 		t.Error("expected error, but got <nil>")
 	}
@@ -34,6 +35,9 @@ func TestValueNewBaseCases(t *testing.T) {
 func TestValueFormatting(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		source          string
 		defaultVerb     string
@@ -47,7 +51,6 @@ func TestValueFormatting(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			if s := fmt.Sprintf("%v", val); s != tt.defaultVerb {
 				t.Errorf("incorrect format for %%v: %s", s)
@@ -68,6 +71,9 @@ func TestValueFormatting(t *testing.T) {
 func TestValueString(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		name   string
 		source string
@@ -82,7 +88,6 @@ func TestValueString(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			result, _ := ctx.RunScript(tt.source, "test.js")
 			str := result.String()
 			if str != tt.out {
@@ -95,6 +100,9 @@ func TestValueString(t *testing.T) {
 func TestValueDetailString(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		name   string
 		source string
@@ -109,7 +117,6 @@ func TestValueDetailString(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			result, _ := ctx.RunScript(tt.source, "test.js")
 			str := result.DetailString()
 			if str != tt.out {
@@ -122,6 +129,9 @@ func TestValueDetailString(t *testing.T) {
 func TestValueBoolean(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		source string
 		out    bool
@@ -142,7 +152,6 @@ func TestValueBoolean(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			if b := val.Boolean(); b != tt.out {
 				t.Errorf("unexpected value: expected %v, got %v", tt.out, b)
@@ -154,6 +163,9 @@ func TestValueBoolean(t *testing.T) {
 func TestValueArrayIndex(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		source string
 		idx    uint32
@@ -174,7 +186,6 @@ func TestValueArrayIndex(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			idx, ok := val.ArrayIndex()
 			if ok != tt.ok {
@@ -190,6 +201,9 @@ func TestValueArrayIndex(t *testing.T) {
 func TestValueInt32(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		source   string
 		expected int32
@@ -215,7 +229,6 @@ func TestValueInt32(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			if i32 := val.Int32(); i32 != tt.expected {
 				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i32)
@@ -227,6 +240,9 @@ func TestValueInt32(t *testing.T) {
 func TestValueInteger(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		source   string
 		expected int64
@@ -252,7 +268,6 @@ func TestValueInteger(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			if i64 := val.Integer(); i64 != tt.expected {
 				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i64)
@@ -264,6 +279,9 @@ func TestValueInteger(t *testing.T) {
 func TestValueNumber(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		source   string
 		expected float64
@@ -287,7 +305,6 @@ func TestValueNumber(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			f64 := val.Number()
 			if math.IsNaN(tt.expected) {
@@ -306,6 +323,9 @@ func TestValueNumber(t *testing.T) {
 func TestValueUint32(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	tests := [...]struct {
 		source   string
 		expected uint32
@@ -318,7 +338,6 @@ func TestValueUint32(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			if u32 := val.Uint32(); u32 != tt.expected {
 				t.Errorf("unexpected value: expected %v, got %v", tt.expected, u32)
@@ -330,6 +349,7 @@ func TestValueUint32(t *testing.T) {
 func TestValueBigInt(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 
 	x, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
 
@@ -349,8 +369,9 @@ func TestValueBigInt(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			ctx, _ := v8go.NewContext(iso)
+			defer ctx.Close()
+
 			val, _ := ctx.RunScript(tt.source, "test.js")
 			b := val.BigInt()
 			if b == nil && tt.expected != nil {
@@ -372,6 +393,9 @@ func TestValueObject(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsObject(); err == nil {
 		t.Error("Expected error but got <nil>")
@@ -385,6 +409,9 @@ func TestValuePromise(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsPromise(); err == nil {
 		t.Error("Expected error but got <nil>")
@@ -399,6 +426,9 @@ func TestValueFunction(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsFunction(); err == nil {
 		t.Error("Expected error but got <nil>")
@@ -416,6 +446,7 @@ func TestValueFunction(t *testing.T) {
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	tests := [...]struct {
 		source string
 		assert func(*v8go.Value) bool
@@ -514,8 +545,9 @@ func TestValueIsXXX(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			ctx, _ := v8go.NewContext(iso)
+			defer ctx.Close()
+
 			val, err := ctx.RunScript(tt.source, "test.js")
 			if err != nil {
 				t.Fatalf("failed to run script: %v", err)
@@ -530,15 +562,16 @@ func TestValueIsXXX(t *testing.T) {
 func TestValueMarshalJSON(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 
 	tests := [...]struct {
 		name     string
-		val      func() *v8go.Value
+		val      func(*v8go.Context) *v8go.Value
 		expected []byte
 	}{
 		{
 			"primitive",
-			func() *v8go.Value {
+			func(ctx *v8go.Context) *v8go.Value {
 				val, _ := v8go.NewValue(iso, int32(0))
 				return val
 			},
@@ -546,8 +579,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		},
 		{
 			"object",
-			func() *v8go.Value {
-				ctx, _ := v8go.NewContext(iso)
+			func(ctx *v8go.Context) *v8go.Value {
 				val, _ := ctx.RunScript("let foo = {a:1, b:2}; foo", "test.js")
 				return val
 			},
@@ -555,8 +587,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		},
 		{
 			"objectFunc",
-			func() *v8go.Value {
-				ctx, _ := v8go.NewContext(iso)
+			func(ctx *v8go.Context) *v8go.Value {
 				val, _ := ctx.RunScript("let foo = {a:1, b:()=>{}}; foo", "test.js")
 				return val
 			},
@@ -564,7 +595,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		},
 		{
 			"nil",
-			func() *v8go.Value { return nil },
+			func(ctx *v8go.Context) *v8go.Value { return nil },
 			[]byte(""),
 		},
 	}
@@ -572,8 +603,9 @@ func TestValueMarshalJSON(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			val := tt.val()
+			ctx, _ := v8go.NewContext(iso)
+			defer ctx.Close()
+			val := tt.val(ctx)
 			json, _ := val.MarshalJSON()
 			if !bytes.Equal(json, tt.expected) {
 				t.Errorf("unexpected JSON value: %s", string(json))

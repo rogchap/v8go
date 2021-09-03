@@ -14,6 +14,7 @@ import (
 func TestObjectTemplate(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	obj := v8go.NewObjectTemplate(iso)
 
 	setError := func(t *testing.T, err error) {
@@ -49,7 +50,6 @@ func TestObjectTemplate(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
 			setError(t, obj.Set(tt.name, tt.value, 0))
 		})
 	}
@@ -69,6 +69,7 @@ func TestObjectTemplate_panic_on_nil_isolate(t *testing.T) {
 func TestGlobalObjectTemplate(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	tests := [...]struct {
 		global   func() *v8go.ObjectTemplate
 		source   string
@@ -111,13 +112,13 @@ func TestGlobalObjectTemplate(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			t.Parallel()
 			ctx, _ := v8go.NewContext(iso, tt.global())
 			val, err := ctx.RunScript(tt.source, "test.js")
 			if err != nil {
 				t.Fatalf("unexpected error runing script: %v", err)
 			}
 			tt.validate(t, val)
+			ctx.Close()
 		})
 	}
 }
@@ -125,6 +126,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 func TestObjectTemplateNewInstance(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	tmpl := v8go.NewObjectTemplate(iso)
 	if _, err := tmpl.NewInstance(nil); err == nil {
 		t.Error("expected error but got <nil>")
@@ -132,6 +134,7 @@ func TestObjectTemplateNewInstance(t *testing.T) {
 
 	tmpl.Set("foo", "bar")
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
 	obj, _ := tmpl.NewInstance(ctx)
 	if foo, _ := obj.Get("foo"); foo.String() != "bar" {
 		t.Errorf("unexpected value for object property: %v", foo)
