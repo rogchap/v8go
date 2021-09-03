@@ -31,6 +31,28 @@ func (v *Value) value() *Value {
 	return v
 }
 
+func newValueNull(iso *Isolate) *Value {
+	return &Value{
+		ptr: C.NewValueNull(iso.ptr),
+	}
+}
+
+func newValueUndefined(iso *Isolate) *Value {
+	return &Value{
+		ptr: C.NewValueUndefined(iso.ptr),
+	}
+}
+
+// Undefined returns the `undefined` JS value
+func Undefined(iso *Isolate) *Value {
+	return iso.undefined
+}
+
+// Null returns the `null` JS value
+func Null(iso *Isolate) *Value {
+	return iso.null
+}
+
 // NewValue will create a primitive value. Supported values types to create are:
 //   string -> V8::String
 //   int32 -> V8::Integer

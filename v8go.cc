@@ -569,6 +569,26 @@ ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
   return tracked_value(ctx, val);
 }
 
+ValuePtr NewValueNull(IsolatePtr iso_ptr) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Null(iso));
+  return tracked_value(ctx, val);
+}
+
+ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Undefined(iso));
+  return tracked_value(ctx, val);
+}
+
 ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
   m_value* val = new m_value;
