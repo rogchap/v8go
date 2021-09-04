@@ -20,6 +20,7 @@ struct _EXCEPTION_POINTERS;
 
 #include "libplatform/libplatform.h"
 #include "v8.h"
+#include "v8-profiler.h"
 
 using namespace v8;
 
@@ -42,6 +43,11 @@ typedef struct {
   Isolate* iso;
   Persistent<Template> ptr;
 } m_template;
+
+typedef struct {
+  Isolate* iso;
+  CpuProfilePtr ptr;
+} m_cpuProfile;
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -132,6 +138,10 @@ extern "C" {
   Isolate::Scope isolate_scope(iso);             \
   HandleScope handle_scope(iso);
 
+#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
+  ISOLATE_SCOPE(iso_ptr);                       \
+  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+
 void Init() {
 #ifdef _WIN32
   V8::InitializeExternalStartupData(".");
@@ -200,6 +210,93 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
                             hs.number_of_native_contexts(),
                             hs.number_of_detached_contexts()};
 }
+
+/********** CpuProfiler **********/
+
+CpuProfilerPtr NewCpuProfiler(IsolatePtr iso_ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  CpuProfiler* cp = CpuProfiler::New(iso);
+  return cp;
+}
+
+void CpuProfilerDispose(CpuProfilerPtr ptr) {
+  CpuProfiler* cp = static_cast<CpuProfiler*>(ptr);
+  cp->Dispose();
+}
+
+void CpuProfilerStartProfiling(IsolatePtr iso_ptr, CpuProfilerPtr ptr, const char* title) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  CpuProfiler* cp = static_cast<CpuProfiler*>(ptr);
+
+  Local<String> title_str =
+      String::NewFromUtf8(iso, title, NewStringType::kNormal).ToLocalChecked();
+
+  cp->StartProfiling(title_str);
+}
+
+
+CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr, CpuProfilerPtr ptr, const char* title) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  CpuProfiler* cp = static_cast<CpuProfiler*>(ptr);
+
+  Local<String> title_str =
+      String::NewFromUtf8(iso, title, NewStringType::kNormal).ToLocalChecked();
+
+  CpuProfile* cpuProfile = cp->StopProfiling(title_str);
+
+  return cpuProfile;
+}
+
+CpuProfileNodePtr CpuProfileGetTopDownRoot(CpuProfilePtr ptr) {
+  CpuProfile* cp = static_cast<CpuProfile*>(ptr);
+  const CpuProfileNode* cpuProfileNode = cp->GetTopDownRoot();
+  return const_cast<CpuProfileNode*>(cpuProfileNode);
+}
+
+int CpuProfileNodeGetChildrenCount(CpuProfileNodePtr ptr) {
+  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
+  return cpn->GetChildrenCount();
+}
+
+CpuProfileNodePtr CpuProfileNodeGetChild(CpuProfilePtr ptr, int index) {
+  CpuProfileNode* cp = static_cast<CpuProfileNode*>(ptr);
+  const CpuProfileNode* cpuProfileNode = cp->GetChild(index);
+  return const_cast<CpuProfileNode*>(cpuProfileNode);
+}
+
+CpuProfileNodePtr CpuProfileNodeGetParent(CpuProfilePtr ptr) {
+  CpuProfileNode* cp = static_cast<CpuProfileNode*>(ptr);
+  const CpuProfileNode* cpuProfileNode = cp->GetParent();
+  return const_cast<CpuProfileNode*>(cpuProfileNode);
+}
+
+const char* CpuProfileNodeGetFunctionName(CpuProfileNodePtr ptr) {
+  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
+  return cpn->GetFunctionNameStr();
+}
+
+int CpuProfileNodeGetLineNumber(CpuProfileNodePtr ptr) {
+  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
+  return cpn->GetLineNumber();
+}
+
+int CpuProfileNodeGetColumnNumber(CpuProfilerPtr ptr) {
+  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
+  return cpn->GetColumnNumber();
+}
+
 
 /********** Template **********/
 
@@ -525,10 +622,6 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
   }                                             \
   Context::Scope context_scope(local_ctx);      \
   Local<Value> value = val->ptr.Get(iso);
-
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
-  ISOLATE_SCOPE(iso_ptr);                       \
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
 
 ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);

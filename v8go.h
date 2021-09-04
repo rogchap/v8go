@@ -16,6 +16,9 @@ typedef void* IsolatePtr;
 typedef void* ContextPtr;
 typedef void* ValuePtr;
 typedef void* TemplatePtr;
+typedef void* CpuProfilerPtr;
+typedef void* CpuProfilePtr;
+typedef void* CpuProfileNodePtr;
 
 typedef struct {
   const char* msg;
@@ -54,6 +57,25 @@ extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
+
+extern CpuProfilerPtr NewCpuProfiler(IsolatePtr iso_ptr);
+extern void CpuProfilerDispose(CpuProfilerPtr ptr);
+extern void CpuProfilerStartProfiling(IsolatePtr iso_ptr,
+                                      CpuProfilerPtr ptr,
+                                      const char* title);
+extern CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr,
+                                              CpuProfilerPtr ptr,
+                                              const char* title);
+
+extern CpuProfileNodePtr CpuProfileGetTopDownRoot(CpuProfilePtr ptr);
+
+extern const char* CpuProfileNodeGetFunctionName(CpuProfileNodePtr ptr);
+extern int CpuProfileNodeGetChildrenCount(CpuProfileNodePtr ptr);
+extern CpuProfileNodePtr CpuProfileNodeGetChild(CpuProfileNodePtr ptr,
+                                                int index);
+extern CpuProfileNodePtr CpuProfileNodeGetParent(CpuProfileNodePtr ptr);
+extern int CpuProfileNodeGetLineNumber(CpuProfileNodePtr ptr);
+extern int CpuProfileNodeGetColumnNumber(CpuProfileNodePtr ptr);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
