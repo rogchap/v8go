@@ -10,7 +10,7 @@ import (
 	"rogchap.com/v8go"
 )
 
-func TestCPUProfiler(t *testing.T) {
+func TestCPUProfile(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext(nil)
@@ -36,6 +36,11 @@ func TestCPUProfiler(t *testing.T) {
 	if cpuProfile == nil {
 		t.Fatal("expected profiler not to be nil")
 	}
+
+	if cpuProfile.GetTitle() != "test" {
+		t.Errorf("expected test, but got %v", cpuProfile.GetTitle())
+	}
+
 	root := cpuProfile.GetTopDownRoot()
 	if root == nil {
 		t.Fatal("expected root not to be nil")
@@ -44,34 +49,3 @@ func TestCPUProfiler(t *testing.T) {
 		t.Errorf("expected (root), but got %v", root.GetFunctionName())
 	}
 }
-
-const profileScript = `function loop(timeout) {
-  this.mmm = 0;
-  var start = Date.now();
-  while (Date.now() - start < timeout) {
-    var n = 100;
-    while(n > 1) {
-      n--;
-      this.mmm += n * n * n;
-    }
-  }
-}
-function delay() { try { loop(10); } catch(e) { } }
-function bar() { delay(); }
-function baz() { delay(); }
-function foo() {
-    try {
-       delay();
-       bar();
-       delay();
-       baz();
-    } catch (e) { }
-}
-function start(timeout) {
-  var start = Date.now();
-  do {
-    foo();
-    var duration = Date.now() - start;
-  } while (duration < timeout);
-  return duration;
-};`

@@ -63,9 +63,11 @@ extern void CpuProfilerDispose(CpuProfilerPtr ptr);
 extern void CpuProfilerStartProfiling(IsolatePtr iso_ptr,
                                       CpuProfilerPtr ptr,
                                       const char* title);
+
 extern CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr,
                                               CpuProfilerPtr ptr,
                                               const char* title);
+extern const char* CpuProfileGetTitle(IsolatePtr iso_ptr, CpuProfilePtr ptr);
 
 extern CpuProfileNodePtr CpuProfileGetTopDownRoot(CpuProfilePtr ptr);
 

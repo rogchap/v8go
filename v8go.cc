@@ -259,6 +259,18 @@ CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr, CpuProfilerPtr ptr, c
   return cpuProfile;
 }
 
+const char* CpuProfileGetTitle(IsolatePtr iso_ptr, CpuProfilePtr ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  CpuProfile* cp = static_cast<CpuProfile*>(ptr);
+  Local<String> str = cp->GetTitle();
+  String::Utf8Value title(iso, str);
+  return CopyString(title);
+}
+
 CpuProfileNodePtr CpuProfileGetTopDownRoot(CpuProfilePtr ptr) {
   CpuProfile* cp = static_cast<CpuProfile*>(ptr);
   const CpuProfileNode* cpuProfileNode = cp->GetTopDownRoot();
