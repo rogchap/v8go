@@ -156,6 +156,15 @@ This project also aims to keep up-to-date with the latest (stable) release of V8
 
 ## Development
 
+### Recompile V8 with debug info and debug checks
+
+[Aside from data races, Go should be memory-safe](https://research.swtch.com/gorace) and v8go should preserve this property by adding the necessary checks to return an error or panic on these unsupported code paths. Release builds of v8go don't include debugging information for the V8 library since it significantly adds to the binary size, slows down compilation and shouldn't be needed by users of v8go. However, if a v8go bug causes a crash (e.g. during new feature development) then it can be helpful to build V8 with debugging information to get a C++ backtrace with line numbers. The following steps will not only do that, but also enable V8 debug checking, which can help with catching misuse of the V8 API.
+
+1) Make sure to clone the projects submodules (ie. the V8's `depot_tools` project): `git submodule update --init --recursive`
+1) Build the V8 binary for your OS: `deps/build.py --debug`. V8 is a large project, and building the binary can take up to 30 minutes.
+1) Build the executable to debug, using `go build` for commands or `go test -c` for tests. You may need to add the `-ldflags=-compressdwarf=false` option to disable debug information compression so this information can be read by the debugger (e.g. lldb that comes with Xcode v12.5.1, the latest Xcode released at the time of writing)
+1) Run the executable with a debugger (e.g. `lldb -- ./v8go.test -test.run TestThatIsCrashing`, `run` to start execution then use `bt` to print a bracktrace after it breaks on a crash), since backtraces printed by Go or V8 don't currently include line number information.
+
 ### Upgrading the V8 binaries
 
 This process is non-trivial, and hopefully we can automate more of this in the future.
