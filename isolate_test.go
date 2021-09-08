@@ -22,7 +22,6 @@ func TestIsolateTermination(t *testing.T) {
 	defer iso.Dispose()
 	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
-	//	ctx2 := v8go.NewContext(iso)
 
 	err := make(chan error, 1)
 
