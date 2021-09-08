@@ -32,7 +32,7 @@ func TestCPUProfileNode(t *testing.T) {
 	_, err = fn.Call()
 	failIf(t, err)
 
-	cpuProfile := cpuProfiler.StopProfiling("cpuprofilenodetest", "")
+	cpuProfile := cpuProfiler.StopProfiling("cpuprofilenodetest")
 	if cpuProfile == nil {
 		t.Fatal("expected profile not to be nil")
 	}
@@ -55,6 +55,7 @@ func TestCPUProfileNode(t *testing.T) {
 	if startNode.GetFunctionName() != "start" {
 		t.Errorf("expected start, but got %v", startNode.GetFunctionName())
 	}
+	checkChildren(t, startNode, []string{"foo"})
 	checkPosition(t, startNode, 23, 15)
 
 	parentName := startNode.GetParent().GetFunctionName()

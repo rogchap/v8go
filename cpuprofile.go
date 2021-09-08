@@ -21,6 +21,7 @@ func (c *CPUProfile) GetTopDownRoot() *CPUProfileNode {
 	return &CPUProfileNode{ptr: ptr, iso: c.iso}
 }
 
+// Returns CPU profile title.
 func (c *CPUProfile) GetTitle() string {
 	str := C.CpuProfileGetTitle(c.iso.ptr, c.ptr)
 	return C.GoString(str)

@@ -32,7 +32,7 @@ func TestCPUProfile(t *testing.T) {
 	_, err = fn.Call()
 	failIf(t, err)
 
-	cpuProfile := cpuProfiler.StopProfiling("cpuprofiletest", "")
+	cpuProfile := cpuProfiler.StopProfiling("cpuprofiletest")
 	if cpuProfile == nil {
 		t.Fatal("expected profiler not to be nil")
 	}

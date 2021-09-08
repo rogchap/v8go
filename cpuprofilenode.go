@@ -43,14 +43,12 @@ func (c *CPUProfileNode) GetParent() *CPUProfileNode {
 }
 
 // Returns the number, 1-based, of the line where the function originates.
-// kNoLineNumberInfo if no line number information is available.
 func (c *CPUProfileNode) GetLineNumber() int {
 	i := C.CpuProfileNodeGetLineNumber(c.ptr)
 	return int(i)
 }
 
 //  Returns 1-based number of the column where the function originates.
-//  kNoColumnNumberInfo if no column number information is available.
 func (c *CPUProfileNode) GetColumnNumber() int {
 	i := C.CpuProfileNodeGetColumnNumber(c.ptr)
 	return int(i)
