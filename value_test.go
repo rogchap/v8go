@@ -160,6 +160,36 @@ func TestValueBoolean(t *testing.T) {
 	}
 }
 
+func TestValueConstants(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
+	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
+
+	tests := [...]struct {
+		source string
+		value  *v8go.Value
+		same   bool
+	}{
+		{"undefined", v8go.Undefined(iso), true},
+		{"null", v8go.Null(iso), true},
+		{"undefined", v8go.Null(iso), false},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		val, err := ctx.RunScript(tt.source, "test.js")
+		failIf(t, err)
+
+		if tt.value.SameValue(val) != tt.same {
+			t.Errorf("SameValue on JS `%s` and V8 value %+v didn't return %v",
+				tt.source, tt.value, tt.same)
+		}
+	}
+}
+
 func TestValueArrayIndex(t *testing.T) {
 	t.Parallel()
 	ctx, _ := v8go.NewContext(nil)

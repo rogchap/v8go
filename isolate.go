@@ -22,6 +22,9 @@ type Isolate struct {
 	cbMutex sync.RWMutex
 	cbSeq   int
 	cbs     map[int]FunctionCallback
+
+	null      *Value
+	undefined *Value
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -54,6 +57,8 @@ func NewIsolate() (*Isolate, error) {
 		ptr: C.NewIsolate(),
 		cbs: make(map[int]FunctionCallback),
 	}
+	iso.null = newValueNull(iso)
+	iso.undefined = newValueUndefined(iso)
 	// TODO: [RC] catch any C++ exceptions and return as error
 	return iso, nil
 }

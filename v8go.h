@@ -83,6 +83,8 @@ extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr,
                                             ContextPtr ctx_ptr);
 
+extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
+extern ValuePtr NewValueUndefined(IsolatePtr iso_ptr);
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
 extern ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v);
