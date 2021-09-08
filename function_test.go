@@ -15,6 +15,9 @@ func TestFunctionCall(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }", "")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("add")
@@ -38,6 +41,8 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 	_, err = ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("add")
@@ -66,6 +71,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 
 	called := false
@@ -78,6 +84,8 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 
 	ctx, err := v8go.NewContext(iso, global)
 	failIf(t, err)
+	defer ctx.Close()
+
 	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
 	failIf(t, err)
 	fn, err := val.AsFunction()
@@ -98,6 +106,9 @@ func TestFunctionCallError(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("throws")
@@ -120,6 +131,9 @@ func TestFunctionNewInstance(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	iso := ctx.Isolate()
 
 	value, err := ctx.Global().Get("Error")
@@ -148,6 +162,9 @@ func TestFunctionNewInstanceError(t *testing.T) {
 
 	ctx, err := v8go.NewContext()
 	failIf(t, err)
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
 	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
 	throwsValue, err := ctx.Global().Get("throws")
@@ -162,12 +179,5 @@ func TestFunctionNewInstanceError(t *testing.T) {
 	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)
-	}
-}
-
-func failIf(t *testing.T, err error) {
-	t.Helper()
-	if err != nil {
-		t.Fatal(err)
 	}
 }

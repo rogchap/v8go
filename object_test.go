@@ -15,6 +15,8 @@ func TestObjectSet(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
 	obj, _ := val.AsObject()
 	obj.Set("bar", "baz")
@@ -38,6 +40,8 @@ func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
 	obj, _ := val.AsObject()
 	if bar, _ := obj.Get("bar"); bar.String() != "baz" {
@@ -59,6 +63,8 @@ func TestObjectHas(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("a") {
@@ -79,6 +85,8 @@ func TestObjectDelete(t *testing.T) {
 	t.Parallel()
 
 	ctx, _ := v8go.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("bar") {
@@ -98,7 +106,9 @@ func TestObjectDelete(t *testing.T) {
 
 func ExampleObject_global() {
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
 	global := ctx.Global()
 
 	console := v8go.NewObjectTemplate(iso)

@@ -19,7 +19,9 @@ import (
 func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
 	//	ctx2, _ := v8go.NewContext(iso)
 
 	err := make(chan error, 1)
@@ -43,8 +45,11 @@ func TestIsolateTermination(t *testing.T) {
 func TestGetHeapStatistics(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()
-	v8go.NewContext(iso)
-	v8go.NewContext(iso)
+	defer iso.Dispose()
+	ctx1, _ := v8go.NewContext(iso)
+	defer ctx1.Close()
+	ctx2, _ := v8go.NewContext(iso)
+	defer ctx2.Close()
 
 	hs := iso.GetHeapStatistics()
 
@@ -61,6 +66,7 @@ func TestCallbackRegistry(t *testing.T) {
 	t.Parallel()
 
 	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
 	cb := func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }
 
 	cb0 := iso.GetCallback(0)
