@@ -62,7 +62,12 @@ func TestObjectSet(t *testing.T) {
 	if err := obj.Set("a", 0); err == nil {
 		t.Error("expected error but got <nil>")
 	}
-	obj.SetIdx(10, "ten")
+	if err := obj.SetIdx(10, "ten"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if err := obj.SetIdx(10, t); err == nil {
+		t.Error("expected error but got <nil>")
+	}
 	if ten, _ := ctx.RunScript("foo[10]", ""); ten.String() != "ten" {
 		t.Errorf("unexpected value: %q", ten)
 	}
