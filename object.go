@@ -19,6 +19,34 @@ type Object struct {
 	*Value
 }
 
+func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
+	ckey := C.CString(methodName)
+	defer C.free(unsafe.Pointer(ckey))
+
+	getRtn := C.ObjectGet(o.ptr, ckey)
+	err := getError(getRtn)
+	if err != nil {
+		return nil, err
+	}
+	fn, err := getValue(o.ctx, getRtn).AsFunction()
+	if err != nil {
+		return nil, err
+	}
+
+	var argptr *C.ValuePtr
+	if len(args) > 0 {
+		var cArgs = make([]C.ValuePtr, len(args))
+		for i, arg := range args {
+			cArgs[i] = arg.value().ptr
+		}
+		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
+	}
+	fn.ctx.register()
+	rtn := C.FunctionCall(fn.ptr, o.ptr, C.int(len(args)), argptr)
+	fn.ctx.deregister()
+	return getValue(fn.ctx, rtn), getError(rtn)
+}
+
 // Set will set a property on the Object to a given value.
 // Supports all value types, eg: Object, Array, Date, Set, Map etc
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)

@@ -1216,14 +1216,18 @@ static void buildCallArguments(Isolate* iso,
   }
 }
 
-RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr args[]) {
+RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
+
   RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
-  Local<Value> recv = Undefined(iso);
-  MaybeLocal<Value> result = fn->Call(local_ctx, recv, argc, argv);
+
+  m_value* recv_val = static_cast<m_value*>(recv);
+  Local<Value> local_recv = recv_val->ptr.Get(iso);
+
+  MaybeLocal<Value> result = fn->Call(local_ctx, local_recv, argc, argv);
   if (result.IsEmpty()) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;

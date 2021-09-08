@@ -11,6 +11,38 @@ import (
 	"rogchap.com/v8go"
 )
 
+func TestObjectMethodCall(t *testing.T) {
+	t.Parallel()
+
+	ctx, _ := v8go.NewContext()
+	iso := ctx.Isolate()
+	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	obj, _ := val.AsObject()
+	val, err := obj.MethodCall("print")
+	failIf(t, err)
+	if val.String() != "some val" {
+		t.Errorf("unexpected value: %q", val)
+	}
+	_, err = obj.MethodCall("prop")
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
+
+	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
+	failIf(t, err)
+	obj, _ = val.AsObject()
+	arg, _ := v8go.NewValue(iso, "arg")
+	val, err = obj.MethodCall("print", arg)
+	failIf(t, err)
+	if val.String() != "arg" {
+		t.Errorf("unexpected value: %q", val)
+	}
+	_, err = obj.MethodCall("fails")
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
+}
+
 func TestObjectSet(t *testing.T) {
 	t.Parallel()
 

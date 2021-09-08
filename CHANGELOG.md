@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Access "this" from function callback
 - value.SameValue(otherValue) function to compare values for sameness
 - Undefined, Null functions to get these constant values for the isolate
+- Support for calling a method on an object.
 
 ### Changed
 - Removed error return value from Context.Isolate() which never fails
