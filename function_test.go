@@ -27,7 +27,7 @@ func TestFunctionCall(t *testing.T) {
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	resultValue, err := fn.Call(ctx.Global(), arg1, arg1)
+	resultValue, err := fn.Call(v8go.Undefined(iso), arg1, arg1)
 	failIf(t, err)
 
 	if resultValue.Int32() != 2 {
@@ -58,7 +58,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	failIf(t, err)
 	fn, err := val.AsFunction()
 	failIf(t, err)
-	resultValue, err := fn.Call(ctx.Global())
+	resultValue, err := fn.Call(v8go.Undefined(iso))
 	failIf(t, err)
 
 	if !called {
@@ -84,7 +84,7 @@ func TestFunctionCallWithObjectReceiver(t *testing.T) {
 	failIf(t, err)
 	fn, err := fnVal.AsFunction()
 	failIf(t, err)
-	resultValue, err := fn.Call(obj)
+	resultValue, err := fn.Call(obj.Value)
 	failIf(t, err)
 
 	if !resultValue.IsString() || resultValue.String() != "some val" {
@@ -96,7 +96,8 @@ func TestFunctionCallError(t *testing.T) {
 	t.Parallel()
 
 	ctx := v8go.NewContext()
-	defer ctx.Isolate().Dispose()
+	iso := ctx.Isolate()
+	defer iso.Dispose()
 	defer ctx.Close()
 
 	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
@@ -105,7 +106,7 @@ func TestFunctionCallError(t *testing.T) {
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	_, err = fn.Call(ctx.Global())
+	_, err = fn.Call(v8go.Undefined(iso))
 	if err == nil {
 		t.Errorf("expected an error, got none")
 	}
