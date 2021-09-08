@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestObjectMethodCall(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	iso := ctx.Isolate()
 	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	obj, _ := val.AsObject()
@@ -31,7 +31,7 @@ func TestObjectMethodCall(t *testing.T) {
 	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
 	failIf(t, err)
 	obj, _ = val.AsObject()
-	arg, _ := v8go.NewValue(iso, "arg")
+	arg, _ := v8.NewValue(iso, "arg")
 	val, err = obj.MethodCall("print", arg)
 	failIf(t, err)
 	if val.String() != "arg" {
@@ -46,7 +46,7 @@ func TestObjectMethodCall(t *testing.T) {
 func TestObjectSet(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
@@ -71,7 +71,7 @@ func TestObjectSet(t *testing.T) {
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
@@ -94,7 +94,7 @@ func TestObjectGet(t *testing.T) {
 func TestObjectHas(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
@@ -116,7 +116,7 @@ func TestObjectHas(t *testing.T) {
 func TestObjectDelete(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
@@ -137,14 +137,14 @@ func TestObjectDelete(t *testing.T) {
 }
 
 func ExampleObject_global() {
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 	global := ctx.Global()
 
-	console := v8go.NewObjectTemplate(iso)
-	logfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	console := v8.NewObjectTemplate(iso)
+	logfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		fmt.Println(info.Args()[0])
 		return nil
 	})

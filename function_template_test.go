@@ -11,15 +11,15 @@ import (
 	"strings"
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestFunctionTemplate(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	fn := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil })
+	fn := v8.NewFunctionTemplate(iso, func(*v8.FunctionCallbackInfo) *v8.Value { return nil })
 	if fn == nil {
 		t.Error("expected FunctionTemplate, but got <nil>")
 	}
@@ -33,7 +33,7 @@ func TestFunctionTemplate_panic_on_nil_isolate(t *testing.T) {
 			t.Error("expected panic")
 		}
 	}()
-	v8go.NewFunctionTemplate(nil, func(*v8go.FunctionCallbackInfo) *v8go.Value {
+	v8.NewFunctionTemplate(nil, func(*v8.FunctionCallbackInfo) *v8.Value {
 		t.Error("unexpected call")
 		return nil
 	})
@@ -47,31 +47,31 @@ func TestFunctionTemplate_panic_on_nil_callback(t *testing.T) {
 			t.Error("expected panic")
 		}
 	}()
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	v8go.NewFunctionTemplate(iso, nil)
+	v8.NewFunctionTemplate(iso, nil)
 }
 
 func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
-	var args *v8go.FunctionCallbackInfo
-	tmpl := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	var args *v8.FunctionCallbackInfo
+	tmpl := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		args = info
-		reply, _ := v8go.NewValue(iso, "hello")
+		reply, _ := v8.NewValue(iso, "hello")
 		return reply
 	})
 	fn := tmpl.GetFunction(ctx)
-	ten, err := v8go.NewValue(iso, int32(10))
+	ten, err := v8.NewValue(iso, int32(10))
 	if err != nil {
 		t.Fatal(err)
 	}
-	ret, err := fn.Call(v8go.Undefined(iso), ten)
+	ret, err := fn.Call(v8.Undefined(iso), ten)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,22 +86,22 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 func TestFunctionCallbackInfoThis(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 
-	foo := v8go.NewObjectTemplate(iso)
+	foo := v8.NewObjectTemplate(iso)
 	foo.Set("name", "foobar")
 
-	var this *v8go.Object
-	barfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	var this *v8.Object
+	barfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		this = info.This()
 		return nil
 	})
 	foo.Set("bar", barfn)
 
-	global := v8go.NewObjectTemplate(iso)
+	global := v8.NewObjectTemplate(iso)
 	global.Set("foo", foo)
 
-	ctx := v8go.NewContext(iso, global)
+	ctx := v8.NewContext(iso, global)
 	ctx.RunScript("foo.bar()", "")
 
 	v, _ := this.Get("name")
@@ -111,15 +111,15 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 }
 
 func ExampleFunctionTemplate() {
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	global := v8go.NewObjectTemplate(iso)
-	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	global := v8.NewObjectTemplate(iso)
+	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		fmt.Printf("%+v\n", info.Args())
 		return nil
 	})
-	global.Set("print", printfn, v8go.ReadOnly)
-	ctx := v8go.NewContext(iso, global)
+	global.Set("print", printfn, v8.ReadOnly)
+	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
 	// Output:
@@ -127,33 +127,33 @@ func ExampleFunctionTemplate() {
 }
 
 func ExampleFunctionTemplate_fetch() {
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	global := v8go.NewObjectTemplate(iso)
+	global := v8.NewObjectTemplate(iso)
 
-	fetchfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	fetchfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		args := info.Args()
 		url := args[0].String()
 
-		resolver, _ := v8go.NewPromiseResolver(info.Context())
+		resolver, _ := v8.NewPromiseResolver(info.Context())
 
 		go func() {
 			res, _ := http.Get(url)
 			body, _ := ioutil.ReadAll(res.Body)
-			val, _ := v8go.NewValue(iso, string(body))
+			val, _ := v8.NewValue(iso, string(body))
 			resolver.Resolve(val)
 		}()
 		return resolver.GetPromise().Value
 	})
-	global.Set("fetch", fetchfn, v8go.ReadOnly)
+	global.Set("fetch", fetchfn, v8.ReadOnly)
 
-	ctx := v8go.NewContext(iso, global)
+	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
 	prom, _ := val.AsPromise()
 
 	// wait for the promise to resolve
-	for prom.State() == v8go.Pending {
+	for prom.State() == v8.Pending {
 		continue
 	}
 	fmt.Printf("%s\n", strings.Split(prom.Result().String(), "\n")[0])
