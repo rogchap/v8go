@@ -57,7 +57,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 
 	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
 
 	var args *v8go.FunctionCallbackInfo
@@ -101,7 +101,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	global := v8go.NewObjectTemplate(iso)
 	global.Set("foo", foo)
 
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx := v8go.NewContext(iso, global)
 	ctx.RunScript("foo.bar()", "")
 
 	v, _ := this.Get("name")
@@ -119,7 +119,7 @@ func ExampleFunctionTemplate() {
 		return nil
 	})
 	global.Set("print", printfn, v8go.ReadOnly)
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx := v8go.NewContext(iso, global)
 	defer ctx.Close()
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
 	// Output:
@@ -147,7 +147,7 @@ func ExampleFunctionTemplate_fetch() {
 	})
 	global.Set("fetch", fetchfn, v8go.ReadOnly)
 
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx := v8go.NewContext(iso, global)
 	defer ctx.Close()
 	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
 	prom, _ := val.AsPromise()

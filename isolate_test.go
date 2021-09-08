@@ -20,9 +20,9 @@ func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
 	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
-	//	ctx2, _ := v8go.NewContext(iso)
+	//	ctx2 := v8go.NewContext(iso)
 
 	err := make(chan error, 1)
 
@@ -46,9 +46,9 @@ func TestGetHeapStatistics(t *testing.T) {
 	t.Parallel()
 	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx1, _ := v8go.NewContext(iso)
+	ctx1 := v8go.NewContext(iso)
 	defer ctx1.Close()
-	ctx2, _ := v8go.NewContext(iso)
+	ctx2 := v8go.NewContext(iso)
 	defer ctx2.Close()
 
 	hs := iso.GetHeapStatistics()
@@ -132,7 +132,7 @@ func BenchmarkIsolateInitAndRun(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
 		vm := v8go.NewIsolate()
-		ctx, _ := v8go.NewContext(vm)
+		ctx := v8go.NewContext(vm)
 		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)

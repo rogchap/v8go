@@ -14,7 +14,7 @@ import (
 func TestObjectMethodCall(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8go.NewContext()
 	iso := ctx.Isolate()
 	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	obj, _ := val.AsObject()
@@ -46,7 +46,7 @@ func TestObjectMethodCall(t *testing.T) {
 func TestObjectSet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
@@ -71,7 +71,7 @@ func TestObjectSet(t *testing.T) {
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
@@ -94,7 +94,7 @@ func TestObjectGet(t *testing.T) {
 func TestObjectHas(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
@@ -116,7 +116,7 @@ func TestObjectHas(t *testing.T) {
 func TestObjectDelete(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
@@ -139,7 +139,7 @@ func TestObjectDelete(t *testing.T) {
 func ExampleObject_global() {
 	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
 	global := ctx.Global()
 

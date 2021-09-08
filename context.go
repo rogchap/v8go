@@ -46,7 +46,7 @@ type ContextOption interface {
 
 // NewContext creates a new JavaScript context; if no Isolate is passed as a
 // ContextOption than a new Isolate will be created.
-func NewContext(opt ...ContextOption) (*Context, error) {
+func NewContext(opt ...ContextOption) *Context {
 	opts := contextOptions{}
 	for _, o := range opt {
 		if o != nil {
@@ -72,8 +72,7 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
 	}
-	// TODO: [RC] catch any C++ exceptions and return as error
-	return ctx, nil
+	return ctx
 }
 
 // Isolate gets the current context's parent isolate.An  error is returned
