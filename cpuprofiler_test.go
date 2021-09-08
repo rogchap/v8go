@@ -21,7 +21,7 @@ func TestCPUProfiler(t *testing.T) {
 	cpuProfiler := v8go.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 
-	cpuProfiler.StartProfiling("test")
+	cpuProfiler.StartProfiling("cpuprofilertest")
 
 	_, err := ctx.RunScript(profileScript, "script.js")
 	failIf(t, err)
@@ -32,7 +32,7 @@ func TestCPUProfiler(t *testing.T) {
 	_, err = fn.Call()
 	failIf(t, err)
 
-	cpuProfile := cpuProfiler.StopProfiling("test", "")
+	cpuProfile := cpuProfiler.StopProfiling("cpuprofilertest", "")
 	if cpuProfile == nil {
 		t.Fatal("expected profiler not to be nil")
 	}

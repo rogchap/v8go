@@ -21,7 +21,7 @@ func TestCPUProfileNode(t *testing.T) {
 	cpuProfiler := v8go.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 
-	cpuProfiler.StartProfiling("test")
+	cpuProfiler.StartProfiling("cpuprofilenodetest")
 
 	_, err := ctx.RunScript(profileScript, "script.js")
 	failIf(t, err)
@@ -32,19 +32,24 @@ func TestCPUProfileNode(t *testing.T) {
 	_, err = fn.Call()
 	failIf(t, err)
 
-	cpuProfile := cpuProfiler.StopProfiling("test", "")
+	cpuProfile := cpuProfiler.StopProfiling("cpuprofilenodetest", "")
 	if cpuProfile == nil {
-		t.Fatal("expected profiler not to be nil")
+		t.Fatal("expected profile not to be nil")
 	}
 
 	root := cpuProfile.GetTopDownRoot()
 	if root == nil {
-		t.Fatal("expected root not to be nil")
+		t.Fatal("expected top down root not to be nil")
 	}
 	if root.GetFunctionName() != "(root)" {
 		t.Errorf("expected (root), but got %v", root.GetFunctionName())
 	}
 	checkChildren(t, root, []string{"(program)", "start", "(garbage collector)"})
+
+	invalidChild := root.GetChild(4)
+	if invalidChild != nil {
+		t.Errorf("expected nil child, but got %v", invalidChild.GetFunctionName())
+	}
 
 	startNode := root.GetChild(1)
 	if startNode.GetFunctionName() != "start" {
