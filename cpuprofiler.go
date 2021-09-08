@@ -47,6 +47,8 @@ func (c *CPUProfiler) StartProfiling(title string) {
 func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
 	tstr := C.CString(title)
 	defer C.free(unsafe.Pointer(tstr))
-	ptr := C.CpuProfilerStopProfiling(c.iso.ptr, c.ptr, tstr)
-	return &CPUProfile{ptr: ptr, iso: c.iso}
+	return &CPUProfile{
+		ptr: C.CpuProfilerStopProfiling(c.iso.ptr, c.ptr, tstr),
+		iso: c.iso,
+	}
 }

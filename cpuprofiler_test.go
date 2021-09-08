@@ -10,6 +10,18 @@ import (
 	"rogchap.com/v8go"
 )
 
+func TestCPUProfilerDispose(t *testing.T) {
+	t.Parallel()
+
+	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
+	cpuProfiler := v8go.NewCPUProfiler(iso)
+
+	cpuProfiler.Dispose()
+	// noop when called multiple times
+	cpuProfiler.Dispose()
+}
+
 func TestCPUProfiler(t *testing.T) {
 	t.Parallel()
 
