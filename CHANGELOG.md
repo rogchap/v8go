@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for calling constructors functions with NewInstance on Function
 - Build v8 with i18n support
 - Access "this" from function callback
+- value.SameValue(otherValue) function to compare values for sameness
 
 ### Changed
 - Removed error return value from Context.Isolate() which never fails

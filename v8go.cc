@@ -708,6 +708,17 @@ ValuePtr ValueToObject(ValuePtr ptr) {
   return tracked_value(ctx, new_val);
 }
 
+int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr) {
+  m_value* val1 = static_cast<m_value*>(ptr);
+  m_value* val2 = static_cast<m_value*>(otherPtr);
+
+  ISOLATE_SCOPE(val1->iso);
+  Local<Value> value1 = val1->ptr.Get(iso);
+  Local<Value> value2 = val2->ptr.Get(iso);
+
+  return value1->SameValue(value2);
+}
+
 int ValueIsUndefined(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsUndefined();

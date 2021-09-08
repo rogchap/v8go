@@ -443,6 +443,27 @@ func TestValueFunction(t *testing.T) {
 
 }
 
+func TestValueSameValue(t *testing.T) {
+	t.Parallel()
+	iso, _ := v8go.NewIsolate()
+	defer iso.Dispose()
+	ctx, _ := v8go.NewContext(iso)
+	defer ctx.Close()
+
+	objTempl := v8go.NewObjectTemplate(iso)
+	obj1, err := objTempl.NewInstance(ctx)
+	failIf(t, err)
+	obj2, err := objTempl.NewInstance(ctx)
+	failIf(t, err)
+
+	if obj1.Value.SameValue(obj2.Value) != false {
+		t.Errorf("SameValue on two different values didn't return false")
+	}
+	if obj1.Value.SameValue(obj1.Value) != true {
+		t.Errorf("SameValue on two of the same value didn't return true")
+	}
+}
+
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
 	iso, _ := v8go.NewIsolate()

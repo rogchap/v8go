@@ -105,6 +105,7 @@ const char* ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
 extern ValuePtr ValueToObject(ValuePtr ptr);
+int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
 int ValueIsNullOrUndefined(ValuePtr ptr);
