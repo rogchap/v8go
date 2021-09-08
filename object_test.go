@@ -32,8 +32,11 @@ func TestObjectMethodCall(t *testing.T) {
 	failIf(t, err)
 	obj, _ = val.AsObject()
 	arg, _ := v8go.NewValue(iso, "arg")
-	_, err = obj.MethodCall("print", arg)
+	val, err = obj.MethodCall("print", arg)
 	failIf(t, err)
+	if val.String() != "arg" {
+		t.Errorf("unexpected value: %q", val)
+	}
 	_, err = obj.MethodCall("fails")
 	if err == nil {
 		t.Errorf("expected an error, got none")
