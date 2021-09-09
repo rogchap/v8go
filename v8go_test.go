@@ -22,7 +22,7 @@ func TestVersion(t *testing.T) {
 
 func TestSetFlag(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext()
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	if _, err := ctx.RunScript("a = 1", "default.js"); err != nil {

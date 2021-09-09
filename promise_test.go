@@ -13,9 +13,9 @@ import (
 func TestPromiseFulfilled(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
 
 	if _, err := v8go.NewPromiseResolver(nil); err == nil {
@@ -63,9 +63,9 @@ func TestPromiseFulfilled(t *testing.T) {
 func TestPromiseRejected(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
 
 	res2, _ := v8go.NewPromiseResolver(ctx)
@@ -113,9 +113,9 @@ func TestPromiseRejected(t *testing.T) {
 func TestPromiseThenPanic(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
 
 	res, _ := v8go.NewPromiseResolver(ctx)

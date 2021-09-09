@@ -17,7 +17,7 @@ import (
 func TestFunctionTemplate(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	fn := v8go.NewFunctionTemplate(iso, func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil })
 	if fn == nil {
@@ -47,7 +47,7 @@ func TestFunctionTemplate_panic_on_nil_callback(t *testing.T) {
 			t.Error("expected panic")
 		}
 	}()
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	v8go.NewFunctionTemplate(iso, nil)
 }
@@ -55,9 +55,9 @@ func TestFunctionTemplate_panic_on_nil_callback(t *testing.T) {
 func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
 
 	var args *v8go.FunctionCallbackInfo
@@ -86,7 +86,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 func TestFunctionCallbackInfoThis(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 
 	foo := v8go.NewObjectTemplate(iso)
 	foo.Set("name", "foobar")
@@ -101,7 +101,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	global := v8go.NewObjectTemplate(iso)
 	global.Set("foo", foo)
 
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx := v8go.NewContext(iso, global)
 	ctx.RunScript("foo.bar()", "")
 
 	v, _ := this.Get("name")
@@ -111,7 +111,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 }
 
 func ExampleFunctionTemplate() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
@@ -119,7 +119,7 @@ func ExampleFunctionTemplate() {
 		return nil
 	})
 	global.Set("print", printfn, v8go.ReadOnly)
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx := v8go.NewContext(iso, global)
 	defer ctx.Close()
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
 	// Output:
@@ -127,7 +127,7 @@ func ExampleFunctionTemplate() {
 }
 
 func ExampleFunctionTemplate_fetch() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 
@@ -147,7 +147,7 @@ func ExampleFunctionTemplate_fetch() {
 	})
 	global.Set("fetch", fetchfn, v8go.ReadOnly)
 
-	ctx, _ := v8go.NewContext(iso, global)
+	ctx := v8go.NewContext(iso, global)
 	defer ctx.Close()
 	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
 	prom, _ := val.AsPromise()

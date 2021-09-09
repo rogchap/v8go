@@ -13,12 +13,11 @@ import (
 func TestFunctionCall(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
-	failIf(t, err)
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	_, err = ctx.RunScript("function add(a, b) { return a + b; }", "")
+	_, err := ctx.RunScript("function add(a, b) { return a + b; }", "")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("add")
 	failIf(t, err)
@@ -39,11 +38,10 @@ func TestFunctionCall(t *testing.T) {
 func TestFunctionSourceMapUrl(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
-	failIf(t, err)
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	_, err = ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
+	_, err := ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("add")
 	failIf(t, err)
@@ -70,7 +68,7 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8go.NewIsolate()
 	defer iso.Dispose()
 	global := v8go.NewObjectTemplate(iso)
 
@@ -82,8 +80,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 
 	global.Set("print", printfn, v8go.ReadOnly)
 
-	ctx, err := v8go.NewContext(iso, global)
-	failIf(t, err)
+	ctx := v8go.NewContext(iso, global)
 	defer ctx.Close()
 
 	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
@@ -104,12 +101,11 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 func TestFunctionCallError(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
-	failIf(t, err)
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
+	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
 	addValue, err := ctx.Global().Get("throws")
 	failIf(t, err)
@@ -129,8 +125,7 @@ func TestFunctionCallError(t *testing.T) {
 func TestFunctionNewInstance(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
-	failIf(t, err)
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -160,12 +155,11 @@ func TestFunctionNewInstance(t *testing.T) {
 func TestFunctionNewInstanceError(t *testing.T) {
 	t.Parallel()
 
-	ctx, err := v8go.NewContext()
-	failIf(t, err)
+	ctx := v8go.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	_, err = ctx.RunScript("function throws() { throw 'error'; }", "script.js")
+	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	failIf(t, err)
 	throwsValue, err := ctx.Global().Get("throws")
 	failIf(t, err)
