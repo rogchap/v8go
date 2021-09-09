@@ -71,7 +71,7 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ret, err := fn.Call(ten)
+	ret, err := fn.Call(v8go.Undefined(iso), ten)
 	if err != nil {
 		t.Fatal(err)
 	}

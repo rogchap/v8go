@@ -27,11 +27,93 @@ func TestFunctionCall(t *testing.T) {
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	resultValue, err := fn.Call(arg1, arg1)
+	resultValue, err := fn.Call(v8go.Undefined(iso), arg1, arg1)
 	failIf(t, err)
 
 	if resultValue.Int32() != 2 {
 		t.Errorf("expected 1 + 1 = 2, got: %v", resultValue.DetailString())
+	}
+}
+
+func TestFunctionCallToGoFunc(t *testing.T) {
+	t.Parallel()
+
+	iso := v8go.NewIsolate()
+	defer iso.Dispose()
+	global := v8go.NewObjectTemplate(iso)
+
+	called := false
+	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		called = true
+		return nil
+	})
+
+	err := global.Set("print", printfn, v8go.ReadOnly)
+	failIf(t, err)
+
+	ctx := v8go.NewContext(iso, global)
+	defer ctx.Close()
+
+	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
+	failIf(t, err)
+	fn, err := val.AsFunction()
+	failIf(t, err)
+	resultValue, err := fn.Call(v8go.Undefined(iso))
+	failIf(t, err)
+
+	if !called {
+		t.Errorf("expected my function to be called, wasn't")
+	}
+	if !resultValue.IsUndefined() {
+		t.Errorf("expected undefined, got: %v", resultValue.DetailString())
+	}
+}
+
+func TestFunctionCallWithObjectReceiver(t *testing.T) {
+	t.Parallel()
+
+	iso := v8go.NewIsolate()
+	global := v8go.NewObjectTemplate(iso)
+
+	ctx := v8go.NewContext(iso, global)
+	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	failIf(t, err)
+	obj, err := val.AsObject()
+	failIf(t, err)
+	fnVal, err := obj.Get("print")
+	failIf(t, err)
+	fn, err := fnVal.AsFunction()
+	failIf(t, err)
+	resultValue, err := fn.Call(obj)
+	failIf(t, err)
+
+	if !resultValue.IsString() || resultValue.String() != "some val" {
+		t.Errorf("expected 'some val', got: %v", resultValue.DetailString())
+	}
+}
+
+func TestFunctionCallError(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8go.NewContext()
+	iso := ctx.Isolate()
+	defer iso.Dispose()
+	defer ctx.Close()
+
+	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
+	failIf(t, err)
+	addValue, err := ctx.Global().Get("throws")
+	failIf(t, err)
+
+	fn, _ := addValue.AsFunction()
+	_, err = fn.Call(v8go.Undefined(iso))
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
+	got := *(err.(*v8go.JSError))
+	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
+	if got != want {
+		t.Errorf("want %+v, got: %+v", want, got)
 	}
 }
 
@@ -62,63 +144,6 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 	resultVal = subFn.SourceMapUrl()
 	if !resultVal.IsUndefined() {
 		t.Errorf("expected undefined, got: %v", resultVal.DetailString())
-	}
-}
-
-func TestFunctionCallToGoFunc(t *testing.T) {
-	t.Parallel()
-
-	iso := v8go.NewIsolate()
-	defer iso.Dispose()
-	global := v8go.NewObjectTemplate(iso)
-
-	called := false
-	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		called = true
-		return nil
-	})
-
-	global.Set("print", printfn, v8go.ReadOnly)
-
-	ctx := v8go.NewContext(iso, global)
-	defer ctx.Close()
-
-	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
-	failIf(t, err)
-	fn, err := val.AsFunction()
-	failIf(t, err)
-	resultValue, err := fn.Call()
-	failIf(t, err)
-
-	if !called {
-		t.Errorf("expected my function to be called, wasn't")
-	}
-	if !resultValue.IsUndefined() {
-		t.Errorf("expected undefined, got: %v", resultValue.DetailString())
-	}
-}
-
-func TestFunctionCallError(t *testing.T) {
-	t.Parallel()
-
-	ctx := v8go.NewContext()
-	defer ctx.Isolate().Dispose()
-	defer ctx.Close()
-
-	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
-	failIf(t, err)
-	addValue, err := ctx.Global().Get("throws")
-	failIf(t, err)
-
-	fn, _ := addValue.AsFunction()
-	_, err = fn.Call()
-	if err == nil {
-		t.Errorf("expected an error, got none")
-	}
-	got := *(err.(*v8go.JSError))
-	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
-	if got != want {
-		t.Errorf("want %+v, got: %+v", want, got)
 	}
 }
 
