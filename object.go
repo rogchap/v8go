@@ -32,7 +32,7 @@ func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return fn.Call(o.Value, args...)
+	return fn.Call(o, args...)
 }
 
 // Set will set a property on the Object to a given value.

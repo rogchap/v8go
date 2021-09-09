@@ -84,7 +84,7 @@ func TestFunctionCallWithObjectReceiver(t *testing.T) {
 	failIf(t, err)
 	fn, err := fnVal.AsFunction()
 	failIf(t, err)
-	resultValue, err := fn.Call(obj.Value)
+	resultValue, err := fn.Call(obj)
 	failIf(t, err)
 
 	if !resultValue.IsString() || resultValue.String() != "some val" {
