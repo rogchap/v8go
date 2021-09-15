@@ -23,13 +23,6 @@ func TestIsolateTermination(t *testing.T) {
 	ctx := v8go.NewContext(iso)
 	defer ctx.Close()
 
-	err := make(chan error, 1)
-
-	go func() {
-		_, e := ctx.RunScript(`while (true) { }`, "forever.js")
-		err <- e
-	}()
-
 	go func() {
 		// [RC] find a better way to know when a script has started execution
 		time.Sleep(time.Millisecond)
