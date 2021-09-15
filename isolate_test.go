@@ -39,6 +39,9 @@ func TestIsolateTermination(t *testing.T) {
 	if e := <-err; e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
 	}
+	if iso.IsExecutionTerminating() {
+		t.Errorf("expect execution to be terminated")
+	}
 }
 
 func TestGetHeapStatistics(t *testing.T) {
