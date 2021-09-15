@@ -36,7 +36,8 @@ func TestIsolateTermination(t *testing.T) {
 		iso.TerminateExecution()
 	}()
 
-	if e := <-err; e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
+	_, e := ctx.RunScript(`while (true) { }`, "forever.js")
+	if e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
 	}
 	if iso.IsExecutionTerminating() {
