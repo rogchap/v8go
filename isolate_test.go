@@ -27,10 +27,7 @@ func TestIsolateTermination(t *testing.T) {
 
 	var terminating bool
 	fooFn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
-		ctx := info.Context()
-		obj := ctx.Global()
-		val, _ := obj.Get("loop")
-		loop, _ := val.AsFunction()
+		loop, _ := info.Args()[0].AsFunction()
 		loop.Call(v8go.Undefined(iso))
 
 		terminating = iso.IsExecutionTerminating()
