@@ -21,19 +21,19 @@ jobs:
             - name: Build V8 linux
               if: matrix.platform == 'ubuntu-18.04'
               run: cd deps && ./build.py --no-clang
-            - name: Build V8 macOS
-              if: matrix.platform == 'macos-latest'
-              run: cd deps && ./build.py
-            - name: Add MSYS2 to PATH
-              if: matrix.platform == 'windows-latest'
-              run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
-              shell: bash
-            - name: Build V8 windows
-              if: matrix.platform == 'windows-latest'
-              run: cd deps; python build.py --no-clang
-              env:
-                MSYSTEM: MINGW64
-                DEPOT_TOOLS_WIN_TOOLCHAIN: 0
+            # - name: Build V8 macOS
+            #   if: matrix.platform == 'macos-latest'
+            #   run: cd deps && ./build.py
+            # - name: Add MSYS2 to PATH
+            #   if: matrix.platform == 'windows-latest'
+            #   run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
+            #   shell: bash
+            # - name: Build V8 windows
+            #   if: matrix.platform == 'windows-latest'
+            #   run: cd deps; python build.py --no-clang
+            #   env:
+            #     MSYSTEM: MINGW64
+            #     DEPOT_TOOLS_WIN_TOOLCHAIN: 0
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
