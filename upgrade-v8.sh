@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 echo "Cloning the v8 projects submodules..."
 git submodule update --init --recursive
@@ -27,16 +27,7 @@ pushd deps
   fetch v8
 
   pushd v8
-
-    # TODO: Change git config or setup fetch to get all the branch-heads for v8
-    # Enter the v8 folder and fetch all the latest git branches: cd deps/v8 && git fetch
-    git fetch
-
-    # Find the right branch-heads/** to checkout, for example if the v8_version
-    # is 8.7.220.31 then you want to git checkout branch-heads/8.7. You can
-    # check all the branch-heads with git branch --remotes | grep branch-heads/
-    git checkout branch-heads/${v8_major}.${v8_minor}
-
+    git checkout "${v8_commit}"
   popd
 
 
@@ -56,7 +47,4 @@ popd
 
 echo "Running tests..."
 go test -v .
-
-
-
 
