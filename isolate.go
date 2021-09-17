@@ -68,6 +68,13 @@ func (i *Isolate) TerminateExecution() {
 	C.IsolateTerminateExecution(i.ptr)
 }
 
+// IsExecutionTerminating returns whether V8 is currently terminating
+// Javascript execution. If true, there are still JavaScript frames
+// on the stack and the termination exception is still active.
+func (i *Isolate) IsExecutionTerminating() bool {
+	return C.IsolateIsExecutionTerminating(i.ptr) == 1
+}
+
 // GetHeapStatistics returns heap statistics for an isolate.
 func (i *Isolate) GetHeapStatistics() HeapStatistics {
 	hs := C.IsolationGetHeapStatistics(i.ptr)

@@ -20,15 +20,25 @@ func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
 	iso := v8go.NewIsolate()
 	defer iso.Dispose()
-	ctx := v8go.NewContext(iso)
+
+	if iso.IsExecutionTerminating() {
+		t.Error("expected no execution to be terminating")
+	}
+
+	var terminating bool
+	fooFn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		loop, _ := info.Args()[0].AsFunction()
+		loop.Call(v8go.Undefined(iso))
+
+		terminating = iso.IsExecutionTerminating()
+		return nil
+	})
+
+	global := v8go.NewObjectTemplate(iso)
+	global.Set("foo", fooFn)
+
+	ctx := v8go.NewContext(iso, global)
 	defer ctx.Close()
-
-	err := make(chan error, 1)
-
-	go func() {
-		_, e := ctx.RunScript(`while (true) { }`, "forever.js")
-		err <- e
-	}()
 
 	go func() {
 		// [RC] find a better way to know when a script has started execution
@@ -36,8 +46,14 @@ func TestIsolateTermination(t *testing.T) {
 		iso.TerminateExecution()
 	}()
 
-	if e := <-err; e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
+	script := `function loop() { while (true) { } }; foo(loop);`
+	_, e := ctx.RunScript(script, "forever.js")
+	if e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
+	}
+
+	if !terminating {
+		t.Error("expected execution to have been terminating in function")
 	}
 }
 
