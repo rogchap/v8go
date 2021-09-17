@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - value.SameValue(otherValue) function to compare values for sameness
 - Undefined, Null functions to get these constant values for the isolate
 - Support for calling a method on an object.
+- Support for calling `IsExecutionTerminating` on isolate to check if execution is still terminating.
 
 ### Changed
 - Removed error return value from NewIsolate which never fails
