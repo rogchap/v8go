@@ -14,13 +14,13 @@
 ## Usage
 
 ```go
-import "rogchap.com/v8go"
+import v8 "rogchap.com/v8go"
 ```
 
 ### Running a script
 
 ```go
-ctx := v8go.NewContext() // creates a new V8 context with a new Isolate aka VM
+ctx := v8.NewContext() // creates a new V8 context with a new Isolate aka VM
 ctx.RunScript("const add = (a, b) => a + b", "math.js") // executes a script on the global context
 ctx.RunScript("const result = add(3, 4)", "main.js") // any functions previously added to the context can be called
 val, _ := ctx.RunScript("result", "value.js") // return a value in JavaScript back to Go
@@ -30,11 +30,11 @@ fmt.Printf("addition result: %s", val)
 ### One VM, many contexts
 
 ```go
-iso := v8go.NewIsolate() // creates a new JavaScript VM
-ctx1 := v8go.NewContext(iso) // new context within the VM
+iso := v8.NewIsolate() // creates a new JavaScript VM
+ctx1 := v8.NewContext(iso) // new context within the VM
 ctx1.RunScript("const multiply = (a, b) => a * b", "math.js")
 
-ctx2 := v8go.NewContext(iso) // another context on the same VM
+ctx2 := v8.NewContext(iso) // another context on the same VM
 if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
   // this will error as multiply is not defined in this context
 }
@@ -43,22 +43,22 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 ### JavaScript function with Go callback
 
 ```go
-iso := v8go.NewIsolate() // create a new VM
+iso := v8.NewIsolate() // create a new VM
 // a template that represents a JS function
-printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
     fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
     return nil // you can return a value back to the JS caller if required
 })
-global := v8go.NewObjectTemplate(iso) // a template that represents a JS Object
+global := v8.NewObjectTemplate(iso) // a template that represents a JS Object
 global.Set("print", printfn) // sets the "print" property of the Object to our function
-ctx := v8go.NewContext(iso, global) // new Context with the global Object set to our object template
+ctx := v8.NewContext(iso, global) // new Context with the global Object set to our object template
 ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
 ```
 
 ### Update a JavaScript object from Go
 
 ```go
-ctx := v8go.NewContext() // new context with a default VM
+ctx := v8.NewContext() // new context with a default VM
 obj := ctx.Global() // get the global object from the context
 obj.Set("version", "v1.0.0") // set the property "version" on the object
 val, _ := ctx.RunScript("version", "version.js") // global object will have the property set within the JS VM
@@ -74,7 +74,7 @@ if obj.Has("version") { // check if a property exists on the object
 ```go
 val, err := ctx.RunScript(src, filename)
 if err != nil {
-  e := err.(*v8go.JSError) // JavaScript errors will be returned as the JSError struct
+  e := err.(*v8.JSError) // JavaScript errors will be returned as the JSError struct
   fmt.Println(e.Message) // the message of the exception thrown
   fmt.Println(e.Location) // the filename, line number and the column where the error occured
   fmt.Println(e.StackTrace) // the full stack trace of the error, if available
@@ -87,7 +87,7 @@ if err != nil {
 ### Terminate long running scripts
 
 ```go
-vals := make(chan *v8go.Value, 1)
+vals := make(chan *v8.Value, 1)
 errs := make(chan error, 1)
 
 go func() {

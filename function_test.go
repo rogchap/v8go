@@ -7,13 +7,13 @@ package v8go_test
 import (
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestFunctionCall(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -23,11 +23,11 @@ func TestFunctionCall(t *testing.T) {
 	failIf(t, err)
 	iso := ctx.Isolate()
 
-	arg1, err := v8go.NewValue(iso, int32(1))
+	arg1, err := v8.NewValue(iso, int32(1))
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	resultValue, err := fn.Call(v8go.Undefined(iso), arg1, arg1)
+	resultValue, err := fn.Call(v8.Undefined(iso), arg1, arg1)
 	failIf(t, err)
 
 	if resultValue.Int32() != 2 {
@@ -38,27 +38,27 @@ func TestFunctionCall(t *testing.T) {
 func TestFunctionCallToGoFunc(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	global := v8go.NewObjectTemplate(iso)
+	global := v8.NewObjectTemplate(iso)
 
 	called := false
-	printfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		called = true
 		return nil
 	})
 
-	err := global.Set("print", printfn, v8go.ReadOnly)
+	err := global.Set("print", printfn, v8.ReadOnly)
 	failIf(t, err)
 
-	ctx := v8go.NewContext(iso, global)
+	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 
 	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
 	failIf(t, err)
 	fn, err := val.AsFunction()
 	failIf(t, err)
-	resultValue, err := fn.Call(v8go.Undefined(iso))
+	resultValue, err := fn.Call(v8.Undefined(iso))
 	failIf(t, err)
 
 	if !called {
@@ -72,10 +72,10 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 func TestFunctionCallWithObjectReceiver(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
-	global := v8go.NewObjectTemplate(iso)
+	iso := v8.NewIsolate()
+	global := v8.NewObjectTemplate(iso)
 
-	ctx := v8go.NewContext(iso, global)
+	ctx := v8.NewContext(iso, global)
 	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	failIf(t, err)
 	obj, err := val.AsObject()
@@ -95,7 +95,7 @@ func TestFunctionCallWithObjectReceiver(t *testing.T) {
 func TestFunctionCallError(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	iso := ctx.Isolate()
 	defer iso.Dispose()
 	defer ctx.Close()
@@ -106,12 +106,12 @@ func TestFunctionCallError(t *testing.T) {
 	failIf(t, err)
 
 	fn, _ := addValue.AsFunction()
-	_, err = fn.Call(v8go.Undefined(iso))
+	_, err = fn.Call(v8.Undefined(iso))
 	if err == nil {
 		t.Errorf("expected an error, got none")
 	}
-	got := *(err.(*v8go.JSError))
-	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
+	got := *(err.(*v8.JSError))
+	want := v8.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)
 	}
@@ -120,7 +120,7 @@ func TestFunctionCallError(t *testing.T) {
 func TestFunctionSourceMapUrl(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	_, err := ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
@@ -150,7 +150,7 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 func TestFunctionNewInstance(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -160,7 +160,7 @@ func TestFunctionNewInstance(t *testing.T) {
 	failIf(t, err)
 	fn, err := value.AsFunction()
 	failIf(t, err)
-	messageObj, err := v8go.NewValue(iso, "test message")
+	messageObj, err := v8.NewValue(iso, "test message")
 	failIf(t, err)
 	errObj, err := fn.NewInstance(messageObj)
 	failIf(t, err)
@@ -180,7 +180,7 @@ func TestFunctionNewInstance(t *testing.T) {
 func TestFunctionNewInstanceError(t *testing.T) {
 	t.Parallel()
 
-	ctx := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -194,8 +194,8 @@ func TestFunctionNewInstanceError(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected an error, got none")
 	}
-	got := *(err.(*v8go.JSError))
-	want := v8go.JSError{Message: "error", Location: "script.js:1:21"}
+	got := *(err.(*v8.JSError))
+	want := v8.JSError{Message: "error", Location: "script.js:1:21"}
 	if got != want {
 		t.Errorf("want %+v, got: %+v", want, got)
 	}
