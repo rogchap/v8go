@@ -7,44 +7,44 @@ package v8go_test
 import (
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestPromiseFulfilled(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
-	if _, err := v8go.NewPromiseResolver(nil); err == nil {
+	if _, err := v8.NewPromiseResolver(nil); err == nil {
 		t.Error("expected error with <nil> Context")
 	}
 
-	res1, _ := v8go.NewPromiseResolver(ctx)
+	res1, _ := v8.NewPromiseResolver(ctx)
 	prom1 := res1.GetPromise()
-	if s := prom1.State(); s != v8go.Pending {
+	if s := prom1.State(); s != v8.Pending {
 		t.Errorf("unexpected state for Promise, want Pending (0) got: %v", s)
 	}
 
-	var thenInfo *v8go.FunctionCallbackInfo
-	prom1thenVal := prom1.Then(func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	var thenInfo *v8.FunctionCallbackInfo
+	prom1thenVal := prom1.Then(func(info *v8.FunctionCallbackInfo) *v8.Value {
 		thenInfo = info
 		return nil
 	})
 	prom1then, _ := prom1thenVal.AsPromise()
-	if prom1then.State() != v8go.Pending {
+	if prom1then.State() != v8.Pending {
 		t.Errorf("unexpected state for dependent Promise, want Pending got: %v", prom1then.State())
 	}
 	if thenInfo != nil {
 		t.Error("unexpected call of Then prior to resolving the promise")
 	}
 
-	val1, _ := v8go.NewValue(iso, "foo")
+	val1, _ := v8.NewValue(iso, "foo")
 	res1.Resolve(val1)
 
-	if s := prom1.State(); s != v8go.Fulfilled {
+	if s := prom1.State(); s != v8.Fulfilled {
 		t.Fatalf("unexpected state for Promise, want Fulfilled (1) got: %v", s)
 	}
 
@@ -63,33 +63,33 @@ func TestPromiseFulfilled(t *testing.T) {
 func TestPromiseRejected(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
-	res2, _ := v8go.NewPromiseResolver(ctx)
-	val2, _ := v8go.NewValue(iso, "Bad Foo")
+	res2, _ := v8.NewPromiseResolver(ctx)
+	val2, _ := v8.NewValue(iso, "Bad Foo")
 	res2.Reject(val2)
 
 	prom2 := res2.GetPromise()
-	if s := prom2.State(); s != v8go.Rejected {
+	if s := prom2.State(); s != v8.Rejected {
 		t.Fatalf("unexpected state for Promise, want Rejected (2) got: %v", s)
 	}
 
-	var thenInfo *v8go.FunctionCallbackInfo
+	var thenInfo *v8.FunctionCallbackInfo
 	var then2Fulfilled, then2Rejected bool
 	prom2.
-		Catch(func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+		Catch(func(info *v8.FunctionCallbackInfo) *v8.Value {
 			thenInfo = info
 			return nil
 		}).
 		Then(
-			func(_ *v8go.FunctionCallbackInfo) *v8go.Value {
+			func(_ *v8.FunctionCallbackInfo) *v8.Value {
 				then2Fulfilled = true
 				return nil
 			},
-			func(_ *v8go.FunctionCallbackInfo) *v8go.Value {
+			func(_ *v8.FunctionCallbackInfo) *v8.Value {
 				then2Rejected = true
 				return nil
 			},
@@ -113,12 +113,12 @@ func TestPromiseRejected(t *testing.T) {
 func TestPromiseThenPanic(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
-	res, _ := v8go.NewPromiseResolver(ctx)
+	res, _ := v8.NewPromiseResolver(ctx)
 	prom := res.GetPromise()
 
 	t.Run("no callbacks", func(t *testing.T) {
@@ -128,7 +128,7 @@ func TestPromiseThenPanic(t *testing.T) {
 	})
 	t.Run("3 callbacks", func(t *testing.T) {
 		defer func() { recover() }()
-		fn := func(_ *v8go.FunctionCallbackInfo) *v8go.Value { return nil }
+		fn := func(_ *v8.FunctionCallbackInfo) *v8.Value { return nil }
 		prom.Then(fn, fn, fn)
 		t.Errorf("expected a panic")
 	})
