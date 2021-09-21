@@ -363,8 +363,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
 
 /********** Context **********/
 
-#define LOCAL_CONTEXT(ctx_ptr)                  \
-  m_ctx* ctx = ctx_ptr;                         \
+#define LOCAL_CONTEXT(ctx)                      \
   Isolate* iso = ctx->iso;                      \
   Locker locker(iso);                           \
   Isolate::Scope isolate_scope(iso);            \
@@ -415,8 +414,8 @@ void ContextFree(ContextPtr ctx) {
   delete ctx;
 }
 
-RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
-  LOCAL_CONTEXT(ctx_ptr);
+RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
+  LOCAL_CONTEXT(ctx);
 
   RtnValue rtn = {nullptr, nullptr};
 
@@ -450,8 +449,8 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   return rtn;
 }
 
-RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
-  LOCAL_CONTEXT(ctx_ptr);
+RtnValue JSONParse(ContextPtr ctx, const char* str) {
+  LOCAL_CONTEXT(ctx);
   RtnValue rtn = {nullptr, nullptr};
 
   Local<String> v8Str;
@@ -508,8 +507,8 @@ const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
   return CopyString(json);
 }
 
-ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
-  LOCAL_CONTEXT(ctx_ptr);
+ValuePtr ContextGlobal(ContextPtr ctx) {
+  LOCAL_CONTEXT(ctx);
   m_value* val = new m_value;
 
   val->iso = iso;
@@ -1118,8 +1117,8 @@ int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
 
 /********** Promise **********/
 
-RtnValue NewPromiseResolver(ContextPtr ctx_ptr) {
-  LOCAL_CONTEXT(ctx_ptr);
+RtnValue NewPromiseResolver(ContextPtr ctx) {
+  LOCAL_CONTEXT(ctx);
   RtnValue rtn = {nullptr, nullptr};
   Local<Promise::Resolver> resolver;
   if (!Promise::Resolver::New(local_ctx).ToLocal(&resolver)) {
