@@ -26,17 +26,19 @@ using namespace v8;
 auto default_platform = platform::NewDefaultPlatform();
 auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
-typedef struct {
-  Isolate* iso;
-  std::vector<ValuePtr> vals;
-  Persistent<Context> ptr;
-} m_ctx;
+typedef struct m_value m_value;
 
 typedef struct {
   Isolate* iso;
+  std::vector<m_value*> vals;
+  Persistent<Context> ptr;
+} m_ctx;
+
+struct m_value {
+  Isolate* iso;
   m_ctx* ctx;
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
-} m_value;
+};
 
 typedef struct {
   Isolate* iso;
@@ -116,10 +118,9 @@ ValuePtr tracked_value(m_ctx* ctx, m_value* val) {
   // Go <--> C, which would be a significant change, as there are places where
   // we get the context from the value, but if we then need the context to get
   // the value, we would be in a circular bind.
-  ValuePtr val_ptr = static_cast<ValuePtr>(val);
-  ctx->vals.push_back(val_ptr);
+  ctx->vals.push_back(val);
 
-  return val_ptr;
+  return static_cast<ValuePtr>(val);
 }
 
 extern "C" {
@@ -424,8 +425,9 @@ void ContextFree(ContextPtr ptr) {
   }
   ctx->ptr.Reset();
 
-  for (ValuePtr val_ptr : ctx->vals) {
-    ValueFree(val_ptr);
+  for (m_value* val : ctx->vals) {
+    val->ptr.Reset();
+    delete val;
   }
 
   delete ctx;
@@ -680,15 +682,6 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, bigint);
   rtn.value = tracked_value(ctx, val);
   return rtn;
-}
-
-void ValueFree(ValuePtr ptr) {
-  if (ptr == nullptr) {
-    return;
-  }
-  m_value* val = static_cast<m_value*>(ptr);
-  val->ptr.Reset();
-  delete val;
 }
 
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
