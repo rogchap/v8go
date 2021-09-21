@@ -161,6 +161,10 @@ IsolatePtr NewIsolate() {
   return static_cast<IsolatePtr>(iso);
 }
 
+static inline m_ctx* isolateInternalContext(Isolate *iso) {
+  return static_cast<m_ctx*>(iso->GetData(0));
+}
+
 void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr) {
   ISOLATE_SCOPE(ptr)
   iso->PerformMicrotaskCheckpoint();
@@ -171,7 +175,7 @@ void IsolateDispose(IsolatePtr ptr) {
     return;
   }
   Isolate* iso = static_cast<Isolate*>(ptr);
-  ContextFree(iso->GetData(0));
+  ContextFree(isolateInternalContext(iso));
 
   iso->Dispose();
 }
@@ -514,7 +518,7 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
     if (val->ctx != nullptr) {
       local_ctx = val->ctx->ptr.Get(iso);
     } else {
-      m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+      m_ctx* ctx = isolateInternalContext(iso);
       local_ctx = ctx->ptr.Get(iso);
     }
   }
@@ -555,7 +559,7 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
   if (ctx != nullptr) {                         \
     local_ctx = ctx->ptr.Get(iso);              \
   } else {                                      \
-    ctx = static_cast<m_ctx*>(iso->GetData(0)); \
+    ctx = isolateInternalContext(iso);          \
     local_ctx = ctx->ptr.Get(iso);              \
   }                                             \
   Context::Scope context_scope(local_ctx);      \
@@ -563,7 +567,7 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
 
 #define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
   ISOLATE_SCOPE(iso_ptr);                       \
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+  m_ctx* ctx = isolateInternalContext(iso);
 
 ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
