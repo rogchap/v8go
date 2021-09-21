@@ -91,9 +91,9 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
     rtn.location = CopyString(sb.str());
   }
 
-  MaybeLocal<Value> mstack = try_catch.StackTrace(ctx);
-  if (!mstack.IsEmpty()) {
-    String::Utf8Value stack(iso, mstack.ToLocalChecked());
+  Local<Value> mstack;
+  if (try_catch.StackTrace(ctx).ToLocal(&mstack)) {
+    String::Utf8Value stack(iso, mstack);
     rtn.stack = CopyString(stack);
   }
 
@@ -429,21 +429,20 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   RtnValue rtn = {nullptr, nullptr};
 
   ScriptOrigin script_origin(ogn);
-  MaybeLocal<Script> script = Script::Compile(local_ctx, src, &script_origin);
-  if (script.IsEmpty()) {
+  Local<Script> script;
+  if (!Script::Compile(local_ctx, src, &script_origin).ToLocal(&script)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  MaybeLocal<Value> result = script.ToLocalChecked()->Run(local_ctx);
-  if (result.IsEmpty()) {
+  Local<Value> result;
+  if (!script->Run(local_ctx).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
 
   rtn.value = tracked_value(ctx, val);
   return rtn;
@@ -453,18 +452,20 @@ RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
   LOCAL_CONTEXT(ctx_ptr);
   RtnValue rtn = {nullptr, nullptr};
 
-  MaybeLocal<Value> result = JSON::Parse(
-      local_ctx,
-      String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocalChecked());
-  if (result.IsEmpty()) {
+  Local<String> v8Str;
+  if (!String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocal(&v8Str)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+  }
+
+  Local<Value> result;
+  if (!JSON::Parse(local_ctx, v8Str).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
 
   rtn.value = tracked_value(ctx, val);
   return rtn;
@@ -500,11 +501,11 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
 
   Context::Scope context_scope(local_ctx);
 
-  MaybeLocal<String> str = JSON::Stringify(local_ctx, val->ptr.Get(iso));
-  if (str.IsEmpty()) {
+  Local<String> str;
+  if (!JSON::Stringify(local_ctx, val->ptr.Get(iso)).ToLocal(&str)) {
     return nullptr;
   }
-  String::Utf8Value json(iso, str.ToLocalChecked());
+  String::Utf8Value json(iso, str);
   return CopyString(json);
 }
 
@@ -579,8 +580,7 @@ ValuePtr NewValueNull(IsolatePtr iso_ptr) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Null(iso));
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Null(iso));
   return tracked_value(ctx, val);
 }
 
@@ -589,8 +589,8 @@ ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Undefined(iso));
+  val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, Undefined(iso));
   return tracked_value(ctx, val);
 }
 
@@ -661,13 +661,13 @@ void ValueFree(ValuePtr ptr) {
 
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  MaybeLocal<Uint32> array_index = value->ToArrayIndex(local_ctx);
-  if (array_index.IsEmpty()) {
+  Local<Uint32> array_index;
+  if (!value->ToArrayIndex(local_ctx).ToLocal(&array_index)) {
     return nullptr;
   }
 
   uint32_t* idx = new uint32_t;
-  *idx = array_index.ToLocalChecked()->Value();
+  *idx = array_index->Value();
   return idx;
 }
 
@@ -710,15 +710,15 @@ uint32_t ValueToUint32(ValuePtr ptr) {
 
 ValueBigInt ValueToBigInt(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  MaybeLocal<BigInt> bint = value->ToBigInt(local_ctx);
-  if (bint.IsEmpty()) {
+  Local<BigInt> bint;
+  if (!value->ToBigInt(local_ctx).ToLocal(&bint)) {
     return {nullptr, 0};
   }
 
-  int word_count = bint.ToLocalChecked()->WordCount();
+  int word_count = bint->WordCount();
   int sign_bit = 0;
   uint64_t* words = new uint64_t[word_count];
-  bint.ToLocalChecked()->ToWordsArray(&sign_bit, &word_count, words);
+  bint->ToWordsArray(&sign_bit, &word_count, words);
   ValueBigInt rtn = {words, word_count, sign_bit};
   return rtn;
 }
@@ -1040,16 +1040,16 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
 
   Local<String> key_val =
       String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
-  MaybeLocal<Value> result = obj->Get(local_ctx, key_val);
-  if (result.IsEmpty()) {
+  Local<Value> result;
+  if (!obj->Get(local_ctx, key_val).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx = ctx;
-  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+  new_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;
@@ -1059,16 +1059,16 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
 
-  MaybeLocal<Value> result = obj->Get(local_ctx, idx);
-  if (result.IsEmpty()) {
+  Local<Value> result;
+  if (!obj->Get(local_ctx, idx).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx = ctx;
-  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+  new_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;
@@ -1232,16 +1232,15 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   m_value* recv_val = static_cast<m_value*>(recv);
   Local<Value> local_recv = recv_val->ptr.Get(iso);
 
-  MaybeLocal<Value> result = fn->Call(local_ctx, local_recv, argc, argv);
-  if (result.IsEmpty()) {
+  Local<Value> result;
+  if (!fn->Call(local_ctx, local_recv, argc, argv).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
@@ -1252,16 +1251,15 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
-  MaybeLocal<Object> result = fn->NewInstance(local_ctx, argc, argv);
-  if (result.IsEmpty()) {
+  Local<Object> result;
+  if (!fn->NewInstance(local_ctx, argc, argv).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
   m_value* rtnval = new m_value;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
-  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result.ToLocalChecked());
+  rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
   rtn.value = tracked_value(ctx, rtnval);
   return rtn;
 }
