@@ -12,10 +12,14 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct m_ctx m_ctx;
+typedef struct m_value m_value;
+typedef struct m_template m_template;
+
 typedef void* IsolatePtr;
-typedef void* ContextPtr;
-typedef void* ValuePtr;
-typedef void* TemplatePtr;
+typedef m_ctx* ContextPtr;
+typedef m_value* ValuePtr;
+typedef m_template* TemplatePtr;
 
 typedef struct {
   const char* msg;

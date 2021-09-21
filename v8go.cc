@@ -26,13 +26,11 @@ using namespace v8;
 auto default_platform = platform::NewDefaultPlatform();
 auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
-typedef struct m_value m_value;
-
-typedef struct {
+struct m_ctx {
   Isolate* iso;
   std::vector<m_value*> vals;
   Persistent<Context> ptr;
-} m_ctx;
+};
 
 struct m_value {
   Isolate* iso;
@@ -40,10 +38,10 @@ struct m_value {
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
 };
 
-typedef struct {
+struct m_template {
   Isolate* iso;
   Persistent<Template> ptr;
-} m_template;
+};
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -102,7 +100,7 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   return rtn;
 }
 
-ValuePtr tracked_value(m_ctx* ctx, m_value* val) {
+m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // (rogchap) we track values against a context so that when the context is
   // closed (either manually or GC'd by Go) we can also release all the
   // values associated with the context; previously the Go GC would not run
@@ -120,7 +118,7 @@ ValuePtr tracked_value(m_ctx* ctx, m_value* val) {
   // the value, we would be in a circular bind.
   ctx->vals.push_back(val);
 
-  return static_cast<ValuePtr>(val);
+  return val;
 }
 
 extern "C" {
@@ -214,7 +212,7 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
 /********** Template **********/
 
 #define LOCAL_TEMPLATE(ptr)                       \
-  m_template* ot = static_cast<m_template*>(ptr); \
+  m_template* ot = ptr;                           \
   Isolate* iso = ot->iso;                         \
   Locker locker(iso);                             \
   Isolate::Scope isolate_scope(iso);              \
@@ -222,30 +220,28 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
   Local<Template> tmpl = ot->ptr.Get(iso);
 
 void TemplateFree(TemplatePtr ptr) {
-  delete static_cast<m_template*>(ptr);
+  delete ptr;
 }
 
 void TemplateSetValue(TemplatePtr ptr,
                       const char* name,
-                      ValuePtr val_ptr,
+                      ValuePtr val,
                       int attributes) {
   LOCAL_TEMPLATE(ptr);
 
   Local<String> prop_name =
       String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_value* val = static_cast<m_value*>(val_ptr);
   tmpl->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
 }
 
 void TemplateSetTemplate(TemplatePtr ptr,
                          const char* name,
-                         TemplatePtr obj_ptr,
+                         TemplatePtr obj,
                          int attributes) {
   LOCAL_TEMPLATE(ptr);
 
   Local<String> prop_name =
       String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_template* obj = static_cast<m_template*>(obj_ptr);
   tmpl->Set(prop_name, obj->ptr.Get(iso), (PropertyAttribute)attributes);
 }
 
@@ -260,13 +256,12 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   m_template* ot = new m_template;
   ot->iso = iso;
   ot->ptr.Reset(iso, ObjectTemplate::New(iso));
-  return static_cast<TemplatePtr>(ot);
+  return ot;
 }
 
-RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
+RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   LOCAL_TEMPLATE(ptr);
   TryCatch try_catch(iso);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
@@ -299,8 +294,7 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
   ContextPtr goContext(int ctxref);
-  ContextPtr ctx_ptr = goContext(ctx_ref);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
+  m_ctx* ctx = goContext(ctx_ref);
 
   int callback_ref = info.Data().As<Integer>()->Value();
 
@@ -325,10 +319,9 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
 
   ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* thisAndArgs,
                               int args_count);
-  ValuePtr val_ptr = goFunctionCallback(
+  ValuePtr val = goFunctionCallback(
       ctx_ref, callback_ref, thisAndArgs, args_count);
-  if (val_ptr != nullptr) {
-    m_value* val = static_cast<m_value*>(val_ptr);
+  if (val != nullptr) {
     info.GetReturnValue().Set(val->ptr.Get(iso));
   } else {
     info.GetReturnValue().SetUndefined();
@@ -351,13 +344,12 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
   ot->iso = iso;
   ot->ptr.Reset(iso,
                 FunctionTemplate::New(iso, FunctionTemplateCallback, cbData));
-  return static_cast<TemplatePtr>(ot);
+  return ot;
 }
 
-RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
+RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   LOCAL_TEMPLATE(ptr);
   TryCatch try_catch(iso);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
@@ -380,7 +372,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
 /********** Context **********/
 
 #define LOCAL_CONTEXT(ctx_ptr)                  \
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);    \
+  m_ctx* ctx = ctx_ptr;                         \
   Isolate* iso = ctx->iso;                      \
   Locker locker(iso);                           \
   Isolate::Scope isolate_scope(iso);            \
@@ -399,8 +391,7 @@ ContextPtr NewContext(IsolatePtr iso_ptr,
 
   Local<ObjectTemplate> global_template;
   if (global_template_ptr != nullptr) {
-    m_template* ob = static_cast<m_template*>(global_template_ptr);
-    global_template = ob->ptr.Get(iso).As<ObjectTemplate>();
+    global_template = global_template_ptr->ptr.Get(iso).As<ObjectTemplate>();
   } else {
     global_template = ObjectTemplate::New(iso);
   }
@@ -416,14 +407,10 @@ ContextPtr NewContext(IsolatePtr iso_ptr,
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
-  return static_cast<ContextPtr>(ctx);
+  return ctx;
 }
 
-void ContextFree(ContextPtr ptr) {
-  if (ptr == nullptr) {
-    return;
-  }
-  m_ctx* ctx = static_cast<m_ctx*>(ptr);
+void ContextFree(ContextPtr ctx) {
   if (ctx == nullptr) {
     return;
   }
@@ -495,12 +482,9 @@ RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
   return rtn;
 }
 
-const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
+const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
   Isolate* iso;
   Local<Context> local_ctx;
-
-  m_value* val = static_cast<m_value*>(val_ptr);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
 
   if (ctx != nullptr) {
     iso = ctx->iso;
@@ -548,7 +532,7 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
 /********** Value **********/
 
 #define LOCAL_VALUE(ptr)                        \
-  m_value* val = static_cast<m_value*>(ptr);    \
+  m_value* val = ptr;                           \
   Isolate* iso = val->iso;                      \
   Locker locker(iso);                           \
   Isolate::Scope isolate_scope(iso);            \
@@ -777,10 +761,7 @@ RtnValue ValueToObject(ValuePtr ptr) {
   return rtn;
 }
 
-int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr) {
-  m_value* val1 = static_cast<m_value*>(ptr);
-  m_value* val2 = static_cast<m_value*>(otherPtr);
-
+int ValueSameValue(ValuePtr val1, ValuePtr val2) {
   ISOLATE_SCOPE(val1->iso);
   Local<Value> value1 = val1->ptr.Get(iso);
   Local<Value> value2 = val2->ptr.Get(iso);
@@ -1064,17 +1045,15 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr)        \
   Local<Object> obj = value.As<Object>()
 
-void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
+void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
   Local<String> key_val =
       String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
-  m_value* prop_val = static_cast<m_value*>(val_ptr);
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
 
-void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
-  m_value* prop_val = static_cast<m_value*>(val_ptr);
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
@@ -1176,17 +1155,15 @@ ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
   return tracked_value(ctx, promise_val);
 }
 
-int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr) {
+int PromiseResolverResolve(ValuePtr ptr, ValuePtr resolve_val) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
-  m_value* resolve_val = static_cast<m_value*>(val_ptr);
   return resolver->Resolve(local_ctx, resolve_val->ptr.Get(iso)).ToChecked();
 }
 
-int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr) {
+int PromiseResolverReject(ValuePtr ptr, ValuePtr reject_val) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
-  m_value* reject_val = static_cast<m_value*>(val_ptr);
   return resolver->Reject(local_ctx, reject_val->ptr.Get(iso)).ToChecked();
 }
 
@@ -1298,8 +1275,7 @@ static void buildCallArguments(Isolate* iso,
                                int argc,
                                ValuePtr args[]) {
   for (int i = 0; i < argc; i++) {
-    m_value* arg = static_cast<m_value*>(args[i]);
-    argv[i] = arg->ptr.Get(iso);
+    argv[i] = args[i]->ptr.Get(iso);
   }
 }
 
@@ -1311,8 +1287,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
 
-  m_value* recv_val = static_cast<m_value*>(recv);
-  Local<Value> local_recv = recv_val->ptr.Get(iso);
+  Local<Value> local_recv = recv->ptr.Get(iso);
 
   Local<Value> result;
   if (!fn->Call(local_ctx, local_recv, argc, argv).ToLocal(&result)) {
