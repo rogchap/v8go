@@ -206,13 +206,12 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
 
 /********** Template **********/
 
-#define LOCAL_TEMPLATE(ptr)                       \
-  m_template* ot = ptr;                           \
-  Isolate* iso = ot->iso;                         \
+#define LOCAL_TEMPLATE(tmpl_ptr)                  \
+  Isolate* iso = tmpl_ptr->iso;                   \
   Locker locker(iso);                             \
   Isolate::Scope isolate_scope(iso);              \
   HandleScope handle_scope(iso);                  \
-  Local<Template> tmpl = ot->ptr.Get(iso);
+  Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFree(TemplatePtr ptr) {
   delete ptr;
