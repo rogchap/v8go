@@ -22,7 +22,7 @@ func JSONParse(ctx *Context, str string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cstr))
 
 	rtn := C.JSONParse(ctx.ptr, cstr)
-	return getValue(ctx, rtn), getError(rtn)
+	return valueResult(ctx, rtn)
 }
 
 // JSONStringify tries to stringify the JSON-serializable object value and returns it as string.

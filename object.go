@@ -24,11 +24,11 @@ func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	defer C.free(unsafe.Pointer(ckey))
 
 	getRtn := C.ObjectGet(o.ptr, ckey)
-	err := getError(getRtn)
+	prop, err := valueResult(o.ctx, getRtn)
 	if err != nil {
 		return nil, err
 	}
-	fn, err := getValue(o.ctx, getRtn).AsFunction()
+	fn, err := prop.AsFunction()
 	if err != nil {
 		return nil, err
 	}
@@ -84,13 +84,13 @@ func (o *Object) Get(key string) (*Value, error) {
 	defer C.free(unsafe.Pointer(ckey))
 
 	rtn := C.ObjectGet(o.ptr, ckey)
-	return getValue(o.ctx, rtn), getError(rtn)
+	return valueResult(o.ctx, rtn)
 }
 
 // GetIdx tries to get a Value at a give Object index.
 func (o *Object) GetIdx(idx uint32) (*Value, error) {
 	rtn := C.ObjectGetIdx(o.ptr, C.uint32_t(idx))
-	return getValue(o.ctx, rtn), getError(rtn)
+	return valueResult(o.ctx, rtn)
 }
 
 // Has calls the abstract operation HasProperty(O, P) described in ECMA-262, 7.3.10.

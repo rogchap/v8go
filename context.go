@@ -94,7 +94,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
 	c.deregister()
 
-	return getValue(c, rtn), getError(rtn)
+	return valueResult(c, rtn)
 }
 
 // Global returns the global proxy object.
@@ -165,18 +165,18 @@ func goContext(ref int) C.ContextPtr {
 	return ctx.ptr
 }
 
-func getValue(ctx *Context, rtn C.RtnValue) *Value {
+func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	if rtn.value == nil {
-		return nil
+		return nil, getError(rtn)
 	}
-	return &Value{rtn.value, ctx}
+	return &Value{rtn.value, ctx}, nil
 }
 
-func getObject(ctx *Context, rtn C.RtnValue) *Object {
+func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
 	if rtn.value == nil {
-		return nil
+		return nil, getError(rtn)
 	}
-	return &Object{&Value{rtn.value, ctx}}
+	return &Object{&Value{rtn.value, ctx}}, nil
 }
 
 func getError(rtn C.RtnValue) error {
