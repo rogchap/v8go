@@ -125,8 +125,7 @@ extern "C" {
 
 /********** Isolate **********/
 
-#define ISOLATE_SCOPE(iso_ptr)                   \
-  Isolate* iso = iso_ptr;                        \
+#define ISOLATE_SCOPE(iso)                       \
   Locker locker(iso);                            \
   Isolate::Scope isolate_scope(iso);             \
   HandleScope handle_scope(iso);
@@ -163,8 +162,8 @@ static inline m_ctx* isolateInternalContext(Isolate *iso) {
   return static_cast<m_ctx*>(iso->GetData(0));
 }
 
-void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr) {
-  ISOLATE_SCOPE(ptr)
+void IsolatePerformMicrotaskCheckpoint(IsolatePtr iso) {
+  ISOLATE_SCOPE(iso)
   iso->PerformMicrotaskCheckpoint();
 }
 
@@ -280,8 +279,8 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
-  Isolate* iso_ptr = info.GetIsolate();
-  ISOLATE_SCOPE(iso_ptr);
+  Isolate* iso = info.GetIsolate();
+  ISOLATE_SCOPE(iso);
 
   // This callback function can be called from any Context, which we only know
   // at runtime. We extract the Context reference from the embedder data so that
@@ -542,12 +541,12 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
   Context::Scope context_scope(local_ctx);      \
   Local<Value> value = val->ptr.Get(iso);
 
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
-  ISOLATE_SCOPE(iso_ptr);                       \
+#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
+  ISOLATE_SCOPE(iso);                       \
   m_ctx* ctx = isolateInternalContext(iso);
 
-ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -556,8 +555,8 @@ ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -566,8 +565,8 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
   return tracked_value(ctx, val);
 }
 
-RtnValue NewValueString(IsolatePtr iso_ptr, const char* v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+RtnValue NewValueString(IsolatePtr iso, const char* v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   RtnValue rtn = {nullptr, nullptr};
   Local<String> str;
@@ -583,8 +582,8 @@ RtnValue NewValueString(IsolatePtr iso_ptr, const char* v) {
   return rtn;
 }
 
-ValuePtr NewValueNull(IsolatePtr iso_ptr) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueNull(IsolatePtr iso) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -592,8 +591,8 @@ ValuePtr NewValueNull(IsolatePtr iso_ptr) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueUndefined(IsolatePtr iso) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -602,8 +601,8 @@ ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueBoolean(IsolatePtr iso, int v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -612,8 +611,8 @@ ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueNumber(IsolatePtr iso, double v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -622,8 +621,8 @@ ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueBigInt(IsolatePtr iso, int64_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -632,8 +631,8 @@ ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso, uint64_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -642,11 +641,11 @@ ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
   return tracked_value(ctx, val);
 }
 
-RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
+RtnValue NewValueBigIntFromWords(IsolatePtr iso,
                                  int sign_bit,
                                  int word_count,
                                  const uint64_t* words) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
 
@@ -755,7 +754,8 @@ RtnValue ValueToObject(ValuePtr ptr) {
 }
 
 int ValueSameValue(ValuePtr val1, ValuePtr val2) {
-  ISOLATE_SCOPE(val1->iso);
+  Isolate* iso = val1->iso;
+  ISOLATE_SCOPE(iso);
   Local<Value> value1 = val1->ptr.Get(iso);
   Local<Value> value2 = val2->ptr.Get(iso);
 
