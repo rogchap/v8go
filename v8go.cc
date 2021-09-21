@@ -523,8 +523,7 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
 
 /********** Value **********/
 
-#define LOCAL_VALUE(ptr)                        \
-  m_value* val = ptr;                           \
+#define LOCAL_VALUE(val)                        \
   Isolate* iso = val->iso;                      \
   Locker locker(iso);                           \
   Isolate::Scope isolate_scope(iso);            \
