@@ -6,17 +6,28 @@
 #define V8GO_H
 #ifdef __cplusplus
 
+namespace v8 {
+  class Isolate;
+}
+
+typedef v8::Isolate* IsolatePtr;
+
 extern "C" {
+#else
+// Opaque to cgo, but useful to treat it as a pointer to a distinct type
+typedef struct v8Isolate v8Isolate;
+typedef v8Isolate* IsolatePtr;
 #endif
 
 #include <stddef.h>
 #include <stdint.h>
 
+
+
 typedef struct m_ctx m_ctx;
 typedef struct m_value m_value;
 typedef struct m_template m_template;
 
-typedef void* IsolatePtr;
 typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;

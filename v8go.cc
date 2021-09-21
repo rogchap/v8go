@@ -126,7 +126,7 @@ extern "C" {
 /********** Isolate **********/
 
 #define ISOLATE_SCOPE(iso_ptr)                   \
-  Isolate* iso = static_cast<Isolate*>(iso_ptr); \
+  Isolate* iso = iso_ptr;                        \
   Locker locker(iso);                            \
   Isolate::Scope isolate_scope(iso);             \
   HandleScope handle_scope(iso);
@@ -156,7 +156,7 @@ IsolatePtr NewIsolate() {
   ctx->iso = iso;
   iso->SetData(0, ctx);
 
-  return static_cast<IsolatePtr>(iso);
+  return iso;
 }
 
 static inline m_ctx* isolateInternalContext(Isolate *iso) {
@@ -168,31 +168,27 @@ void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr) {
   iso->PerformMicrotaskCheckpoint();
 }
 
-void IsolateDispose(IsolatePtr ptr) {
-  if (ptr == nullptr) {
+void IsolateDispose(IsolatePtr iso) {
+  if (iso == nullptr) {
     return;
   }
-  Isolate* iso = static_cast<Isolate*>(ptr);
   ContextFree(isolateInternalContext(iso));
 
   iso->Dispose();
 }
 
-void IsolateTerminateExecution(IsolatePtr ptr) {
-  Isolate* iso = static_cast<Isolate*>(ptr);
+void IsolateTerminateExecution(IsolatePtr iso) {
   iso->TerminateExecution();
 }
 
-int IsolateIsExecutionTerminating(IsolatePtr ptr) {
-  Isolate* iso = static_cast<Isolate*>(ptr);
+int IsolateIsExecutionTerminating(IsolatePtr iso) {
   return iso->IsExecutionTerminating();
 }
 
-IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
-  if (ptr == nullptr) {
+IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
+  if (iso == nullptr) {
     return IsolateHStatistics{0};
   }
-  Isolate* iso = static_cast<Isolate*>(ptr);
   v8::HeapStatistics hs;
   iso->GetHeapStatistics(&hs);
 
@@ -247,8 +243,7 @@ void TemplateSetTemplate(TemplatePtr ptr,
 
 /********** ObjectTemplate **********/
 
-TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+TemplatePtr NewObjectTemplate(IsolatePtr iso) {
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
@@ -328,8 +323,7 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   }
 }
 
-TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+TemplatePtr NewFunctionTemplate(IsolatePtr iso, int callback_ref) {
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
@@ -381,10 +375,9 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   Local<Context> local_ctx = ctx->ptr.Get(iso); \
   Context::Scope context_scope(local_ctx);
 
-ContextPtr NewContext(IsolatePtr iso_ptr,
+ContextPtr NewContext(IsolatePtr iso,
                       TemplatePtr global_template_ptr,
                       int ref) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
