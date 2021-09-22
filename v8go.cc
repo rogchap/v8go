@@ -1045,8 +1045,12 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
 
-  Local<String> key_val =
-      String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
+  Local<String> key_val;
+  if (!String::NewFromUtf8(iso, key, NewStringType::kNormal)
+           .ToLocal(&key_val)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   Local<Value> result;
   if (!obj->Get(local_ctx, key_val).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
