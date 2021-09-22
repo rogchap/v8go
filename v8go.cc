@@ -583,14 +583,21 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v) {
+RtnValue NewValueString(IsolatePtr iso_ptr, const char* v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  TryCatch try_catch(iso);
+  RtnValue rtn = {nullptr, nullptr};
+  Local<String> str;
+  if (!String::NewFromUtf8(iso, v).ToLocal(&str)) {
+    rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
+    return rtn;
+  }
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, String::NewFromUtf8(iso, v).ToLocalChecked());
-  return tracked_value(ctx, val);
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, str);
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
 }
 
 ValuePtr NewValueNull(IsolatePtr iso_ptr) {
@@ -652,20 +659,27 @@ ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
+RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                  int sign_bit,
                                  int word_count,
                                  const uint64_t* words) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  TryCatch try_catch(iso);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
 
+  RtnValue rtn = {nullptr, nullptr};
+  Local<BigInt> bigint;
+  if (!BigInt::NewFromWords(local_ctx, sign_bit, word_count, words)
+           .ToLocal(&bigint)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  MaybeLocal<BigInt> bigint =
-      BigInt::NewFromWords(ctx->ptr.Get(iso), sign_bit, word_count, words);
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, bigint.ToLocalChecked());
-  return tracked_value(ctx, val);
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, bigint);
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
 }
 
 void ValueFree(ValuePtr ptr) {

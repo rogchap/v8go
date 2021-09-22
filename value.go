@@ -73,9 +73,8 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
-		rtnVal = &Value{
-			ptr: C.NewValueString(iso.ptr, cstr),
-		}
+		rtn := C.NewValueString(iso.ptr, cstr)
+		return valueResult(nil, rtn)
 	case int32:
 		rtnVal = &Value{
 			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
@@ -131,9 +130,8 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 			words[idx] = C.uint64_t(word)
 		}
 
-		rtnVal = &Value{
-			ptr: C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0]),
-		}
+		rtn := C.NewValueBigIntFromWords(iso.ptr, C.int(sign), C.int(count), &words[0])
+		return valueResult(nil, rtn)
 	default:
 		return nil, fmt.Errorf("v8go: unsupported value type `%T`", v)
 	}
