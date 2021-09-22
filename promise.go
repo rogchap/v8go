@@ -39,9 +39,11 @@ func NewPromiseResolver(ctx *Context) (*PromiseResolver, error) {
 	if ctx == nil {
 		return nil, errors.New("v8go: Context is required")
 	}
-	ptr := C.NewPromiseResolver(ctx.ptr)
-	val := &Value{ptr, ctx}
-	// TODO: Propagate Promise::Resolver::New error
+	rtn := C.NewPromiseResolver(ctx.ptr)
+	val, err := valueResult(ctx, rtn)
+	if err != nil {
+		return nil, err
+	}
 	return &PromiseResolver{&Object{val}, nil}, nil
 }
 

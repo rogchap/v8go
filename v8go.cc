@@ -1111,15 +1111,20 @@ int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
 
 /********** Promise **********/
 
-ValuePtr NewPromiseResolver(ContextPtr ctx_ptr) {
+RtnValue NewPromiseResolver(ContextPtr ctx_ptr) {
   LOCAL_CONTEXT(ctx_ptr);
-  MaybeLocal<Promise::Resolver> resolver = Promise::Resolver::New(local_ctx);
+  RtnValue rtn = {nullptr, nullptr};
+  Local<Promise::Resolver> resolver;
+  if (!Promise::Resolver::New(local_ctx).ToLocal(&resolver)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, resolver.ToLocalChecked());
-  return tracked_value(ctx, val);
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, resolver);
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
 }
 
 ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {

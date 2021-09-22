@@ -173,7 +173,7 @@ int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
 
-extern ValuePtr NewPromiseResolver(ContextPtr ctx_ptr);
+extern RtnValue NewPromiseResolver(ContextPtr ctx_ptr);
 extern ValuePtr PromiseResolverGetPromise(ValuePtr ptr);
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr);
