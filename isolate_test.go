@@ -209,7 +209,7 @@ func TestIsolateGarbageCollection(t *testing.T) {
 
 	iso := v8.NewIsolate()
 	val, _ := v8.NewValue(iso, "some string")
-	fmt.Println(val.String())
+	val.String()
 
 	tmpl := v8.NewObjectTemplate(iso)
 	tmpl.Set("foo", "bar")
