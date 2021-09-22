@@ -198,7 +198,12 @@ func (v *Value) Boolean() bool {
 
 // DetailString provide a string representation of this value usable for debugging.
 func (v *Value) DetailString() string {
-	s := C.ValueToDetailString(v.ptr)
+	rtn := C.ValueToDetailString(v.ptr)
+	if rtn.string == nil {
+		err := newJSError(rtn.error)
+		panic(err) // TODO: Return a fallback value
+	}
+	s := rtn.string
 	defer C.free(unsafe.Pointer(s))
 	return C.GoString(s)
 }

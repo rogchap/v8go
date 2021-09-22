@@ -723,14 +723,23 @@ double ValueToNumber(ValuePtr ptr) {
   return value->NumberValue(local_ctx).ToChecked();
 }
 
-const char* ValueToDetailString(ValuePtr ptr) {
+RtnString ValueToDetailString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  String::Utf8Value ds(iso, value->ToDetailString(local_ctx).ToLocalChecked());
-  return CopyString(ds);
+  RtnString rtn = {nullptr, nullptr};
+  Local<String> str;
+  if (!value->ToDetailString(local_ctx).ToLocal(&str)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  String::Utf8Value ds(iso, str);
+  rtn.string = CopyString(ds);
+  return rtn;
 }
 
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
+  // String::Utf8Value will result in an empty string if conversion to a string fails
+  // TODO: Consider propagating the JS error. A fallback value could be returned in Value.String()
   String::Utf8Value utf8(iso, value);
   return CopyString(utf8);
 }

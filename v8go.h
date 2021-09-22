@@ -29,6 +29,11 @@ typedef struct {
 } RtnValue;
 
 typedef struct {
+  const char *string;
+  RtnError error;
+} RtnString;
+
+typedef struct {
   size_t total_heap_size;
   size_t total_heap_size_executable;
   size_t total_physical_size;
@@ -104,7 +109,7 @@ int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);
 int64_t ValueToInteger(ValuePtr ptr);
 double ValueToNumber(ValuePtr ptr);
-const char* ValueToDetailString(ValuePtr ptr);
+RtnString ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
 extern RtnValue ValueToObject(ValuePtr ptr);
