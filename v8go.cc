@@ -434,12 +434,17 @@ void ContextFree(ContextPtr ptr) {
 RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   LOCAL_CONTEXT(ctx_ptr);
 
-  Local<String> src =
-      String::NewFromUtf8(iso, source, NewStringType::kNormal).ToLocalChecked();
-  Local<String> ogn =
-      String::NewFromUtf8(iso, origin, NewStringType::kNormal).ToLocalChecked();
-
   RtnValue rtn = {nullptr, nullptr};
+
+  MaybeLocal<String> maybeSrc =
+      String::NewFromUtf8(iso, source, NewStringType::kNormal);
+  MaybeLocal<String> maybeOgn =
+      String::NewFromUtf8(iso, origin, NewStringType::kNormal);
+  Local<String> src, ogn;
+  if (!maybeSrc.ToLocal(&src) || !maybeOgn.ToLocal(&ogn)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
 
   ScriptOrigin script_origin(ogn);
   Local<Script> script;
