@@ -258,21 +258,28 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   return static_cast<TemplatePtr>(ot);
 }
 
-ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
+RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
   LOCAL_TEMPLATE(ptr);
+  TryCatch try_catch(iso);
   m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
+  RtnValue rtn = {nullptr, nullptr};
+
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
-  MaybeLocal<Object> obj = obj_tmpl->NewInstance(local_ctx);
+  Local<Object> obj;
+  if (!obj_tmpl->NewInstance(local_ctx).ToLocal(&obj)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
 
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, obj.ToLocalChecked());
-  return tracked_value(ctx, val);
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
 }
 
 /********** FunctionTemplate **********/
