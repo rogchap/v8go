@@ -13,20 +13,20 @@ import (
 	"runtime"
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestValueNewBaseCases(t *testing.T) {
 	t.Parallel()
-	if _, err := v8go.NewValue(nil, ""); err == nil {
+	if _, err := v8.NewValue(nil, ""); err == nil {
 		t.Error("expected error, but got <nil>")
 	}
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	if _, err := v8go.NewValue(iso, nil); err == nil {
+	if _, err := v8.NewValue(iso, nil); err == nil {
 		t.Error("expected error, but got <nil>")
 	}
-	if _, err := v8go.NewValue(iso, struct{}{}); err == nil {
+	if _, err := v8.NewValue(iso, struct{}{}); err == nil {
 		t.Error("expected error, but got <nil>")
 	}
 
@@ -34,7 +34,7 @@ func TestValueNewBaseCases(t *testing.T) {
 
 func TestValueFormatting(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -70,7 +70,7 @@ func TestValueFormatting(t *testing.T) {
 
 func TestValueString(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -99,7 +99,7 @@ func TestValueString(t *testing.T) {
 
 func TestValueDetailString(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -128,7 +128,7 @@ func TestValueDetailString(t *testing.T) {
 
 func TestValueBoolean(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -162,19 +162,19 @@ func TestValueBoolean(t *testing.T) {
 
 func TestValueConstants(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
 	tests := [...]struct {
 		source string
-		value  *v8go.Value
+		value  *v8.Value
 		same   bool
 	}{
-		{"undefined", v8go.Undefined(iso), true},
-		{"null", v8go.Null(iso), true},
-		{"undefined", v8go.Null(iso), false},
+		{"undefined", v8.Undefined(iso), true},
+		{"null", v8.Null(iso), true},
+		{"undefined", v8.Null(iso), false},
 	}
 
 	for _, tt := range tests {
@@ -192,7 +192,7 @@ func TestValueConstants(t *testing.T) {
 
 func TestValueArrayIndex(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -230,7 +230,7 @@ func TestValueArrayIndex(t *testing.T) {
 
 func TestValueInt32(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -269,7 +269,7 @@ func TestValueInt32(t *testing.T) {
 
 func TestValueInteger(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -308,7 +308,7 @@ func TestValueInteger(t *testing.T) {
 
 func TestValueNumber(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -352,7 +352,7 @@ func TestValueNumber(t *testing.T) {
 
 func TestValueUint32(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -378,7 +378,7 @@ func TestValueUint32(t *testing.T) {
 
 func TestValueBigInt(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
 
 	x, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
@@ -399,7 +399,7 @@ func TestValueBigInt(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			ctx, _ := v8go.NewContext(iso)
+			ctx := v8.NewContext(iso)
 			defer ctx.Close()
 
 			val, _ := ctx.RunScript(tt.source, "test.js")
@@ -422,7 +422,7 @@ func TestValueBigInt(t *testing.T) {
 func TestValueObject(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -438,7 +438,7 @@ func TestValueObject(t *testing.T) {
 func TestValuePromise(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -455,7 +455,7 @@ func TestValuePromise(t *testing.T) {
 func TestValueFunction(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -475,12 +475,12 @@ func TestValueFunction(t *testing.T) {
 
 func TestValueSameValue(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 
-	objTempl := v8go.NewObjectTemplate(iso)
+	objTempl := v8.NewObjectTemplate(iso)
 	obj1, err := objTempl.NewInstance(ctx)
 	failIf(t, err)
 	obj2, err := objTempl.NewInstance(ctx)
@@ -496,107 +496,107 @@ func TestValueSameValue(t *testing.T) {
 
 func TestValueIsXXX(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	tests := [...]struct {
 		source string
-		assert func(*v8go.Value) bool
+		assert func(*v8.Value) bool
 	}{
-		{"", (*v8go.Value).IsUndefined},
-		{"let v; v", (*v8go.Value).IsUndefined},
-		{"null", (*v8go.Value).IsNull},
-		{"let v; v", (*v8go.Value).IsNullOrUndefined},
-		{"let v = null; v", (*v8go.Value).IsNullOrUndefined},
-		{"true", (*v8go.Value).IsTrue},
-		{"false", (*v8go.Value).IsFalse},
-		{"'name'", (*v8go.Value).IsName},
-		{"Symbol()", (*v8go.Value).IsName},
-		{`"double quote"`, (*v8go.Value).IsString},
-		{"'single quote'", (*v8go.Value).IsString},
-		{"`string literal`", (*v8go.Value).IsString},
-		{"Symbol()", (*v8go.Value).IsSymbol},
-		{"Symbol('foo')", (*v8go.Value).IsSymbol},
-		{"() => {}", (*v8go.Value).IsFunction},
-		{"function v() {}; v", (*v8go.Value).IsFunction},
-		{"const v = function() {}; v", (*v8go.Value).IsFunction},
-		{"console.log", (*v8go.Value).IsFunction},
-		{"Object", (*v8go.Value).IsFunction},
-		{"class Foo {}; Foo", (*v8go.Value).IsFunction},
-		{"class Foo { bar() {} }; (new Foo()).bar", (*v8go.Value).IsFunction},
-		{"function* v(){}; v", (*v8go.Value).IsFunction},
-		{"async function v(){}; v", (*v8go.Value).IsFunction},
-		{"Object()", (*v8go.Value).IsObject},
-		{"new Object", (*v8go.Value).IsObject},
-		{"var v = {}; v", (*v8go.Value).IsObject},
-		{"10n", (*v8go.Value).IsBigInt},
-		{"BigInt(1)", (*v8go.Value).IsBigInt},
-		{"true", (*v8go.Value).IsBoolean},
-		{"false", (*v8go.Value).IsBoolean},
-		{"Boolean()", (*v8go.Value).IsBoolean},
-		{"(new Boolean).valueOf()", (*v8go.Value).IsBoolean},
-		{"1", (*v8go.Value).IsNumber},
-		{"1.1", (*v8go.Value).IsNumber},
-		{"1_1", (*v8go.Value).IsNumber},
-		{".1", (*v8go.Value).IsNumber},
-		{"2e4", (*v8go.Value).IsNumber},
-		{"0x2", (*v8go.Value).IsNumber},
-		{"NaN", (*v8go.Value).IsNumber},
-		{"Infinity", (*v8go.Value).IsNumber},
-		{"Number(1)", (*v8go.Value).IsNumber},
-		{"(new Number()).valueOf()", (*v8go.Value).IsNumber},
-		{"1", (*v8go.Value).IsInt32},
-		{"-1", (*v8go.Value).IsInt32},
-		{"1", (*v8go.Value).IsUint32},
-		{"new Date", (*v8go.Value).IsDate},
-		{"function foo(){ return arguments }; foo()", (*v8go.Value).IsArgumentsObject},
-		{"Object(1n)", (*v8go.Value).IsBigIntObject},
-		{"Object(1)", (*v8go.Value).IsNumberObject},
-		{"new Number", (*v8go.Value).IsNumberObject},
-		{"new String", (*v8go.Value).IsStringObject},
-		{"Object('')", (*v8go.Value).IsStringObject},
-		{"Object(Symbol())", (*v8go.Value).IsSymbolObject},
-		{"Error()", (*v8go.Value).IsNativeError},
-		{"TypeError()", (*v8go.Value).IsNativeError},
-		{"SyntaxError()", (*v8go.Value).IsNativeError},
-		{"/./", (*v8go.Value).IsRegExp},
-		{"RegExp()", (*v8go.Value).IsRegExp},
-		{"async function v(){}; v", (*v8go.Value).IsAsyncFunction},
-		{"let v = async () => {}; v", (*v8go.Value).IsAsyncFunction},
-		{"function* v(){}; v", (*v8go.Value).IsGeneratorFunction},
-		{"function* v(){}; v()", (*v8go.Value).IsGeneratorObject},
-		{"new Promise(()=>{})", (*v8go.Value).IsPromise},
-		{"new Map", (*v8go.Value).IsMap},
-		{"new Set", (*v8go.Value).IsSet},
-		{"(new Map).entries()", (*v8go.Value).IsMapIterator},
-		{"(new Set).entries()", (*v8go.Value).IsSetIterator},
-		{"new WeakMap", (*v8go.Value).IsWeakMap},
-		{"new WeakSet", (*v8go.Value).IsWeakSet},
-		{"new Array", (*v8go.Value).IsArray},
-		{"Array()", (*v8go.Value).IsArray},
-		{"[]", (*v8go.Value).IsArray},
-		{"new ArrayBuffer", (*v8go.Value).IsArrayBuffer},
-		{"new Int8Array", (*v8go.Value).IsArrayBufferView},
-		{"new Int8Array", (*v8go.Value).IsTypedArray},
-		{"new Uint32Array", (*v8go.Value).IsTypedArray},
-		{"new Uint8Array", (*v8go.Value).IsUint8Array},
-		{"new Uint8ClampedArray", (*v8go.Value).IsUint8ClampedArray},
-		{"new Int8Array", (*v8go.Value).IsInt8Array},
-		{"new Uint16Array", (*v8go.Value).IsUint16Array},
-		{"new Int16Array", (*v8go.Value).IsInt16Array},
-		{"new Uint32Array", (*v8go.Value).IsUint32Array},
-		{"new Int32Array", (*v8go.Value).IsInt32Array},
-		{"new Float32Array", (*v8go.Value).IsFloat32Array},
-		{"new Float64Array", (*v8go.Value).IsFloat64Array},
-		{"new BigInt64Array", (*v8go.Value).IsBigInt64Array},
-		{"new BigUint64Array", (*v8go.Value).IsBigUint64Array},
-		{"new DataView(new ArrayBuffer)", (*v8go.Value).IsDataView},
-		{"new SharedArrayBuffer", (*v8go.Value).IsSharedArrayBuffer},
-		{"new Proxy({},{})", (*v8go.Value).IsProxy},
+		{"", (*v8.Value).IsUndefined},
+		{"let v; v", (*v8.Value).IsUndefined},
+		{"null", (*v8.Value).IsNull},
+		{"let v; v", (*v8.Value).IsNullOrUndefined},
+		{"let v = null; v", (*v8.Value).IsNullOrUndefined},
+		{"true", (*v8.Value).IsTrue},
+		{"false", (*v8.Value).IsFalse},
+		{"'name'", (*v8.Value).IsName},
+		{"Symbol()", (*v8.Value).IsName},
+		{`"double quote"`, (*v8.Value).IsString},
+		{"'single quote'", (*v8.Value).IsString},
+		{"`string literal`", (*v8.Value).IsString},
+		{"Symbol()", (*v8.Value).IsSymbol},
+		{"Symbol('foo')", (*v8.Value).IsSymbol},
+		{"() => {}", (*v8.Value).IsFunction},
+		{"function v() {}; v", (*v8.Value).IsFunction},
+		{"const v = function() {}; v", (*v8.Value).IsFunction},
+		{"console.log", (*v8.Value).IsFunction},
+		{"Object", (*v8.Value).IsFunction},
+		{"class Foo {}; Foo", (*v8.Value).IsFunction},
+		{"class Foo { bar() {} }; (new Foo()).bar", (*v8.Value).IsFunction},
+		{"function* v(){}; v", (*v8.Value).IsFunction},
+		{"async function v(){}; v", (*v8.Value).IsFunction},
+		{"Object()", (*v8.Value).IsObject},
+		{"new Object", (*v8.Value).IsObject},
+		{"var v = {}; v", (*v8.Value).IsObject},
+		{"10n", (*v8.Value).IsBigInt},
+		{"BigInt(1)", (*v8.Value).IsBigInt},
+		{"true", (*v8.Value).IsBoolean},
+		{"false", (*v8.Value).IsBoolean},
+		{"Boolean()", (*v8.Value).IsBoolean},
+		{"(new Boolean).valueOf()", (*v8.Value).IsBoolean},
+		{"1", (*v8.Value).IsNumber},
+		{"1.1", (*v8.Value).IsNumber},
+		{"1_1", (*v8.Value).IsNumber},
+		{".1", (*v8.Value).IsNumber},
+		{"2e4", (*v8.Value).IsNumber},
+		{"0x2", (*v8.Value).IsNumber},
+		{"NaN", (*v8.Value).IsNumber},
+		{"Infinity", (*v8.Value).IsNumber},
+		{"Number(1)", (*v8.Value).IsNumber},
+		{"(new Number()).valueOf()", (*v8.Value).IsNumber},
+		{"1", (*v8.Value).IsInt32},
+		{"-1", (*v8.Value).IsInt32},
+		{"1", (*v8.Value).IsUint32},
+		{"new Date", (*v8.Value).IsDate},
+		{"function foo(){ return arguments }; foo()", (*v8.Value).IsArgumentsObject},
+		{"Object(1n)", (*v8.Value).IsBigIntObject},
+		{"Object(1)", (*v8.Value).IsNumberObject},
+		{"new Number", (*v8.Value).IsNumberObject},
+		{"new String", (*v8.Value).IsStringObject},
+		{"Object('')", (*v8.Value).IsStringObject},
+		{"Object(Symbol())", (*v8.Value).IsSymbolObject},
+		{"Error()", (*v8.Value).IsNativeError},
+		{"TypeError()", (*v8.Value).IsNativeError},
+		{"SyntaxError()", (*v8.Value).IsNativeError},
+		{"/./", (*v8.Value).IsRegExp},
+		{"RegExp()", (*v8.Value).IsRegExp},
+		{"async function v(){}; v", (*v8.Value).IsAsyncFunction},
+		{"let v = async () => {}; v", (*v8.Value).IsAsyncFunction},
+		{"function* v(){}; v", (*v8.Value).IsGeneratorFunction},
+		{"function* v(){}; v()", (*v8.Value).IsGeneratorObject},
+		{"new Promise(()=>{})", (*v8.Value).IsPromise},
+		{"new Map", (*v8.Value).IsMap},
+		{"new Set", (*v8.Value).IsSet},
+		{"(new Map).entries()", (*v8.Value).IsMapIterator},
+		{"(new Set).entries()", (*v8.Value).IsSetIterator},
+		{"new WeakMap", (*v8.Value).IsWeakMap},
+		{"new WeakSet", (*v8.Value).IsWeakSet},
+		{"new Array", (*v8.Value).IsArray},
+		{"Array()", (*v8.Value).IsArray},
+		{"[]", (*v8.Value).IsArray},
+		{"new ArrayBuffer", (*v8.Value).IsArrayBuffer},
+		{"new Int8Array", (*v8.Value).IsArrayBufferView},
+		{"new Int8Array", (*v8.Value).IsTypedArray},
+		{"new Uint32Array", (*v8.Value).IsTypedArray},
+		{"new Uint8Array", (*v8.Value).IsUint8Array},
+		{"new Uint8ClampedArray", (*v8.Value).IsUint8ClampedArray},
+		{"new Int8Array", (*v8.Value).IsInt8Array},
+		{"new Uint16Array", (*v8.Value).IsUint16Array},
+		{"new Int16Array", (*v8.Value).IsInt16Array},
+		{"new Uint32Array", (*v8.Value).IsUint32Array},
+		{"new Int32Array", (*v8.Value).IsInt32Array},
+		{"new Float32Array", (*v8.Value).IsFloat32Array},
+		{"new Float64Array", (*v8.Value).IsFloat64Array},
+		{"new BigInt64Array", (*v8.Value).IsBigInt64Array},
+		{"new BigUint64Array", (*v8.Value).IsBigUint64Array},
+		{"new DataView(new ArrayBuffer)", (*v8.Value).IsDataView},
+		{"new SharedArrayBuffer", (*v8.Value).IsSharedArrayBuffer},
+		{"new Proxy({},{})", (*v8.Value).IsProxy},
 	}
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			ctx, _ := v8go.NewContext(iso)
+			ctx := v8.NewContext(iso)
 			defer ctx.Close()
 
 			val, err := ctx.RunScript(tt.source, "test.js")
@@ -612,25 +612,25 @@ func TestValueIsXXX(t *testing.T) {
 
 func TestValueMarshalJSON(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
 
 	tests := [...]struct {
 		name     string
-		val      func(*v8go.Context) *v8go.Value
+		val      func(*v8.Context) *v8.Value
 		expected []byte
 	}{
 		{
 			"primitive",
-			func(ctx *v8go.Context) *v8go.Value {
-				val, _ := v8go.NewValue(iso, int32(0))
+			func(ctx *v8.Context) *v8.Value {
+				val, _ := v8.NewValue(iso, int32(0))
 				return val
 			},
 			[]byte("0"),
 		},
 		{
 			"object",
-			func(ctx *v8go.Context) *v8go.Value {
+			func(ctx *v8.Context) *v8.Value {
 				val, _ := ctx.RunScript("let foo = {a:1, b:2}; foo", "test.js")
 				return val
 			},
@@ -638,7 +638,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		},
 		{
 			"objectFunc",
-			func(ctx *v8go.Context) *v8go.Value {
+			func(ctx *v8.Context) *v8.Value {
 				val, _ := ctx.RunScript("let foo = {a:1, b:()=>{}}; foo", "test.js")
 				return val
 			},
@@ -646,7 +646,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		},
 		{
 			"nil",
-			func(ctx *v8go.Context) *v8go.Value { return nil },
+			func(ctx *v8.Context) *v8.Value { return nil },
 			[]byte(""),
 		},
 	}
@@ -654,7 +654,7 @@ func TestValueMarshalJSON(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, _ := v8go.NewContext(iso)
+			ctx := v8.NewContext(iso)
 			defer ctx.Close()
 			val := tt.val(ctx)
 			json, _ := val.MarshalJSON()
