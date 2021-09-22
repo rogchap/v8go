@@ -755,14 +755,20 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
   return rtn;
 }
 
-ValuePtr ValueToObject(ValuePtr ptr) {
+RtnValue ValueToObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
+  RtnValue rtn = {nullptr, nullptr};
+  Local<Object> obj;
+  if (!value->ToObject(local_ctx).ToLocal(&obj)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx = ctx;
-  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, value->ToObject(local_ctx).ToLocalChecked());
-  return tracked_value(ctx, new_val);
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
+  rtn.value = tracked_value(ctx, new_val);
+  return rtn;
 }
 
 int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr) {

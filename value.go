@@ -224,9 +224,12 @@ func (v *Value) Number() float64 {
 // Object perform the equivalent of Object(value) in JS.
 // To just cast this value as an Object use AsObject() instead.
 func (v *Value) Object() *Object {
-	ptr := C.ValueToObject(v.ptr)
-	val := &Value{ptr, v.ctx}
-	return &Object{val}
+	rtn := C.ValueToObject(v.ptr)
+	obj, err := objectResult(v.ctx, rtn)
+	if err != nil {
+		panic(err) // TODO: Return error
+	}
+	return obj
 }
 
 // String perform the equivalent of `String(value)` in JS. Primitive values
