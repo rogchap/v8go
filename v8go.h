@@ -81,7 +81,7 @@ extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
 
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
-extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr,
+extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
                                             ContextPtr ctx_ptr);
 
 extern ValuePtr NewValueNull(IsolatePtr iso_ptr);

@@ -65,9 +65,12 @@ func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) *FunctionTempl
 
 // GetFunction returns an instance of this function template bound to the given context.
 func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
-	// TODO: Consider propagating the v8::FunctionTemplate::GetFunction error
-	val_ptr := C.FunctionTemplateGetFunction(tmpl.ptr, ctx.ptr)
-	return &Function{&Value{val_ptr, ctx}}
+	rtn := C.FunctionTemplateGetFunction(tmpl.ptr, ctx.ptr)
+	val, err := valueResult(ctx, rtn)
+	if err != nil {
+		panic(err) // TODO: Consider returning the error
+	}
+	return &Function{val}
 }
 
 // Note that ideally `thisAndArgs` would be split into two separate arguments, but they were combined
