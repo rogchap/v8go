@@ -40,11 +40,11 @@ func NewPromiseResolver(ctx *Context) (*PromiseResolver, error) {
 		return nil, errors.New("v8go: Context is required")
 	}
 	rtn := C.NewPromiseResolver(ctx.ptr)
-	val, err := valueResult(ctx, rtn)
+	obj, err := objectResult(ctx, rtn)
 	if err != nil {
 		return nil, err
 	}
-	return &PromiseResolver{&Object{val}, nil}, nil
+	return &PromiseResolver{obj, nil}, nil
 }
 
 // GetPromise returns the associated Promise object for this resolver.
@@ -101,20 +101,24 @@ func (p *Promise) Then(cbs ...FunctionCallback) *Promise {
 	p.ctx.register()
 	defer p.ctx.deregister()
 
-	var ptr C.ValuePtr
+	var rtn C.RtnValue
 	switch len(cbs) {
 	case 1:
 		cbID := p.ctx.iso.registerCallback(cbs[0])
-		ptr = C.PromiseThen(p.ptr, C.int(cbID))
+		rtn = C.PromiseThen(p.ptr, C.int(cbID))
 	case 2:
 		cbID1 := p.ctx.iso.registerCallback(cbs[0])
 		cbID2 := p.ctx.iso.registerCallback(cbs[1])
-		ptr = C.PromiseThen2(p.ptr, C.int(cbID1), C.int(cbID2))
+		rtn = C.PromiseThen2(p.ptr, C.int(cbID1), C.int(cbID2))
 
 	default:
 		panic("1 or 2 callbacks required")
 	}
-	return &Promise{&Object{&Value{ptr, p.ctx}}}
+	obj, err := objectResult(p.ctx, rtn)
+	if err != nil {
+		panic(err) // TODO: Return error
+	}
+	return &Promise{obj}
 }
 
 // Catch invokes the given function if the promise is rejected.
@@ -123,6 +127,10 @@ func (p *Promise) Catch(cb FunctionCallback) *Promise {
 	p.ctx.register()
 	defer p.ctx.deregister()
 	cbID := p.ctx.iso.registerCallback(cb)
-	ptr := C.PromiseCatch(p.ptr, C.int(cbID))
-	return &Promise{&Object{&Value{ptr, p.ctx}}}
+	rtn := C.PromiseCatch(p.ptr, C.int(cbID))
+	obj, err := objectResult(p.ctx, rtn)
+	if err != nil {
+		panic(err) // TODO: Return error
+	}
+	return &Promise{obj}
 }

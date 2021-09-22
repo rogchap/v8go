@@ -178,9 +178,9 @@ extern ValuePtr PromiseResolverGetPromise(ValuePtr ptr);
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseState(ValuePtr ptr);
-ValuePtr PromiseThen(ValuePtr ptr, int callback_ref);
-ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
-ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref);
+RtnValue PromiseThen(ValuePtr ptr, int callback_ref);
+RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
+RtnValue PromiseCatch(ValuePtr ptr, int callback_ref);
 extern ValuePtr PromiseResult(ValuePtr ptr);
 
 extern RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr argv[]);

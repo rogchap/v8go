@@ -1159,58 +1159,87 @@ int PromiseState(ValuePtr ptr) {
   return promise->State();
 }
 
-ValuePtr PromiseThen(ValuePtr ptr, int callback_ref) {
+RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
+  RtnValue rtn = {nullptr, nullptr};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func =
-      Function::New(local_ctx, FunctionTemplateCallback, cbData)
-          .ToLocalChecked();
-  Local<Promise> result = promise->Then(local_ctx, func).ToLocalChecked();
+  Local<Function> func;
+  if (!Function::New(local_ctx, FunctionTemplateCallback, cbData)
+           .ToLocal(&func)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  Local<Promise> result;
+  if (!promise->Then(local_ctx, func).ToLocal(&result)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
   promise_val->ctx = ctx;
   promise_val->ptr =
       Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  return tracked_value(ctx, promise_val);
+  rtn.value = tracked_value(ctx, promise_val);
+  return rtn;
 }
 
-ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
+RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   LOCAL_VALUE(ptr)
+  RtnValue rtn = {nullptr, nullptr};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> onFulfilledData = Integer::New(iso, on_fulfilled_ref);
-  Local<Function> onFulfilledFunc =
-      Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
-          .ToLocalChecked();
+  Local<Function> onFulfilledFunc;
+  if (!Function::New(local_ctx, FunctionTemplateCallback, onFulfilledData)
+           .ToLocal(&onFulfilledFunc)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   Local<Integer> onRejectedData = Integer::New(iso, on_rejected_ref);
-  Local<Function> onRejectedFunc =
-      Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
-          .ToLocalChecked();
-  Local<Promise> result =
-      promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc)
-          .ToLocalChecked();
+  Local<Function> onRejectedFunc;
+  if (!Function::New(local_ctx, FunctionTemplateCallback, onRejectedData)
+           .ToLocal(&onRejectedFunc)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  Local<Promise> result;
+  if (!promise->Then(local_ctx, onFulfilledFunc, onRejectedFunc)
+           .ToLocal(&result)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
   promise_val->ctx = ctx;
   promise_val->ptr =
       Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  return tracked_value(ctx, promise_val);
+  rtn.value = tracked_value(ctx, promise_val);
+  return rtn;
 }
 
-ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref) {
+RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
+  RtnValue rtn = {nullptr, nullptr};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
-  Local<Function> func =
-      Function::New(local_ctx, FunctionTemplateCallback, cbData)
-          .ToLocalChecked();
-  Local<Promise> result = promise->Catch(local_ctx, func).ToLocalChecked();
+  Local<Function> func;
+  if (!Function::New(local_ctx, FunctionTemplateCallback, cbData)
+           .ToLocal(&func)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  Local<Promise> result;
+  if (!promise->Catch(local_ctx, func).ToLocal(&result)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
   m_value* promise_val = new m_value;
   promise_val->iso = iso;
   promise_val->ctx = ctx;
   promise_val->ptr =
       Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  return tracked_value(ctx, promise_val);
+  rtn.value = tracked_value(ctx, promise_val);
+  return rtn;
 }
 
 ValuePtr PromiseResult(ValuePtr ptr) {
