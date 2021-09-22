@@ -187,13 +187,6 @@ extern RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr arg
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
-extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,
-                                        const char* message);
-extern ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
-
 const char* Version();
 extern void SetFlags(const char* flags);
 
