@@ -34,7 +34,7 @@ jobs:
             - name: Swicth v8 to stable branch
               run: cd deps/v8 && git fetch && git checkout ${{steps.v8_latest.outputs.V8LATEST}}
             - name: Copy deps/v8/include into deps/include
-              run: cp -R deps/v8/include/ deps/include
+              run: cp -r deps/v8/include/* deps/include/
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
