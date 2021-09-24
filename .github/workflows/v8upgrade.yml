@@ -30,7 +30,7 @@ jobs:
             - name: Print latest stable version of v8
               run: echo "${{steps.v8_latest.outputs.V8LATEST}}"
             - name: Swicth v8 to stable branch
-              run: cd deps/v8 && git checkout ${{steps.v8_latest.outputs.V8LATEST}}
+              run: cd deps/v8 && git fetch && git checkout ${{steps.v8_latest.outputs.V8LATEST}}
             - name: Copy deps/v8/include into deps/include
               run: cp -R deps/v8/include/ deps/include
             - name: Create PR
