@@ -15,8 +15,13 @@ jobs:
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
+            - name: Print $PATH
+              run: echo "$PATH"
             - name: Add depot_tools to PATH
               run: echo "$HOME/deps/depot_tools" >> $GITHUB_PATH
+              shell: bash
+            - name: Print $PATH
+              run: echo "$PATH"
             - name: Fetch V8
               run: cd deps && fetch v8
             - name: Get latest stable version of v8
