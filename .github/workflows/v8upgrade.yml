@@ -24,6 +24,8 @@ jobs:
               run: echo "$PATH"
             - name: Fetch V8
               run: cd deps && fetch v8 || true
+            - name: Display v8 branch info
+              run: cd deps/v8 && git s
             - name: Get latest stable version of v8
               id: v8_latest
               run: echo ::set-output name=V8LATEST::$(curl -sS 'https://omahaproxy.appspot.com/all.json?os=linux&channel=stable' | jq '.[0]["versions"][0]["v8_commit"]')
