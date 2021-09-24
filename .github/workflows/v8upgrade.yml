@@ -1,0 +1,46 @@
+name: V8 Upgrade
+
+on: workflow_dispatch
+
+jobs:
+    upgrade:
+        name: Upgrade V8
+        runs-on: ubuntu-18.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  submodules: true
+                  fetch-depth: 0
+            - name: Update depot_tools fetch config
+              run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+              shell: bash
+            - name: Add depot_tools to PATH
+              run: echo "$PWD/deps/depot_tools" >> $GITHUB_PATH
+              shell: bash
+            - name: Fetch V8
+              run: cd deps && fetch v8 || true
+            - name: Get latest stable commit ref of v8
+              id: v8_latest_commit
+              run: echo ::set-output name=VALUE::$(curl -sS 'https://omahaproxy.appspot.com/all.json?os=linux&channel=stable' | jq '.[0]["versions"][0]["v8_commit"]')
+            - name: Get latest stable version number of v8
+              id: v8_latest_version
+              run: echo ::set-output name=VALUE::$(curl -sS 'https://omahaproxy.appspot.com/all.json?os=linux&channel=stable' | jq '.[0]["versions"][0]["v8_version"]')
+            - name: Checkout v8 to stable commit ref
+              run: cd deps/v8 && git fetch && git checkout ${{steps.v8_latest_commit.outputs.VALUE}}
+            - name: Copy deps/v8/include into deps/include
+              run: cp -r deps/v8/include/* deps/include/
+            - name: Create PR metadata
+              id: pr_metadata
+              run: |
+                echo ::set-output name=pr_branch::"v8_${{steps.v8_latest_version.outputs.VALUE}}_upgrade"
+            - name: Create PR
+              uses: peter-evans/create-pull-request@v3
+              with:
+                commit-message: Upgrade V8 binaries
+                branch: ${{steps.pr_metadata.outputs.pr_branch}}
+                delete-branch: true
+                title: Upgrade V8 binary
+                body: Auto-generated pull request to upgarde V8 binary
+
+
