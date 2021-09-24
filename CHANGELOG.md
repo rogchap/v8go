@@ -22,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed error return value from NewObjectTemplate and NewFunctionTemplate. Panic if given a nil argument.
 - Function Call accepts receiver as first argument.
 
+### Fixed
+- Add some missing error propagation
+
 ## [v0.6.0] - 2021-05-11
 
 ### Added

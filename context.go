@@ -94,7 +94,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
 	c.deregister()
 
-	return getValue(c, rtn), getError(rtn)
+	return valueResult(c, rtn)
 }
 
 // Global returns the global proxy object.
@@ -165,31 +165,16 @@ func goContext(ref int) C.ContextPtr {
 	return ctx.ptr
 }
 
-func getValue(ctx *Context, rtn C.RtnValue) *Value {
+func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	if rtn.value == nil {
-		return nil
+		return nil, newJSError(rtn.error)
 	}
-	return &Value{rtn.value, ctx}
+	return &Value{rtn.value, ctx}, nil
 }
 
-func getObject(ctx *Context, rtn C.RtnValue) *Object {
+func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
 	if rtn.value == nil {
-		return nil
+		return nil, newJSError(rtn.error)
 	}
-	return &Object{&Value{rtn.value, ctx}}
-}
-
-func getError(rtn C.RtnValue) error {
-	if rtn.error.msg == nil {
-		return nil
-	}
-	err := &JSError{
-		Message:    C.GoString(rtn.error.msg),
-		Location:   C.GoString(rtn.error.location),
-		StackTrace: C.GoString(rtn.error.stack),
-	}
-	C.free(unsafe.Pointer(rtn.error.msg))
-	C.free(unsafe.Pointer(rtn.error.location))
-	C.free(unsafe.Pointer(rtn.error.stack))
-	return err
+	return &Object{&Value{rtn.value, ctx}}, nil
 }
