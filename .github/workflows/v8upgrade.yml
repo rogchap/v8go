@@ -24,13 +24,13 @@ jobs:
               run: echo "$PATH"
             - name: Fetch V8
               run: cd deps && fetch v8 || true
-            - name: Display v8 branch info
-              run: cd deps/v8 && git status
             - name: Get latest stable version of v8
               id: v8_latest
               run: echo ::set-output name=V8LATEST::$(curl -sS 'https://omahaproxy.appspot.com/all.json?os=linux&channel=stable' | jq '.[0]["versions"][0]["v8_commit"]')
             - name: Print latest stable version of v8
               run: echo "${{steps.v8_latest.outputs.V8LATEST}}"
+            - name: Display v8 branch info
+              run: cd deps/v8 && git show ${{steps.v8_latest.outputs.V8LATEST}}
             - name: Swicth v8 to stable branch
               run: cd deps/v8 && git fetch && git checkout ${{steps.v8_latest.outputs.V8LATEST}}
             - name: Copy deps/v8/include into deps/include
