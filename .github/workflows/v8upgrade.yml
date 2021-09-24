@@ -18,7 +18,7 @@ jobs:
             - name: Print $PATH
               run: echo "$PATH"
             - name: Add depot_tools to PATH
-              run: echo "$HOME/deps/depot_tools" >> $GITHUB_PATH
+              run: echo "$PWD/deps/depot_tools" >> $GITHUB_PATH
               shell: bash
             - name: Print $PATH
               run: echo "$PATH"
