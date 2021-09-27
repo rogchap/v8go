@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"runtime"
 	"unsafe"
 )
 
@@ -57,7 +56,9 @@ func (t *template) Set(name string, val interface{}, attributes ...PropertyAttri
 }
 
 func (t *template) finalizer() {
-	C.TemplateFree(t.ptr)
+	// Using v8::PersistentBase::Reset() wouldn't be thread-safe to do from
+	// this finalizer goroutine so just free the wrapper and let the template
+	// itself get cleaned up when the isolate is disposed.
+	C.TemplateFreeWrapper(t.ptr)
 	t.ptr = nil
-	runtime.SetFinalizer(t, nil)
 }

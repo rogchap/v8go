@@ -213,8 +213,9 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
   HandleScope handle_scope(iso);     \
   Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
-void TemplateFree(TemplatePtr ptr) {
-  delete ptr;
+void TemplateFreeWrapper(TemplatePtr tmpl) {
+  tmpl->ptr.Empty();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
+  delete tmpl;
 }
 
 void TemplateSetValue(TemplatePtr ptr,
