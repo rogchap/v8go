@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Add some missing error propagation
+- Fix crash from template finalizer releasing V8 data, let it be disposed with the isolate
+- Fix crash by keeping alive the template while its C++ pointer is still being used
 
 ## [v0.6.0] - 2021-05-11
 

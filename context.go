@@ -8,6 +8,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -72,6 +73,7 @@ func NewContext(opt ...ContextOption) *Context {
 		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
 	}
+	runtime.KeepAlive(opts.gTmpl)
 	return ctx
 }
 
