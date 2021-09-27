@@ -8,6 +8,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"context"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -30,9 +31,10 @@ var ctxSeq = 0
 // Context is a global root execution environment that allows separate,
 // unrelated, JavaScript applications to run in a single instance of V8.
 type Context struct {
-	ref int
-	ptr C.ContextPtr
-	iso *Isolate
+	EmbedderContext context.Context
+	ref             int
+	ptr             C.ContextPtr
+	iso             *Isolate
 }
 
 type contextOptions struct {
@@ -69,9 +71,10 @@ func NewContext(opt ...ContextOption) *Context {
 	ctxMutex.Unlock()
 
 	ctx := &Context{
-		ref: ref,
-		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
-		iso: opts.iso,
+		EmbedderContext: context.Background(),
+		ref:             ref,
+		ptr:             C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
+		iso:             opts.iso,
 	}
 	runtime.KeepAlive(opts.gTmpl)
 	return ctx
