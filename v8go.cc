@@ -26,22 +26,22 @@ using namespace v8;
 auto default_platform = platform::NewDefaultPlatform();
 auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
-typedef struct {
+struct m_ctx {
   Isolate* iso;
-  std::vector<ValuePtr> vals;
+  std::vector<m_value*> vals;
   Persistent<Context> ptr;
-} m_ctx;
+};
 
-typedef struct {
+struct m_value {
   Isolate* iso;
   m_ctx* ctx;
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
-} m_value;
+};
 
-typedef struct {
+struct m_template {
   Isolate* iso;
   Persistent<Template> ptr;
-} m_template;
+};
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -100,7 +100,7 @@ RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
   return rtn;
 }
 
-ValuePtr tracked_value(m_ctx* ctx, m_value* val) {
+m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // (rogchap) we track values against a context so that when the context is
   // closed (either manually or GC'd by Go) we can also release all the
   // values associated with the context; previously the Go GC would not run
@@ -116,20 +116,18 @@ ValuePtr tracked_value(m_ctx* ctx, m_value* val) {
   // Go <--> C, which would be a significant change, as there are places where
   // we get the context from the value, but if we then need the context to get
   // the value, we would be in a circular bind.
-  ValuePtr val_ptr = static_cast<ValuePtr>(val);
-  ctx->vals.push_back(val_ptr);
+  ctx->vals.push_back(val);
 
-  return val_ptr;
+  return val;
 }
 
 extern "C" {
 
 /********** Isolate **********/
 
-#define ISOLATE_SCOPE(iso_ptr)                   \
-  Isolate* iso = static_cast<Isolate*>(iso_ptr); \
-  Locker locker(iso);                            \
-  Isolate::Scope isolate_scope(iso);             \
+#define ISOLATE_SCOPE(iso)           \
+  Locker locker(iso);                \
+  Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
 
 void Init() {
@@ -157,39 +155,39 @@ IsolatePtr NewIsolate() {
   ctx->iso = iso;
   iso->SetData(0, ctx);
 
-  return static_cast<IsolatePtr>(iso);
+  return iso;
 }
 
-void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr) {
-  ISOLATE_SCOPE(ptr)
+static inline m_ctx* isolateInternalContext(Isolate* iso) {
+  return static_cast<m_ctx*>(iso->GetData(0));
+}
+
+void IsolatePerformMicrotaskCheckpoint(IsolatePtr iso) {
+  ISOLATE_SCOPE(iso)
   iso->PerformMicrotaskCheckpoint();
 }
 
-void IsolateDispose(IsolatePtr ptr) {
-  if (ptr == nullptr) {
+void IsolateDispose(IsolatePtr iso) {
+  if (iso == nullptr) {
     return;
   }
-  Isolate* iso = static_cast<Isolate*>(ptr);
-  ContextFree(iso->GetData(0));
+  ContextFree(isolateInternalContext(iso));
 
   iso->Dispose();
 }
 
-void IsolateTerminateExecution(IsolatePtr ptr) {
-  Isolate* iso = static_cast<Isolate*>(ptr);
+void IsolateTerminateExecution(IsolatePtr iso) {
   iso->TerminateExecution();
 }
 
-int IsolateIsExecutionTerminating(IsolatePtr ptr) {
-  Isolate* iso = static_cast<Isolate*>(ptr);
+int IsolateIsExecutionTerminating(IsolatePtr iso) {
   return iso->IsExecutionTerminating();
 }
 
-IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
-  if (ptr == nullptr) {
+IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
+  if (iso == nullptr) {
     return IsolateHStatistics{0};
   }
-  Isolate* iso = static_cast<Isolate*>(ptr);
   v8::HeapStatistics hs;
   iso->GetHeapStatistics(&hs);
 
@@ -208,46 +206,42 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr) {
 
 /********** Template **********/
 
-#define LOCAL_TEMPLATE(ptr)                       \
-  m_template* ot = static_cast<m_template*>(ptr); \
-  Isolate* iso = ot->iso;                         \
-  Locker locker(iso);                             \
-  Isolate::Scope isolate_scope(iso);              \
-  HandleScope handle_scope(iso);                  \
-  Local<Template> tmpl = ot->ptr.Get(iso);
+#define LOCAL_TEMPLATE(tmpl_ptr)     \
+  Isolate* iso = tmpl_ptr->iso;      \
+  Locker locker(iso);                \
+  Isolate::Scope isolate_scope(iso); \
+  HandleScope handle_scope(iso);     \
+  Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFree(TemplatePtr ptr) {
-  delete static_cast<m_template*>(ptr);
+  delete ptr;
 }
 
 void TemplateSetValue(TemplatePtr ptr,
                       const char* name,
-                      ValuePtr val_ptr,
+                      ValuePtr val,
                       int attributes) {
   LOCAL_TEMPLATE(ptr);
 
   Local<String> prop_name =
       String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_value* val = static_cast<m_value*>(val_ptr);
   tmpl->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
 }
 
 void TemplateSetTemplate(TemplatePtr ptr,
                          const char* name,
-                         TemplatePtr obj_ptr,
+                         TemplatePtr obj,
                          int attributes) {
   LOCAL_TEMPLATE(ptr);
 
   Local<String> prop_name =
       String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
-  m_template* obj = static_cast<m_template*>(obj_ptr);
   tmpl->Set(prop_name, obj->ptr.Get(iso), (PropertyAttribute)attributes);
 }
 
 /********** ObjectTemplate **********/
 
-TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+TemplatePtr NewObjectTemplate(IsolatePtr iso) {
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
@@ -255,13 +249,12 @@ TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr) {
   m_template* ot = new m_template;
   ot->iso = iso;
   ot->ptr.Reset(iso, ObjectTemplate::New(iso));
-  return static_cast<TemplatePtr>(ot);
+  return ot;
 }
 
-RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
+RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   LOCAL_TEMPLATE(ptr);
   TryCatch try_catch(iso);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
@@ -285,8 +278,8 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr) {
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
-  Isolate* iso_ptr = info.GetIsolate();
-  ISOLATE_SCOPE(iso_ptr);
+  Isolate* iso = info.GetIsolate();
+  ISOLATE_SCOPE(iso);
 
   // This callback function can be called from any Context, which we only know
   // at runtime. We extract the Context reference from the embedder data so that
@@ -294,8 +287,7 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
   ContextPtr goContext(int ctxref);
-  ContextPtr ctx_ptr = goContext(ctx_ref);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
+  m_ctx* ctx = goContext(ctx_ref);
 
   int callback_ref = info.Data().As<Integer>()->Value();
 
@@ -318,20 +310,18 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* thisAndArgs,
-                              int args_count);
-  ValuePtr val_ptr = goFunctionCallback(
-      ctx_ref, callback_ref, thisAndArgs, args_count);
-  if (val_ptr != nullptr) {
-    m_value* val = static_cast<m_value*>(val_ptr);
+  ValuePtr goFunctionCallback(int ctxref, int cbref,
+                              const ValuePtr* thisAndArgs, int args_count);
+  ValuePtr val =
+      goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
+  if (val != nullptr) {
     info.GetReturnValue().Set(val->ptr.Get(iso));
   } else {
     info.GetReturnValue().SetUndefined();
   }
 }
 
-TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+TemplatePtr NewFunctionTemplate(IsolatePtr iso, int callback_ref) {
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
@@ -346,13 +336,12 @@ TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref) {
   ot->iso = iso;
   ot->ptr.Reset(iso,
                 FunctionTemplate::New(iso, FunctionTemplateCallback, cbData));
-  return static_cast<TemplatePtr>(ot);
+  return ot;
 }
 
-RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
+RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   LOCAL_TEMPLATE(ptr);
   TryCatch try_catch(iso);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
@@ -374,8 +363,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
 
 /********** Context **********/
 
-#define LOCAL_CONTEXT(ctx_ptr)                  \
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);    \
+#define LOCAL_CONTEXT(ctx)                      \
   Isolate* iso = ctx->iso;                      \
   Locker locker(iso);                           \
   Isolate::Scope isolate_scope(iso);            \
@@ -384,18 +372,16 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx_ptr) {
   Local<Context> local_ctx = ctx->ptr.Get(iso); \
   Context::Scope context_scope(local_ctx);
 
-ContextPtr NewContext(IsolatePtr iso_ptr,
+ContextPtr NewContext(IsolatePtr iso,
                       TemplatePtr global_template_ptr,
                       int ref) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
   Local<ObjectTemplate> global_template;
   if (global_template_ptr != nullptr) {
-    m_template* ob = static_cast<m_template*>(global_template_ptr);
-    global_template = ob->ptr.Get(iso).As<ObjectTemplate>();
+    global_template = global_template_ptr->ptr.Get(iso).As<ObjectTemplate>();
   } else {
     global_template = ObjectTemplate::New(iso);
   }
@@ -411,28 +397,25 @@ ContextPtr NewContext(IsolatePtr iso_ptr,
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
-  return static_cast<ContextPtr>(ctx);
+  return ctx;
 }
 
-void ContextFree(ContextPtr ptr) {
-  if (ptr == nullptr) {
-    return;
-  }
-  m_ctx* ctx = static_cast<m_ctx*>(ptr);
+void ContextFree(ContextPtr ctx) {
   if (ctx == nullptr) {
     return;
   }
   ctx->ptr.Reset();
 
-  for (ValuePtr val_ptr : ctx->vals) {
-    ValueFree(val_ptr);
+  for (m_value* val : ctx->vals) {
+    val->ptr.Reset();
+    delete val;
   }
 
   delete ctx;
 }
 
-RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
-  LOCAL_CONTEXT(ctx_ptr);
+RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
+  LOCAL_CONTEXT(ctx);
 
   RtnValue rtn = {nullptr, nullptr};
 
@@ -466,8 +449,8 @@ RtnValue RunScript(ContextPtr ctx_ptr, const char* source, const char* origin) {
   return rtn;
 }
 
-RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
-  LOCAL_CONTEXT(ctx_ptr);
+RtnValue JSONParse(ContextPtr ctx, const char* str) {
+  LOCAL_CONTEXT(ctx);
   RtnValue rtn = {nullptr, nullptr};
 
   Local<String> v8Str;
@@ -489,12 +472,9 @@ RtnValue JSONParse(ContextPtr ctx_ptr, const char* str) {
   return rtn;
 }
 
-const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
+const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
   Isolate* iso;
   Local<Context> local_ctx;
-
-  m_value* val = static_cast<m_value*>(val_ptr);
-  m_ctx* ctx = static_cast<m_ctx*>(ctx_ptr);
 
   if (ctx != nullptr) {
     iso = ctx->iso;
@@ -512,7 +492,7 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
     if (val->ctx != nullptr) {
       local_ctx = val->ctx->ptr.Get(iso);
     } else {
-      m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+      m_ctx* ctx = isolateInternalContext(iso);
       local_ctx = ctx->ptr.Get(iso);
     }
   }
@@ -527,8 +507,8 @@ const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr) {
   return CopyString(json);
 }
 
-ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
-  LOCAL_CONTEXT(ctx_ptr);
+ValuePtr ContextGlobal(ContextPtr ctx) {
+  LOCAL_CONTEXT(ctx);
   m_value* val = new m_value;
 
   val->iso = iso;
@@ -541,30 +521,29 @@ ValuePtr ContextGlobal(ContextPtr ctx_ptr) {
 
 /********** Value **********/
 
-#define LOCAL_VALUE(ptr)                        \
-  m_value* val = static_cast<m_value*>(ptr);    \
-  Isolate* iso = val->iso;                      \
-  Locker locker(iso);                           \
-  Isolate::Scope isolate_scope(iso);            \
-  HandleScope handle_scope(iso);                \
-  TryCatch try_catch(iso);                      \
-  m_ctx* ctx = val->ctx;                        \
-  Local<Context> local_ctx;                     \
-  if (ctx != nullptr) {                         \
-    local_ctx = ctx->ptr.Get(iso);              \
-  } else {                                      \
-    ctx = static_cast<m_ctx*>(iso->GetData(0)); \
-    local_ctx = ctx->ptr.Get(iso);              \
-  }                                             \
-  Context::Scope context_scope(local_ctx);      \
+#define LOCAL_VALUE(val)                   \
+  Isolate* iso = val->iso;                 \
+  Locker locker(iso);                      \
+  Isolate::Scope isolate_scope(iso);       \
+  HandleScope handle_scope(iso);           \
+  TryCatch try_catch(iso);                 \
+  m_ctx* ctx = val->ctx;                   \
+  Local<Context> local_ctx;                \
+  if (ctx != nullptr) {                    \
+    local_ctx = ctx->ptr.Get(iso);         \
+  } else {                                 \
+    ctx = isolateInternalContext(iso);     \
+    local_ctx = ctx->ptr.Get(iso);         \
+  }                                        \
+  Context::Scope context_scope(local_ctx); \
   Local<Value> value = val->ptr.Get(iso);
 
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
-  ISOLATE_SCOPE(iso_ptr);                       \
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
+  ISOLATE_SCOPE(iso);                       \
+  m_ctx* ctx = isolateInternalContext(iso);
 
-ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -573,8 +552,8 @@ ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -583,8 +562,8 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v) {
   return tracked_value(ctx, val);
 }
 
-RtnValue NewValueString(IsolatePtr iso_ptr, const char* v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+RtnValue NewValueString(IsolatePtr iso, const char* v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   RtnValue rtn = {nullptr, nullptr};
   Local<String> str;
@@ -600,8 +579,8 @@ RtnValue NewValueString(IsolatePtr iso_ptr, const char* v) {
   return rtn;
 }
 
-ValuePtr NewValueNull(IsolatePtr iso_ptr) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueNull(IsolatePtr iso) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -609,8 +588,8 @@ ValuePtr NewValueNull(IsolatePtr iso_ptr) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueUndefined(IsolatePtr iso) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -619,8 +598,8 @@ ValuePtr NewValueUndefined(IsolatePtr iso_ptr) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueBoolean(IsolatePtr iso, int v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -629,8 +608,8 @@ ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueNumber(IsolatePtr iso, double v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -639,8 +618,8 @@ ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueBigInt(IsolatePtr iso, int64_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -649,8 +628,8 @@ ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v) {
   return tracked_value(ctx, val);
 }
 
-ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso, uint64_t v) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
@@ -659,11 +638,11 @@ ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v) {
   return tracked_value(ctx, val);
 }
 
-RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
+RtnValue NewValueBigIntFromWords(IsolatePtr iso,
                                  int sign_bit,
                                  int word_count,
                                  const uint64_t* words) {
-  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
 
@@ -680,15 +659,6 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, bigint);
   rtn.value = tracked_value(ctx, val);
   return rtn;
-}
-
-void ValueFree(ValuePtr ptr) {
-  if (ptr == nullptr) {
-    return;
-  }
-  m_value* val = static_cast<m_value*>(ptr);
-  val->ptr.Reset();
-  delete val;
 }
 
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
@@ -738,8 +708,10 @@ RtnString ValueToDetailString(ValuePtr ptr) {
 
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  // String::Utf8Value will result in an empty string if conversion to a string fails
-  // TODO: Consider propagating the JS error. A fallback value could be returned in Value.String()
+  // String::Utf8Value will result in an empty string if conversion to a string
+  // fails
+  // TODO: Consider propagating the JS error. A fallback value could be returned
+  // in Value.String()
   String::Utf8Value utf8(iso, value);
   return CopyString(utf8);
 }
@@ -780,11 +752,9 @@ RtnValue ValueToObject(ValuePtr ptr) {
   return rtn;
 }
 
-int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr) {
-  m_value* val1 = static_cast<m_value*>(ptr);
-  m_value* val2 = static_cast<m_value*>(otherPtr);
-
-  ISOLATE_SCOPE(val1->iso);
+int ValueSameValue(ValuePtr val1, ValuePtr val2) {
+  Isolate* iso = val1->iso;
+  ISOLATE_SCOPE(iso);
   Local<Value> value1 = val1->ptr.Get(iso);
   Local<Value> value2 = val2->ptr.Get(iso);
 
@@ -1067,17 +1037,15 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr)        \
   Local<Object> obj = value.As<Object>()
 
-void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr) {
+void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
   Local<String> key_val =
       String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
-  m_value* prop_val = static_cast<m_value*>(val_ptr);
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
 
-void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
-  m_value* prop_val = static_cast<m_value*>(val_ptr);
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
@@ -1151,8 +1119,8 @@ int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
 
 /********** Promise **********/
 
-RtnValue NewPromiseResolver(ContextPtr ctx_ptr) {
-  LOCAL_CONTEXT(ctx_ptr);
+RtnValue NewPromiseResolver(ContextPtr ctx) {
+  LOCAL_CONTEXT(ctx);
   RtnValue rtn = {nullptr, nullptr};
   Local<Promise::Resolver> resolver;
   if (!Promise::Resolver::New(local_ctx).ToLocal(&resolver)) {
@@ -1179,17 +1147,15 @@ ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
   return tracked_value(ctx, promise_val);
 }
 
-int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr) {
+int PromiseResolverResolve(ValuePtr ptr, ValuePtr resolve_val) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
-  m_value* resolve_val = static_cast<m_value*>(val_ptr);
   return resolver->Resolve(local_ctx, resolve_val->ptr.Get(iso)).ToChecked();
 }
 
-int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr) {
+int PromiseResolverReject(ValuePtr ptr, ValuePtr reject_val) {
   LOCAL_VALUE(ptr);
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
-  m_value* reject_val = static_cast<m_value*>(val_ptr);
   return resolver->Reject(local_ctx, reject_val->ptr.Get(iso)).ToChecked();
 }
 
@@ -1301,8 +1267,7 @@ static void buildCallArguments(Isolate* iso,
                                int argc,
                                ValuePtr args[]) {
   for (int i = 0; i < argc; i++) {
-    m_value* arg = static_cast<m_value*>(args[i]);
-    argv[i] = arg->ptr.Get(iso);
+    argv[i] = args[i]->ptr.Get(iso);
   }
 }
 
@@ -1314,8 +1279,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
 
-  m_value* recv_val = static_cast<m_value*>(recv);
-  Local<Value> local_recv = recv_val->ptr.Get(iso);
+  Local<Value> local_recv = recv->ptr.Get(iso);
 
   Local<Value> result;
   if (!fn->Call(local_ctx, local_recv, argc, argv).ToLocal(&result)) {

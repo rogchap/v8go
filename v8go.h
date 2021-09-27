@@ -6,16 +6,29 @@
 #define V8GO_H
 #ifdef __cplusplus
 
+namespace v8 {
+class Isolate;
+}
+
+typedef v8::Isolate* IsolatePtr;
+
 extern "C" {
+#else
+// Opaque to cgo, but useful to treat it as a pointer to a distinct type
+typedef struct v8Isolate v8Isolate;
+typedef v8Isolate* IsolatePtr;
 #endif
 
 #include <stddef.h>
 #include <stdint.h>
 
-typedef void* IsolatePtr;
-typedef void* ContextPtr;
-typedef void* ValuePtr;
-typedef void* TemplatePtr;
+typedef struct m_ctx m_ctx;
+typedef struct m_value m_value;
+typedef struct m_template m_template;
+
+typedef m_ctx* ContextPtr;
+typedef m_value* ValuePtr;
+typedef m_template* TemplatePtr;
 
 typedef struct {
   const char* msg;
@@ -29,7 +42,7 @@ typedef struct {
 } RtnValue;
 
 typedef struct {
-  const char *string;
+  const char* string;
   RtnError error;
 } RtnString;
 
@@ -102,7 +115,6 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
-extern void ValueFree(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
@@ -188,7 +200,10 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
 RtnValue PromiseCatch(ValuePtr ptr, int callback_ref);
 extern ValuePtr PromiseResult(ValuePtr ptr);
 
-extern RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr argv[]);
+extern RtnValue FunctionCall(ValuePtr ptr,
+                             ValuePtr recv,
+                             int argc,
+                             ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
