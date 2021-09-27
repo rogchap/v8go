@@ -1,6 +1,8 @@
 name: V8 Upgrade
 
-on: workflow_dispatch
+on:
+  schedule:
+    - cron: '0 0 1 * *' # Run every 1st day of the month
 
 jobs:
     upgrade:
