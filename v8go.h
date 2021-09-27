@@ -7,7 +7,7 @@
 #ifdef __cplusplus
 
 namespace v8 {
-  class Isolate;
+class Isolate;
 }
 
 typedef v8::Isolate* IsolatePtr;
@@ -21,8 +21,6 @@ typedef v8Isolate* IsolatePtr;
 
 #include <stddef.h>
 #include <stdint.h>
-
-
 
 typedef struct m_ctx m_ctx;
 typedef struct m_value m_value;
@@ -44,7 +42,7 @@ typedef struct {
 } RtnValue;
 
 typedef struct {
-  const char *string;
+  const char* string;
   RtnError error;
 } RtnString;
 
@@ -202,7 +200,10 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
 RtnValue PromiseCatch(ValuePtr ptr, int callback_ref);
 extern ValuePtr PromiseResult(ValuePtr ptr);
 
-extern RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr argv[]);
+extern RtnValue FunctionCall(ValuePtr ptr,
+                             ValuePtr recv,
+                             int argc,
+                             ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 

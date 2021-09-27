@@ -125,9 +125,9 @@ extern "C" {
 
 /********** Isolate **********/
 
-#define ISOLATE_SCOPE(iso)                       \
-  Locker locker(iso);                            \
-  Isolate::Scope isolate_scope(iso);             \
+#define ISOLATE_SCOPE(iso)           \
+  Locker locker(iso);                \
+  Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
 
 void Init() {
@@ -158,7 +158,7 @@ IsolatePtr NewIsolate() {
   return iso;
 }
 
-static inline m_ctx* isolateInternalContext(Isolate *iso) {
+static inline m_ctx* isolateInternalContext(Isolate* iso) {
   return static_cast<m_ctx*>(iso->GetData(0));
 }
 
@@ -206,11 +206,11 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
 
 /********** Template **********/
 
-#define LOCAL_TEMPLATE(tmpl_ptr)                  \
-  Isolate* iso = tmpl_ptr->iso;                   \
-  Locker locker(iso);                             \
-  Isolate::Scope isolate_scope(iso);              \
-  HandleScope handle_scope(iso);                  \
+#define LOCAL_TEMPLATE(tmpl_ptr)     \
+  Isolate* iso = tmpl_ptr->iso;      \
+  Locker locker(iso);                \
+  Isolate::Scope isolate_scope(iso); \
+  HandleScope handle_scope(iso);     \
   Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFree(TemplatePtr ptr) {
@@ -310,10 +310,10 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref, const ValuePtr* thisAndArgs,
-                              int args_count);
-  ValuePtr val = goFunctionCallback(
-      ctx_ref, callback_ref, thisAndArgs, args_count);
+  ValuePtr goFunctionCallback(int ctxref, int cbref,
+                              const ValuePtr* thisAndArgs, int args_count);
+  ValuePtr val =
+      goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
   if (val != nullptr) {
     info.GetReturnValue().Set(val->ptr.Get(iso));
   } else {
@@ -521,21 +521,21 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
 
 /********** Value **********/
 
-#define LOCAL_VALUE(val)                        \
-  Isolate* iso = val->iso;                      \
-  Locker locker(iso);                           \
-  Isolate::Scope isolate_scope(iso);            \
-  HandleScope handle_scope(iso);                \
-  TryCatch try_catch(iso);                      \
-  m_ctx* ctx = val->ctx;                        \
-  Local<Context> local_ctx;                     \
-  if (ctx != nullptr) {                         \
-    local_ctx = ctx->ptr.Get(iso);              \
-  } else {                                      \
-    ctx = isolateInternalContext(iso);          \
-    local_ctx = ctx->ptr.Get(iso);              \
-  }                                             \
-  Context::Scope context_scope(local_ctx);      \
+#define LOCAL_VALUE(val)                   \
+  Isolate* iso = val->iso;                 \
+  Locker locker(iso);                      \
+  Isolate::Scope isolate_scope(iso);       \
+  HandleScope handle_scope(iso);           \
+  TryCatch try_catch(iso);                 \
+  m_ctx* ctx = val->ctx;                   \
+  Local<Context> local_ctx;                \
+  if (ctx != nullptr) {                    \
+    local_ctx = ctx->ptr.Get(iso);         \
+  } else {                                 \
+    ctx = isolateInternalContext(iso);     \
+    local_ctx = ctx->ptr.Get(iso);         \
+  }                                        \
+  Context::Scope context_scope(local_ctx); \
   Local<Value> value = val->ptr.Get(iso);
 
 #define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
@@ -708,8 +708,10 @@ RtnString ValueToDetailString(ValuePtr ptr) {
 
 const char* ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  // String::Utf8Value will result in an empty string if conversion to a string fails
-  // TODO: Consider propagating the JS error. A fallback value could be returned in Value.String()
+  // String::Utf8Value will result in an empty string if conversion to a string
+  // fails
+  // TODO: Consider propagating the JS error. A fallback value could be returned
+  // in Value.String()
   String::Utf8Value utf8(iso, value);
   return CopyString(utf8);
 }
