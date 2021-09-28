@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	v8 "rogchap.com/v8go"
+	v8 "github.com/airplanedev/v8go"
 )
 
 func TestIsolateTermination(t *testing.T) {

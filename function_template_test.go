@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	v8 "rogchap.com/v8go"
+	v8 "github.com/airplanedev/v8go"
 )
 
 func TestFunctionTemplate(t *testing.T) {
@@ -149,7 +149,7 @@ func ExampleFunctionTemplate_fetch() {
 
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
-	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
+	val, _ := ctx.RunScript("fetch('https://github.com/airplanedev/v8go')", "")
 	prom, _ := val.AsPromise()
 
 	// wait for the promise to resolve

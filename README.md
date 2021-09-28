@@ -11,10 +11,12 @@
 
 <img src="gopher.jpg" width="200px" alt="V8 Gopher based on original artwork from the amazing Renee French" />
 
+This is a fork of [`rogchap/v8go`](https://github.com/rogchap/v8go) that we are using to maintain upstream patches. This work should eventually be merged upstream.
+
 ## Usage
 
 ```go
-import v8 "rogchap.com/v8go"
+import v8 "github.com/airplanedev/v8go"
 ```
 
 ### Running a script
@@ -113,7 +115,7 @@ case <- time.After(200 * time.Milliseconds):
 
 ## Documentation
 
-Go Reference & more examples: https://pkg.go.dev/rogchap.com/v8go
+Go Reference & more examples: https://pkg.go.dev/github.com/airplanedev/v8go
 
 ### Support
 
