@@ -30,8 +30,8 @@ jobs:
               run: echo ::set-output name=VALUE::$(curl -sS 'https://omahaproxy.appspot.com/all.json?os=linux&channel=stable' | jq '.[0]["versions"][0]["v8_version"]')
             - name: Checkout v8 to stable commit ref
               run: cd deps/v8 && git fetch && git checkout ${{steps.v8_latest_commit.outputs.VALUE}}
-            - name: Copy deps/v8/include into deps/include
-              run: cp -r deps/v8/include/* deps/include/
+            - name: Update include folder and cgo.go
+              run: cd deps && ./update_include_folder.py
             - name: Create PR metadata
               id: pr_metadata
               run: |
