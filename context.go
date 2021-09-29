@@ -16,8 +16,6 @@ import (
 // Due to the limitations of passing pointers to C from Go we need to create
 // a registry so that we can lookup the Context from any given callback from V8.
 // This is similar to what is described here: https://github.com/golang/go/wiki/cgo#function-variables
-// To make sure we can still GC *Context we register the context only when we are
-// running a script inside the context and then deregister.
 type ctxRef struct {
 	ctx      *Context
 	refCount int
@@ -73,6 +71,7 @@ func NewContext(opt ...ContextOption) *Context {
 		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
 	}
+	ctx.register()
 	runtime.KeepAlive(opts.gTmpl)
 	return ctx
 }
@@ -115,14 +114,13 @@ func (c *Context) Global() *Object {
 // PerformMicrotaskCheckpoint runs the default MicrotaskQueue until empty.
 // This is used to make progress on Promises.
 func (c *Context) PerformMicrotaskCheckpoint() {
-	c.register()
-	defer c.deregister()
 	C.IsolatePerformMicrotaskCheckpoint(c.iso.ptr)
 }
 
 // Close will dispose the context and free the memory.
 // Access to any values assosiated with the context after calling Close may panic.
 func (c *Context) Close() {
+	c.deregister()
 	C.ContextFree(c.ptr)
 	c.ptr = nil
 }
