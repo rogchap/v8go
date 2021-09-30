@@ -20,6 +20,17 @@ func TestCPUProfilerDispose(t *testing.T) {
 	cpuProfiler.Dispose()
 	// noop when called multiple times
 	cpuProfiler.Dispose()
+
+	// verify does not panic once disposed
+	cpuProfiler.StartProfiling("")
+	cpuProfiler.StopProfiling("")
+
+	cpuProfiler = v8go.NewCPUProfiler(iso)
+	defer cpuProfiler.Dispose()
+	iso.Dispose()
+	// verify does not panic once isolate disposed
+	cpuProfiler.StartProfiling("")
+	cpuProfiler.StopProfiling("")
 }
 
 func TestCPUProfiler(t *testing.T) {
