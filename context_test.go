@@ -123,10 +123,10 @@ func TestRegistryFromJSON(t *testing.T) {
 	global := v8.NewObjectTemplate(iso)
 	err := global.Set("location", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		v, err := v8.NewValue(iso, "world")
-		failIf(t, err)
+		fatalIf(t, err)
 		return v
 	}))
-	failIf(t, err)
+	fatalIf(t, err)
 
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
@@ -140,10 +140,10 @@ func TestRegistryFromJSON(t *testing.T) {
 			},
 		})
 	`, "main.js")
-	failIf(t, err)
+	fatalIf(t, err)
 
 	s, err := v8.JSONStringify(ctx, v)
-	failIf(t, err)
+	fatalIf(t, err)
 
 	expected := `{"hello":"world"}`
 	if s != expected {
