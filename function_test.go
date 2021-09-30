@@ -18,17 +18,17 @@ func TestFunctionCall(t *testing.T) {
 	defer ctx.Close()
 
 	_, err := ctx.RunScript("function add(a, b) { return a + b; }", "")
-	failIf(t, err)
+	fatalIf(t, err)
 	addValue, err := ctx.Global().Get("add")
-	failIf(t, err)
+	fatalIf(t, err)
 	iso := ctx.Isolate()
 
 	arg1, err := v8.NewValue(iso, int32(1))
-	failIf(t, err)
+	fatalIf(t, err)
 
 	fn, _ := addValue.AsFunction()
 	resultValue, err := fn.Call(v8.Undefined(iso), arg1, arg1)
-	failIf(t, err)
+	fatalIf(t, err)
 
 	if resultValue.Int32() != 2 {
 		t.Errorf("expected 1 + 1 = 2, got: %v", resultValue.DetailString())
@@ -49,17 +49,17 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	})
 
 	err := global.Set("print", printfn, v8.ReadOnly)
-	failIf(t, err)
+	fatalIf(t, err)
 
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 
 	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
-	failIf(t, err)
+	fatalIf(t, err)
 	fn, err := val.AsFunction()
-	failIf(t, err)
+	fatalIf(t, err)
 	resultValue, err := fn.Call(v8.Undefined(iso))
-	failIf(t, err)
+	fatalIf(t, err)
 
 	if !called {
 		t.Errorf("expected my function to be called, wasn't")
@@ -77,15 +77,15 @@ func TestFunctionCallWithObjectReceiver(t *testing.T) {
 
 	ctx := v8.NewContext(iso, global)
 	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
-	failIf(t, err)
+	fatalIf(t, err)
 	obj, err := val.AsObject()
-	failIf(t, err)
+	fatalIf(t, err)
 	fnVal, err := obj.Get("print")
-	failIf(t, err)
+	fatalIf(t, err)
 	fn, err := fnVal.AsFunction()
-	failIf(t, err)
+	fatalIf(t, err)
 	resultValue, err := fn.Call(obj)
-	failIf(t, err)
+	fatalIf(t, err)
 
 	if !resultValue.IsString() || resultValue.String() != "some val" {
 		t.Errorf("expected 'some val', got: %v", resultValue.DetailString())
@@ -101,9 +101,9 @@ func TestFunctionCallError(t *testing.T) {
 	defer ctx.Close()
 
 	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
-	failIf(t, err)
+	fatalIf(t, err)
 	addValue, err := ctx.Global().Get("throws")
-	failIf(t, err)
+	fatalIf(t, err)
 
 	fn, _ := addValue.AsFunction()
 	_, err = fn.Call(v8.Undefined(iso))
@@ -124,9 +124,9 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	_, err := ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
-	failIf(t, err)
+	fatalIf(t, err)
 	addValue, err := ctx.Global().Get("add")
-	failIf(t, err)
+	fatalIf(t, err)
 
 	fn, _ := addValue.AsFunction()
 
@@ -136,9 +136,9 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 	}
 
 	_, err = ctx.RunScript("function sub(a, b) { return a - b; };", "")
-	failIf(t, err)
+	fatalIf(t, err)
 	subValue, err := ctx.Global().Get("sub")
-	failIf(t, err)
+	fatalIf(t, err)
 
 	subFn, _ := subValue.AsFunction()
 	resultVal = subFn.SourceMapUrl()
@@ -157,16 +157,16 @@ func TestFunctionNewInstance(t *testing.T) {
 	iso := ctx.Isolate()
 
 	value, err := ctx.Global().Get("Error")
-	failIf(t, err)
+	fatalIf(t, err)
 	fn, err := value.AsFunction()
-	failIf(t, err)
+	fatalIf(t, err)
 	messageObj, err := v8.NewValue(iso, "test message")
-	failIf(t, err)
+	fatalIf(t, err)
 	errObj, err := fn.NewInstance(messageObj)
-	failIf(t, err)
+	fatalIf(t, err)
 
 	message, err := errObj.Get("message")
-	failIf(t, err)
+	fatalIf(t, err)
 	if !message.IsString() {
 		t.Error("missing error message")
 	}
@@ -185,9 +185,9 @@ func TestFunctionNewInstanceError(t *testing.T) {
 	defer ctx.Close()
 
 	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
-	failIf(t, err)
+	fatalIf(t, err)
 	throwsValue, err := ctx.Global().Get("throws")
-	failIf(t, err)
+	fatalIf(t, err)
 	fn, _ := throwsValue.AsFunction()
 
 	_, err = fn.NewInstance()
