@@ -123,14 +123,10 @@ func TestRegistryFromJSON(t *testing.T) {
 	global := v8.NewObjectTemplate(iso)
 	err := global.Set("location", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		v, err := v8.NewValue(iso, "world")
-		if err != nil {
-			t.Errorf("creating return value: %v", err)
-		}
+		failIf(t, err)
 		return v
 	}))
-	if err != nil {
-		t.Errorf("setting global: %v", err)
-	}
+	failIf(t, err)
 
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
@@ -144,17 +140,14 @@ func TestRegistryFromJSON(t *testing.T) {
 			},
 		})
 	`, "main.js")
-	if err != nil {
-		t.Errorf("running script: %v", err)
-	}
+	failIf(t, err)
 
 	s, err := v8.JSONStringify(ctx, v)
-	if err != nil {
-		t.Errorf("stringifying value: %v", err)
-	}
+	failIf(t, err)
 
-	if s != `{"hello":"world"}` {
-		t.Errorf("unexpected stringified value: %s", s)
+	expected := `{"hello":"world"}`
+	if s != expected {
+		t.Fatalf("expected %q, got %q", expected, s)
 	}
 }
 
