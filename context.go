@@ -116,7 +116,7 @@ func (c *Context) PerformMicrotaskCheckpoint() {
 }
 
 // Close will dispose the context and free the memory.
-// Access to any values assosiated with the context after calling Close may panic.
+// Access to any values associated with the context after calling Close may panic.
 func (c *Context) Close() {
 	c.deregister()
 	C.ContextFree(c.ptr)
