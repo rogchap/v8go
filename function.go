@@ -25,9 +25,7 @@ func (fn *Function) Call(recv Valuer, args ...Valuer) (*Value, error) {
 		}
 		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
-	fn.ctx.register()
 	rtn := C.FunctionCall(fn.ptr, recv.value().ptr, C.int(len(args)), argptr)
-	fn.ctx.deregister()
 	return valueResult(fn.ctx, rtn)
 }
 
@@ -41,9 +39,7 @@ func (fn *Function) NewInstance(args ...Valuer) (*Object, error) {
 		}
 		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
-	fn.ctx.register()
 	rtn := C.FunctionNewInstance(fn.ptr, C.int(len(args)), argptr)
-	fn.ctx.deregister()
 	return objectResult(fn.ctx, rtn)
 }
 

@@ -91,9 +91,7 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	c.register()
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
-	c.deregister()
 
 	return valueResult(c, rtn)
 }
