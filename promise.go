@@ -62,16 +62,12 @@ func (r *PromiseResolver) GetPromise() *Promise {
 // Resolve invokes the Promise resolve state with the given value.
 // The Promise state will transition from Pending to Fulfilled.
 func (r *PromiseResolver) Resolve(val Valuer) bool {
-	r.ctx.register()
-	defer r.ctx.deregister()
 	return C.PromiseResolverResolve(r.ptr, val.value().ptr) != 0
 }
 
 // Reject invokes the Promise reject state with the given value.
 // The Promise state will transition from Pending to Rejected.
 func (r *PromiseResolver) Reject(err *Value) bool {
-	r.ctx.register()
-	defer r.ctx.deregister()
 	return C.PromiseResolverReject(r.ptr, err.ptr) != 0
 }
 
@@ -98,9 +94,6 @@ func (p *Promise) Result() *Value {
 // The default MicrotaskPolicy processes them when the call depth decreases to 0.
 // Call (*Context).PerformMicrotaskCheckpoint to trigger it manually.
 func (p *Promise) Then(cbs ...FunctionCallback) *Promise {
-	p.ctx.register()
-	defer p.ctx.deregister()
-
 	var rtn C.RtnValue
 	switch len(cbs) {
 	case 1:
@@ -124,8 +117,6 @@ func (p *Promise) Then(cbs ...FunctionCallback) *Promise {
 // Catch invokes the given function if the promise is rejected.
 // See Then for other details.
 func (p *Promise) Catch(cb FunctionCallback) *Promise {
-	p.ctx.register()
-	defer p.ctx.deregister()
 	cbID := p.ctx.iso.registerCallback(cb)
 	rtn := C.PromiseCatch(p.ptr, C.int(cbID))
 	obj, err := objectResult(p.ctx, rtn)
