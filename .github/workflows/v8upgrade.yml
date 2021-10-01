@@ -2,7 +2,7 @@ name: V8 Upgrade
 
 on:
   schedule:
-    - cron: '0 0 1 * *' # Run every 1st day of the month
+    - cron: '0 0 * * *' # Run every day
 
 jobs:
     upgrade:
@@ -14,6 +14,8 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 0
+            - name: Check latest v8 stable version
+              run: cd deps && ./check_latest_v8_version.py
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
@@ -32,6 +34,8 @@ jobs:
               run: cd deps/v8 && git fetch && git checkout ${{steps.v8_latest_commit.outputs.VALUE}}
             - name: Update include folder and cgo.go
               run: cd deps && ./update_include_folder.py
+            - name: Update v8_version file
+              run: cd deps && rm v8_version && echo ${{steps.v8_latest_commit.outputs.VALUE}} >> v8_version
             - name: Create PR metadata
               id: pr_metadata
               run: |
