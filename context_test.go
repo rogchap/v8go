@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestContextExec(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -31,7 +31,7 @@ func TestContextExec(t *testing.T) {
 	}
 
 	iso := ctx.Isolate()
-	ctx2, _ := v8go.NewContext(iso)
+	ctx2 := v8.NewContext(iso)
 	_, err = ctx2.RunScript(`add`, "ctx2.js")
 	if err == nil {
 		t.Error("error expected but was <nil>")
@@ -51,7 +51,7 @@ func TestJSExceptions(t *testing.T) {
 		{"ReferenceError", "add()", "add.js", "ReferenceError: add is not defined"},
 	}
 
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -73,41 +73,36 @@ func TestJSExceptions(t *testing.T) {
 func TestContextRegistry(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
 	ctxref := ctx.Ref()
 
-	c1 := v8go.GetContext(ctxref)
-	if c1 != nil {
-		t.Error("expected context to be <nil>")
-	}
-
-	ctx.Register()
-	c2 := v8go.GetContext(ctxref)
-	if c2 == nil {
+	c1 := v8.GetContext(ctxref)
+	if c1 == nil {
 		t.Error("expected context, but got <nil>")
 	}
-	if c2 != ctx {
-		t.Errorf("contexts should match %p != %p", c2, ctx)
+	if c1 != ctx {
+		t.Errorf("contexts should match %p != %p", c1, ctx)
 	}
-	ctx.Deregister()
 
-	c3 := v8go.GetContext(ctxref)
-	if c3 != nil {
-		t.Error("expected context to be <nil>")
+	ctx.Close()
+
+	c2 := v8.GetContext(ctxref)
+	if c2 != nil {
+		t.Error("expected context to be <nil> after close")
 	}
 }
 
 func TestMemoryLeak(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
 
 	for i := 0; i < 6000; i++ {
-		ctx, _ := v8go.NewContext(iso)
+		ctx := v8.NewContext(iso)
 		obj := ctx.Global()
 		_ = obj.String()
 		_, _ = ctx.RunScript("2", "")
@@ -118,12 +113,50 @@ func TestMemoryLeak(t *testing.T) {
 	}
 }
 
+// https://github.com/rogchap/v8go/issues/186
+func TestRegistryFromJSON(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	global := v8.NewObjectTemplate(iso)
+	err := global.Set("location", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		v, err := v8.NewValue(iso, "world")
+		fatalIf(t, err)
+		return v
+	}))
+	fatalIf(t, err)
+
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	v, err := ctx.RunScript(`
+		new Proxy({
+			"hello": "unknown"
+		}, {
+			get: function () {
+				return location()
+			},
+		})
+	`, "main.js")
+	fatalIf(t, err)
+
+	s, err := v8.JSONStringify(ctx, v)
+	fatalIf(t, err)
+
+	expected := `{"hello":"world"}`
+	if s != expected {
+		t.Fatalf("expected %q, got %q", expected, s)
+	}
+}
+
 func BenchmarkContext(b *testing.B) {
 	b.ReportAllocs()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	for n := 0; n < b.N; n++ {
-		ctx, _ := v8go.NewContext(iso)
+		ctx := v8.NewContext(iso)
 		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)
@@ -133,7 +166,7 @@ func BenchmarkContext(b *testing.B) {
 }
 
 func ExampleContext() {
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	ctx.RunScript("const add = (a, b) => a + b", "math.js")
@@ -145,15 +178,15 @@ func ExampleContext() {
 }
 
 func ExampleContext_isolate() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx1, _ := v8go.NewContext(iso)
+	ctx1 := v8.NewContext(iso)
 	defer ctx1.Close()
 	ctx1.RunScript("const foo = 'bar'", "context_one.js")
 	val, _ := ctx1.RunScript("foo", "foo.js")
 	fmt.Println(val)
 
-	ctx2, _ := v8go.NewContext(iso)
+	ctx2 := v8.NewContext(iso)
 	defer ctx2.Close()
 	_, err := ctx2.RunScript("foo", "context_two.js")
 	fmt.Println(err)
@@ -163,11 +196,11 @@ func ExampleContext_isolate() {
 }
 
 func ExampleContext_globalTemplate() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	obj := v8go.NewObjectTemplate(iso)
+	obj := v8.NewObjectTemplate(iso)
 	obj.Set("version", "v1.0.0")
-	ctx, _ := v8go.NewContext(iso, obj)
+	ctx := v8.NewContext(iso, obj)
 	defer ctx.Close()
 	val, _ := ctx.RunScript("version", "main.js")
 	fmt.Println(val)

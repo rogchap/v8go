@@ -13,23 +13,32 @@ import (
 	"testing"
 	"time"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestIsolateTermination(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+
+	if iso.IsExecutionTerminating() {
+		t.Error("expected no execution to be terminating")
+	}
+
+	var terminating bool
+	fooFn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		loop, _ := info.Args()[0].AsFunction()
+		loop.Call(v8.Undefined(iso))
+
+		terminating = iso.IsExecutionTerminating()
+		return nil
+	})
+
+	global := v8.NewObjectTemplate(iso)
+	global.Set("foo", fooFn)
+
+	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
-	//	ctx2, _ := v8go.NewContext(iso)
-
-	err := make(chan error, 1)
-
-	go func() {
-		_, e := ctx.RunScript(`while (true) { }`, "forever.js")
-		err <- e
-	}()
 
 	go func() {
 		// [RC] find a better way to know when a script has started execution
@@ -37,18 +46,24 @@ func TestIsolateTermination(t *testing.T) {
 		iso.TerminateExecution()
 	}()
 
-	if e := <-err; e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
+	script := `function loop() { while (true) { } }; foo(loop);`
+	_, e := ctx.RunScript(script, "forever.js")
+	if e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
+	}
+
+	if !terminating {
+		t.Error("expected execution to have been terminating in function")
 	}
 }
 
 func TestGetHeapStatistics(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx1, _ := v8go.NewContext(iso)
+	ctx1 := v8.NewContext(iso)
 	defer ctx1.Close()
-	ctx2, _ := v8go.NewContext(iso)
+	ctx2 := v8.NewContext(iso)
 	defer ctx2.Close()
 
 	hs := iso.GetHeapStatistics()
@@ -65,9 +80,9 @@ func TestGetHeapStatistics(t *testing.T) {
 func TestCallbackRegistry(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	cb := func(*v8go.FunctionCallbackInfo) *v8go.Value { return nil }
+	cb := func(*v8.FunctionCallbackInfo) *v8.Value { return nil }
 
 	cb0 := iso.GetCallback(0)
 	if cb0 != nil {
@@ -86,7 +101,7 @@ func TestCallbackRegistry(t *testing.T) {
 func TestIsolateDispose(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	if iso.GetHeapStatistics().TotalHeapSize == 0 {
 		t.Error("Isolate incorrectly allocated")
 	}
@@ -105,13 +120,13 @@ func TestIsolateDispose(t *testing.T) {
 func TestIsolateGarbageCollection(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := v8go.NewIsolate()
-	val, _ := v8go.NewValue(iso, "some string")
+	iso := v8.NewIsolate()
+	val, _ := v8.NewValue(iso, "some string")
 	fmt.Println(val.String())
 
-	tmpl := v8go.NewObjectTemplate(iso)
+	tmpl := v8.NewObjectTemplate(iso)
 	tmpl.Set("foo", "bar")
-	v8go.NewContext(iso, tmpl)
+	v8.NewContext(iso, tmpl)
 
 	iso.Dispose()
 
@@ -123,7 +138,7 @@ func TestIsolateGarbageCollection(t *testing.T) {
 func BenchmarkIsolateInitialization(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		vm, _ := v8go.NewIsolate()
+		vm := v8.NewIsolate()
 		vm.Close() // force disposal of the VM
 	}
 }
@@ -131,8 +146,8 @@ func BenchmarkIsolateInitialization(b *testing.B) {
 func BenchmarkIsolateInitAndRun(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
-		vm, _ := v8go.NewIsolate()
-		ctx, _ := v8go.NewContext(vm)
+		vm := v8.NewIsolate()
+		ctx := v8.NewContext(vm)
 		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)

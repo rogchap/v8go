@@ -55,9 +55,9 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 		return nil, errors.New("v8go: Context cannot be <nil>")
 	}
 
-	// TODO: propagate v8 error
-	valPtr := C.ObjectTemplateNewInstance(o.ptr, ctx.ptr)
-	return &Object{&Value{valPtr, ctx}}, nil
+	rtn := C.ObjectTemplateNewInstance(o.ptr, ctx.ptr)
+	runtime.KeepAlive(o)
+	return objectResult(ctx, rtn)
 }
 
 func (o *ObjectTemplate) apply(opts *contextOptions) {

@@ -16,7 +16,7 @@ type Function struct {
 }
 
 // Call this JavaScript function with the given arguments.
-func (fn *Function) Call(args ...Valuer) (*Value, error) {
+func (fn *Function) Call(recv Valuer, args ...Valuer) (*Value, error) {
 	var argptr *C.ValuePtr
 	if len(args) > 0 {
 		var cArgs = make([]C.ValuePtr, len(args))
@@ -25,10 +25,8 @@ func (fn *Function) Call(args ...Valuer) (*Value, error) {
 		}
 		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
-	fn.ctx.register()
-	rtn := C.FunctionCall(fn.ptr, C.int(len(args)), argptr)
-	fn.ctx.deregister()
-	return getValue(fn.ctx, rtn), getError(rtn)
+	rtn := C.FunctionCall(fn.ptr, recv.value().ptr, C.int(len(args)), argptr)
+	return valueResult(fn.ctx, rtn)
 }
 
 // Invoke a constructor function to create an object instance.
@@ -41,10 +39,8 @@ func (fn *Function) NewInstance(args ...Valuer) (*Object, error) {
 		}
 		argptr = (*C.ValuePtr)(unsafe.Pointer(&cArgs[0]))
 	}
-	fn.ctx.register()
 	rtn := C.FunctionNewInstance(fn.ptr, C.int(len(args)), argptr)
-	fn.ctx.deregister()
-	return getObject(fn.ctx, rtn), getError(rtn)
+	return objectResult(fn.ctx, rtn)
 }
 
 // Return the source map url for a function.

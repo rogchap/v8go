@@ -8,7 +8,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
-	"fmt"
+	"runtime"
 	"sync"
 	"unsafe"
 )
@@ -16,8 +16,6 @@ import (
 // Due to the limitations of passing pointers to C from Go we need to create
 // a registry so that we can lookup the Context from any given callback from V8.
 // This is similar to what is described here: https://github.com/golang/go/wiki/cgo#function-variables
-// To make sure we can still GC *Context we register the context only when we are
-// running a script inside the context and then deregister.
 type ctxRef struct {
 	ctx      *Context
 	refCount int
@@ -47,7 +45,7 @@ type ContextOption interface {
 
 // NewContext creates a new JavaScript context; if no Isolate is passed as a
 // ContextOption than a new Isolate will be created.
-func NewContext(opt ...ContextOption) (*Context, error) {
+func NewContext(opt ...ContextOption) *Context {
 	opts := contextOptions{}
 	for _, o := range opt {
 		if o != nil {
@@ -56,11 +54,7 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 	}
 
 	if opts.iso == nil {
-		var err error
-		opts.iso, err = NewIsolate()
-		if err != nil {
-			return nil, fmt.Errorf("v8go: failed to create new Isolate: %v", err)
-		}
+		opts.iso = NewIsolate()
 	}
 
 	if opts.gTmpl == nil {
@@ -77,8 +71,9 @@ func NewContext(opt ...ContextOption) (*Context, error) {
 		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
 	}
-	// TODO: [RC] catch any C++ exceptions and return as error
-	return ctx, nil
+	ctx.register()
+	runtime.KeepAlive(opts.gTmpl)
+	return ctx
 }
 
 // Isolate gets the current context's parent isolate.An  error is returned
@@ -96,11 +91,9 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	c.register()
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
-	c.deregister()
 
-	return getValue(c, rtn), getError(rtn)
+	return valueResult(c, rtn)
 }
 
 // Global returns the global proxy object.
@@ -119,14 +112,13 @@ func (c *Context) Global() *Object {
 // PerformMicrotaskCheckpoint runs the default MicrotaskQueue until empty.
 // This is used to make progress on Promises.
 func (c *Context) PerformMicrotaskCheckpoint() {
-	c.register()
-	defer c.deregister()
 	C.IsolatePerformMicrotaskCheckpoint(c.iso.ptr)
 }
 
 // Close will dispose the context and free the memory.
-// Access to any values assosiated with the context after calling Close may panic.
+// Access to any values associated with the context after calling Close may panic.
 func (c *Context) Close() {
+	c.deregister()
 	C.ContextFree(c.ptr)
 	c.ptr = nil
 }
@@ -171,31 +163,16 @@ func goContext(ref int) C.ContextPtr {
 	return ctx.ptr
 }
 
-func getValue(ctx *Context, rtn C.RtnValue) *Value {
+func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	if rtn.value == nil {
-		return nil
+		return nil, newJSError(rtn.error)
 	}
-	return &Value{rtn.value, ctx}
+	return &Value{rtn.value, ctx}, nil
 }
 
-func getObject(ctx *Context, rtn C.RtnValue) *Object {
+func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
 	if rtn.value == nil {
-		return nil
+		return nil, newJSError(rtn.error)
 	}
-	return &Object{&Value{rtn.value, ctx}}
-}
-
-func getError(rtn C.RtnValue) error {
-	if rtn.error.msg == nil {
-		return nil
-	}
-	err := &JSError{
-		Message:    C.GoString(rtn.error.msg),
-		Location:   C.GoString(rtn.error.location),
-		StackTrace: C.GoString(rtn.error.stack),
-	}
-	C.free(unsafe.Pointer(rtn.error.msg))
-	C.free(unsafe.Pointer(rtn.error.location))
-	C.free(unsafe.Pointer(rtn.error.stack))
-	return err
+	return &Object{&Value{rtn.value, ctx}}, nil
 }

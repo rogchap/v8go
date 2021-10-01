@@ -6,16 +6,30 @@
 #define V8GO_H
 #ifdef __cplusplus
 
+namespace v8 {
+class Isolate;
+}
+
+typedef v8::Isolate* IsolatePtr;
+
 extern "C" {
+#else
+// Opaque to cgo, but useful to treat it as a pointer to a distinct type
+typedef struct v8Isolate v8Isolate;
+typedef v8Isolate* IsolatePtr;
 #endif
 
 #include <stddef.h>
 #include <stdint.h>
 
-typedef void* IsolatePtr;
-typedef void* ContextPtr;
-typedef void* ValuePtr;
-typedef void* TemplatePtr;
+typedef struct m_ctx m_ctx;
+typedef struct m_value m_value;
+typedef struct m_template m_template;
+
+typedef m_ctx* ContextPtr;
+typedef m_value* ValuePtr;
+typedef m_template* TemplatePtr;
+
 typedef void* CpuProfilerPtr;
 typedef void* CpuProfilePtr;
 typedef void* CpuProfileNodePtr;
@@ -30,6 +44,11 @@ typedef struct {
   ValuePtr value;
   RtnError error;
 } RtnValue;
+
+typedef struct {
+  const char* string;
+  RtnError error;
+} RtnString;
 
 typedef struct {
   size_t total_heap_size;
@@ -56,6 +75,7 @@ extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
+extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
 extern CpuProfilerPtr NewCpuProfiler(IsolatePtr iso_ptr);
@@ -90,7 +110,7 @@ extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);
 const char* JSONStringify(ContextPtr ctx_ptr, ValuePtr val_ptr);
 extern ValuePtr ContextGlobal(ContextPtr ctx_ptr);
 
-extern void TemplateFree(TemplatePtr ptr);
+extern void TemplateFreeWrapper(TemplatePtr ptr);
 extern void TemplateSetValue(TemplatePtr ptr,
                              const char* name,
                              ValuePtr val_ptr,
@@ -101,34 +121,36 @@ extern void TemplateSetTemplate(TemplatePtr ptr,
                                 int attributes);
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
-extern ValuePtr ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
+extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
 
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
-extern ValuePtr FunctionTemplateGetFunction(TemplatePtr ptr,
+extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
                                             ContextPtr ctx_ptr);
 
+extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
+extern ValuePtr NewValueUndefined(IsolatePtr iso_ptr);
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
-extern ValuePtr NewValueString(IsolatePtr iso_ptr, const char* v);
+extern RtnValue NewValueString(IsolatePtr iso_ptr, const char* v);
 extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
 extern ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso_ptr, uint64_t v);
-extern ValuePtr NewValueBigIntFromWords(IsolatePtr iso_ptr,
+extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
-extern void ValueFree(ValuePtr ptr);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);
 int64_t ValueToInteger(ValuePtr ptr);
 double ValueToNumber(ValuePtr ptr);
-const char* ValueToDetailString(ValuePtr ptr);
+RtnString ValueToDetailString(ValuePtr ptr);
 uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
-extern ValuePtr ValueToObject(ValuePtr ptr);
+extern RtnValue ValueToObject(ValuePtr ptr);
+int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
 int ValueIsNullOrUndefined(ValuePtr ptr);
@@ -193,26 +215,22 @@ int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx);
 
-extern ValuePtr NewPromiseResolver(ContextPtr ctx_ptr);
+extern RtnValue NewPromiseResolver(ContextPtr ctx_ptr);
 extern ValuePtr PromiseResolverGetPromise(ValuePtr ptr);
 int PromiseResolverResolve(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseResolverReject(ValuePtr ptr, ValuePtr val_ptr);
 int PromiseState(ValuePtr ptr);
-ValuePtr PromiseThen(ValuePtr ptr, int callback_ref);
-ValuePtr PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
-ValuePtr PromiseCatch(ValuePtr ptr, int callback_ref);
+RtnValue PromiseThen(ValuePtr ptr, int callback_ref);
+RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref);
+RtnValue PromiseCatch(ValuePtr ptr, int callback_ref);
 extern ValuePtr PromiseResult(ValuePtr ptr);
 
-extern RtnValue FunctionCall(ValuePtr ptr, int argc, ValuePtr argv[]);
+extern RtnValue FunctionCall(ValuePtr ptr,
+                             ValuePtr recv,
+                             int argc,
+                             ValuePtr argv[]);
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
-
-extern ValuePtr ExceptionError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionRangeError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionReferenceError(IsolatePtr iso_ptr,
-                                        const char* message);
-extern ValuePtr ExceptionSyntaxError(IsolatePtr iso_ptr, const char* message);
-extern ValuePtr ExceptionTypeError(IsolatePtr iso_ptr, const char* message);
 
 const char* Version();
 extern void SetFlags(const char* flags);

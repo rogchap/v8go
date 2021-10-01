@@ -8,13 +8,45 @@ import (
 	"fmt"
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
+
+func TestObjectMethodCall(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext()
+	iso := ctx.Isolate()
+	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	obj, _ := val.AsObject()
+	val, err := obj.MethodCall("print")
+	fatalIf(t, err)
+	if val.String() != "some val" {
+		t.Errorf("unexpected value: %q", val)
+	}
+	_, err = obj.MethodCall("prop")
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
+
+	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
+	fatalIf(t, err)
+	obj, _ = val.AsObject()
+	arg, _ := v8.NewValue(iso, "arg")
+	val, err = obj.MethodCall("print", arg)
+	fatalIf(t, err)
+	if val.String() != "arg" {
+		t.Errorf("unexpected value: %q", val)
+	}
+	_, err = obj.MethodCall("fails")
+	if err == nil {
+		t.Errorf("expected an error, got none")
+	}
+}
 
 func TestObjectSet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
@@ -30,7 +62,12 @@ func TestObjectSet(t *testing.T) {
 	if err := obj.Set("a", 0); err == nil {
 		t.Error("expected error but got <nil>")
 	}
-	obj.SetIdx(10, "ten")
+	if err := obj.SetIdx(10, "ten"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if err := obj.SetIdx(10, t); err == nil {
+		t.Error("expected error but got <nil>")
+	}
 	if ten, _ := ctx.RunScript("foo[10]", ""); ten.String() != "ten" {
 		t.Errorf("unexpected value: %q", ten)
 	}
@@ -39,7 +76,7 @@ func TestObjectSet(t *testing.T) {
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
@@ -62,7 +99,7 @@ func TestObjectGet(t *testing.T) {
 func TestObjectHas(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
@@ -84,7 +121,7 @@ func TestObjectHas(t *testing.T) {
 func TestObjectDelete(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext()
+	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
@@ -105,14 +142,14 @@ func TestObjectDelete(t *testing.T) {
 }
 
 func ExampleObject_global() {
-	iso, _ := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	ctx, _ := v8go.NewContext(iso)
+	ctx := v8.NewContext(iso)
 	defer ctx.Close()
 	global := ctx.Global()
 
-	console := v8go.NewObjectTemplate(iso)
-	logfn := v8go.NewFunctionTemplate(iso, func(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	console := v8.NewObjectTemplate(iso)
+	logfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		fmt.Println(info.Args()[0])
 		return nil
 	})

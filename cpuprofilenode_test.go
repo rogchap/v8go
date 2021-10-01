@@ -13,7 +13,7 @@ import (
 func TestCPUProfileNode(t *testing.T) {
 	t.Parallel()
 
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8go.NewContext(nil)
 	iso := ctx.Isolate()
 	defer iso.Dispose()
 	defer ctx.Close()
@@ -24,13 +24,13 @@ func TestCPUProfileNode(t *testing.T) {
 	cpuProfiler.StartProfiling("cpuprofilenodetest")
 
 	_, err := ctx.RunScript(profileScript, "script.js")
-	failIf(t, err)
+	fatalIf(t, err)
 	val, err := ctx.Global().Get("start")
-	failIf(t, err)
+	fatalIf(t, err)
 	fn, err := val.AsFunction()
-	failIf(t, err)
-	_, err = fn.Call()
-	failIf(t, err)
+	fatalIf(t, err)
+	_, err = fn.Call(ctx.Global())
+	fatalIf(t, err)
 
 	cpuProfile := cpuProfiler.StopProfiling("cpuprofilenodetest")
 	if cpuProfile == nil {

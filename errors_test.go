@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
 func TestErrorFormatting(t *testing.T) {
@@ -21,8 +21,8 @@ func TestErrorFormatting(t *testing.T) {
 		stringVerb      string
 		quoteVerb       string
 	}{
-		{"WithStack", &v8go.JSError{Message: "msg", StackTrace: "stack"}, "msg", "stack", "msg", `"msg"`},
-		{"WithoutStack", &v8go.JSError{Message: "msg"}, "msg", "msg", "msg", `"msg"`},
+		{"WithStack", &v8.JSError{Message: "msg", StackTrace: "stack"}, "msg", "stack", "msg", `"msg"`},
+		{"WithoutStack", &v8.JSError{Message: "msg"}, "msg", "msg", "msg", `"msg"`},
 	}
 
 	for _, tt := range tests {
@@ -47,7 +47,7 @@ func TestErrorFormatting(t *testing.T) {
 
 func TestJSErrorOutput(t *testing.T) {
 	t.Parallel()
-	ctx, _ := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
@@ -72,7 +72,7 @@ func TestJSErrorOutput(t *testing.T) {
 		t.Error("expected error but got <nil>")
 		return
 	}
-	e, ok := err.(*v8go.JSError)
+	e, ok := err.(*v8.JSError)
 	if !ok {
 		t.Errorf("expected error of type JSError, got %T", err)
 	}
