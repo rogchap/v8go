@@ -111,6 +111,21 @@ case <- time.After(200 * time.Milliseconds):
 }
 ```
 
+### CPU Profiler
+
+```
+cpuProfiler := v8.NewCPUProfiler(v8.NewIsolate())
+cpuProfiler.StartProfiling("my-profile", true)
+
+ctx.RunScript(src, filename)
+
+cpuProfile := cpuProfiler.StopProfiling("my-profile")
+
+root := cpuProfile.GetTopDownRoot()
+
+# TODO
+```
+
 ## Documentation
 
 Go Reference & more examples: https://pkg.go.dev/rogchap.com/v8go

@@ -10,46 +10,47 @@ import "C"
 
 // CPUProfileNode represents a node in a call graph.
 type CPUProfileNode struct {
-	ptr C.CpuProfileNodePtr
-	iso *Isolate
-}
+	scriptResourceName string
+	functionName       string
+	lineNumber         int
+	columnNumber       int
 
-// Returns function name (empty string for anonymous functions.)
-func (c *CPUProfileNode) GetFunctionName() string {
-	str := C.CpuProfileNodeGetFunctionName(c.ptr)
-	return C.GoString(str)
+	parent   *CPUProfileNode
+	children []*CPUProfileNode
 }
 
 // Retrieves number of children.
 func (c *CPUProfileNode) GetChildrenCount() int {
-	i := C.CpuProfileNodeGetChildrenCount(c.ptr)
-	return int(i)
+	return len(c.children)
 }
 
 // Retrieves a child node by index.
 func (c *CPUProfileNode) GetChild(index int) *CPUProfileNode {
-	count := c.GetChildrenCount()
-	if index < 0 || index > count {
+	if index < 0 || index > len(c.children) {
 		return nil
 	}
-	ptr := C.CpuProfileNodeGetChild(c.ptr, C.int(index))
-	return &CPUProfileNode{ptr: ptr, iso: c.iso}
+	return c.children[index]
 }
 
-// Retrieves the ancestor node, or null if the root.
 func (c *CPUProfileNode) GetParent() *CPUProfileNode {
-	ptr := C.CpuProfileNodeGetParent(c.ptr)
-	return &CPUProfileNode{ptr: ptr, iso: c.iso}
+	return c.parent
+}
+
+func (c *CPUProfileNode) GetScriptResourceName() string {
+	return c.scriptResourceName
+}
+
+// Returns function name (empty string for anonymous functions.)
+func (c *CPUProfileNode) GetFunctionName() string {
+	return c.functionName
 }
 
 // Returns the number, 1-based, of the line where the function originates.
 func (c *CPUProfileNode) GetLineNumber() int {
-	i := C.CpuProfileNodeGetLineNumber(c.ptr)
-	return int(i)
+	return c.lineNumber
 }
 
 //  Returns 1-based number of the column where the function originates.
 func (c *CPUProfileNode) GetColumnNumber() int {
-	i := C.CpuProfileNodeGetColumnNumber(c.ptr)
-	return int(i)
+	return c.columnNumber
 }

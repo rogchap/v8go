@@ -44,10 +44,25 @@ struct m_template {
   Persistent<Template> ptr;
 };
 
-typedef struct {
+struct m_cpuProfiler {
   Isolate* iso;
-  CpuProfilePtr ptr;
-} m_cpuProfile;
+  CpuProfiler* ptr;
+};
+
+struct m_cpuProfile {
+  CpuProfile* ptr;
+  const char* title;
+  m_cpuProfileNode* root;
+};
+
+struct m_cpuProfileNode {
+  const CpuProfileNode* ptr;
+  const char* functionName;
+  const char* scriptResourceName;
+  int lineNumber;
+  int columnNumber;
+  int childrenCount;
+};
 
 const char* CopyString(std::string str) {
   int len = str.length();
@@ -136,10 +151,6 @@ extern "C" {
   Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
 
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
-  ISOLATE_SCOPE(iso_ptr);                       \
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
-
 void Init() {
 #ifdef _WIN32
   V8::InitializeExternalStartupData(".");
@@ -222,96 +233,108 @@ CpuProfilerPtr NewCpuProfiler(IsolatePtr iso_ptr) {
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
-  CpuProfiler* cp = CpuProfiler::New(iso);
-  return cp;
+  m_cpuProfiler* c = new m_cpuProfiler;
+  c->iso = iso;
+  c->ptr = CpuProfiler::New(iso);
+  return c;
 }
 
-void CpuProfilerDispose(CpuProfilerPtr ptr) {
-  CpuProfiler* cp = static_cast<CpuProfiler*>(ptr);
-  cp->Dispose();
+void CpuProfilerDispose(CpuProfilerPtr cpuProfiler) {
+  if (cpuProfiler->ptr == nullptr) {
+    return;
+  }
+  cpuProfiler->ptr->Dispose();
 }
 
-void CpuProfilerStartProfiling(IsolatePtr iso_ptr, CpuProfilerPtr ptr, const char* title) {
+void CpuProfilerStartProfiling(IsolatePtr iso_ptr, CpuProfilerPtr cpuProfiler, const char* title) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
-
-  CpuProfiler* cp = static_cast<CpuProfiler*>(ptr);
 
   Local<String> title_str =
       String::NewFromUtf8(iso, title, NewStringType::kNormal).ToLocalChecked();
 
-  cp->StartProfiling(title_str);
+  cpuProfiler->ptr->StartProfiling(title_str);
 }
 
-
-CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr, CpuProfilerPtr ptr, const char* title) {
+CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr, CpuProfilerPtr cpuProfiler, const char* title) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
-
-  CpuProfiler* cp = static_cast<CpuProfiler*>(ptr);
 
   Local<String> title_str =
       String::NewFromUtf8(iso, title, NewStringType::kNormal).ToLocalChecked();
 
-  CpuProfile* cpuProfile = cp->StopProfiling(title_str);
+  CpuProfile* cpuProfile = cpuProfiler->ptr->StopProfiling(title_str);
 
-  return cpuProfile;
-}
+  const CpuProfileNode* r = cpuProfile->GetTopDownRoot();
+  m_cpuProfileNode* root = new m_cpuProfileNode;
+  root->ptr = r;
+  root->childrenCount = r->GetChildrenCount();
+  root->scriptResourceName = r->GetScriptResourceNameStr();
+  root->functionName = r->GetFunctionNameStr();
+  root->lineNumber = r->GetLineNumber();
+  root->columnNumber = r->GetColumnNumber();
 
-const char* CpuProfileGetTitle(IsolatePtr iso_ptr, CpuProfilePtr ptr) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-
-  CpuProfile* cp = static_cast<CpuProfile*>(ptr);
-  Local<String> str = cp->GetTitle();
-  String::Utf8Value title(iso, str);
-  return CopyString(title);
+  m_cpuProfile* c = new m_cpuProfile;
+  c->ptr = cpuProfile;
+  c->title = title;
+  c->root = root;
+  return c;
 }
 
 CpuProfileNodePtr CpuProfileGetTopDownRoot(CpuProfilePtr ptr) {
-  CpuProfile* cp = static_cast<CpuProfile*>(ptr);
-  const CpuProfileNode* cpuProfileNode = cp->GetTopDownRoot();
-  return const_cast<CpuProfileNode*>(cpuProfileNode);
+  return ptr->root;
+}
+
+int CpuProfileGetStartTime(CpuProfilePtr cpuProfilePtr) {
+  return cpuProfilePtr->ptr->GetStartTime();
+}
+
+int CpuProfileGetEndTime(CpuProfilePtr cpuProfilePtr) {
+  return cpuProfilePtr->ptr->GetEndTime();
 }
 
 int CpuProfileNodeGetChildrenCount(CpuProfileNodePtr ptr) {
-  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
-  return cpn->GetChildrenCount();
+  return ptr->childrenCount;
 }
 
-CpuProfileNodePtr CpuProfileNodeGetChild(CpuProfilePtr ptr, int index) {
-  CpuProfileNode* cp = static_cast<CpuProfileNode*>(ptr);
-  const CpuProfileNode* cpuProfileNode = cp->GetChild(index);
-  return const_cast<CpuProfileNode*>(cpuProfileNode);
-}
-
-CpuProfileNodePtr CpuProfileNodeGetParent(CpuProfilePtr ptr) {
-  CpuProfileNode* cp = static_cast<CpuProfileNode*>(ptr);
-  const CpuProfileNode* cpuProfileNode = cp->GetParent();
-  return const_cast<CpuProfileNode*>(cpuProfileNode);
+const char* CpuProfileNodeGetScriptResourceName(CpuProfileNodePtr ptr) {
+  return ptr->scriptResourceName;
 }
 
 const char* CpuProfileNodeGetFunctionName(CpuProfileNodePtr ptr) {
-  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
-  return cpn->GetFunctionNameStr();
+  return ptr->functionName;
 }
 
 int CpuProfileNodeGetLineNumber(CpuProfileNodePtr ptr) {
-  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
-  return cpn->GetLineNumber();
+  return ptr->lineNumber;
 }
 
-int CpuProfileNodeGetColumnNumber(CpuProfilerPtr ptr) {
-  CpuProfileNode* cpn = static_cast<CpuProfileNode*>(ptr);
-  return cpn->GetColumnNumber();
+int CpuProfileNodeGetColumnNumber(CpuProfileNodePtr ptr) {
+  return ptr->columnNumber;
 }
 
+CpuProfileNodePtr CpuProfileNodeGetChild(CpuProfileNodePtr cpuProfileNode, int index) {
+  const CpuProfileNode* child = cpuProfileNode->ptr->GetChild(index);
+  m_cpuProfileNode* c = new m_cpuProfileNode;
+  c->ptr = child;
+  c->scriptResourceName = child->GetScriptResourceNameStr();
+  c->functionName = child->GetFunctionNameStr();
+  c->lineNumber = child->GetLineNumber();
+  c->columnNumber = child->GetColumnNumber();
+  c->childrenCount = child->GetChildrenCount();
+  return c;
+}
+
+void CpuProfileDelete(CpuProfilePtr cpuProfile) {
+  if (cpuProfile->ptr == nullptr) {
+    return;
+  }
+  cpuProfile->ptr->Delete();
+}
 
 /********** Template **********/
 
@@ -648,9 +671,9 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
   Context::Scope context_scope(local_ctx); \
   Local<Value> value = val->ptr.Get(iso);
 
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr) \
-  ISOLATE_SCOPE(iso_ptr);                       \
-  m_ctx* ctx = static_cast<m_ctx*>(iso->GetData(0));
+#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
+  ISOLATE_SCOPE(iso);                       \
+  m_ctx* ctx = isolateInternalContext(iso);
 
 ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
