@@ -73,6 +73,31 @@ func TestObjectSet(t *testing.T) {
 	}
 }
 
+func TestObjectPrivateProperties(t *testing.T) {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	tmpl := v8.NewObjectTemplate(iso)
+	tmpl.SetInternalFieldCount(1)
+
+	obj, _ := tmpl.NewInstance(ctx)
+
+	obj.SetInternal(0, "baz")
+	v, err := obj.GetInternal(0)
+
+	if v.String() != "baz" || err != nil {
+		t.Errorf("unexpected value: %q", v)
+	}
+
+	err = obj.SetInternal(1, "baz")
+
+	if err == nil {
+		t.Error("Should get \"index exceeded internal field count\" error")
+	}
+}
+
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 

@@ -80,6 +80,24 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 	}
 
 	C.ObjectSetIdx(o.ptr, C.uint32_t(idx), value.ptr)
+
+	return nil
+}
+
+// SetInternal sets the value of an internal field.
+func (o *Object) SetInternal(idx uint32, val interface{}) error {
+	value, err := coerceValue(o.ctx.iso, val)
+
+	if err != nil {
+		return err
+	}
+
+	inserted := C.ObjectSetInternal(o.ptr, C.uint32_t(idx), value.ptr)
+
+	if inserted == 0 {
+		return errors.New("v8go: index exceeded internal field count")
+	}
+
 	return nil
 }
 
@@ -89,6 +107,12 @@ func (o *Object) Get(key string) (*Value, error) {
 	defer C.free(unsafe.Pointer(ckey))
 
 	rtn := C.ObjectGet(o.ptr, ckey)
+	return valueResult(o.ctx, rtn)
+}
+
+// GetInternal tries to get a Value for a given Object internal property key.
+func (o *Object) GetInternal(idx uint32) (*Value, error) {
+	rtn := C.ObjectGetInternal(o.ptr, C.uint32_t(idx))
 	return valueResult(o.ctx, rtn)
 }
 
