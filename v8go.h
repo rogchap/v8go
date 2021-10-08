@@ -8,15 +8,30 @@
 
 namespace v8 {
 class Isolate;
+class CpuProfiler;
+class CpuProfile;
+class CpuProfileNode;
 }
 
 typedef v8::Isolate* IsolatePtr;
+typedef v8::CpuProfiler* CpuProfilerPtr;
+typedef v8::CpuProfile* CpuProfilePtr;
+typedef const v8::CpuProfileNode* CpuProfileNodePtr;
 
 extern "C" {
 #else
 // Opaque to cgo, but useful to treat it as a pointer to a distinct type
 typedef struct v8Isolate v8Isolate;
 typedef v8Isolate* IsolatePtr;
+
+typedef struct v8CpuProfiler v8CpuProfiler;
+typedef v8CpuProfiler* CpuProfilerPtr;
+
+typedef struct v8CpuProfile v8CpuProfile;
+typedef v8CpuProfile* CpuProfilePtr;
+
+typedef struct v8CpuProfileNode v8CpuProfileNode;
+typedef const v8CpuProfileNode* CpuProfileNodePtr;
 #endif
 
 #include <stddef.h>
@@ -30,13 +45,28 @@ typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
 
-typedef struct m_cpuProfiler m_cpuProfiler;
-typedef struct m_cpuProfile m_cpuProfile;
-typedef struct m_cpuProfileNode m_cpuProfileNode;
+typedef struct {
+  CpuProfilerPtr ptr;
+  IsolatePtr iso;
+} CPUProfiler;
 
-typedef m_cpuProfiler* CpuProfilerPtr;
-typedef m_cpuProfile* CpuProfilePtr;
-typedef m_cpuProfileNode* CpuProfileNodePtr;
+typedef struct CPUProfileNode {
+  CpuProfileNodePtr ptr;
+  const char* scriptResourceName;
+  const char* functionName;
+  int lineNumber;
+  int columnNumber;
+  int childrenCount;
+  struct CPUProfileNode** children;
+} CPUProfileNode;
+
+typedef struct {
+  CpuProfilePtr ptr;
+  const char* title;
+  CPUProfileNode* root;
+  int startTime;
+  int endTime;
+} CPUProfile;
 
 typedef struct {
   const char* msg;
@@ -82,29 +112,11 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern CpuProfilerPtr NewCpuProfiler(IsolatePtr iso_ptr);
-extern void CpuProfilerDispose(CpuProfilerPtr ptr);
-extern void CpuProfilerStartProfiling(IsolatePtr iso_ptr,
-                                      CpuProfilerPtr ptr,
-                                      const char* title);
-
-extern CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr,
-                                              CpuProfilerPtr ptr,
-                                              const char* title);
-extern int CpuProfileGetStartTime(CpuProfilePtr ptr);
-extern int CpuProfileGetEndTime(CpuProfilePtr ptr);
-extern int CpuProfileGetSamplesCount(CpuProfilePtr ptr);
-extern void CpuProfileDelete(CpuProfilePtr ptr);
-
-extern CpuProfileNodePtr CpuProfileGetTopDownRoot(CpuProfilePtr ptr);
-
-extern const char* CpuProfileNodeGetScriptResourceName(CpuProfileNodePtr ptr);
-extern const char* CpuProfileNodeGetFunctionName(CpuProfileNodePtr ptr);
-extern int CpuProfileNodeGetChildrenCount(CpuProfileNodePtr ptr);
-extern CpuProfileNodePtr CpuProfileNodeGetChild(CpuProfileNodePtr ptr,
-                                                int index);
-extern int CpuProfileNodeGetLineNumber(CpuProfileNodePtr ptr);
-extern int CpuProfileNodeGetColumnNumber(CpuProfileNodePtr ptr);
+extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
+extern void CPUProfilerDispose(CPUProfiler* ptr);
+extern void CPUProfilerStartProfiling(CPUProfiler* ptr, const char* title);
+extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr, const char* title);
+extern void CPUProfileDelete(CPUProfile* ptr);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,

@@ -5,18 +5,17 @@
 package v8go_test
 
 import (
-	"fmt"
 	"testing"
 
-	"rogchap.com/v8go"
+	v8 "rogchap.com/v8go"
 )
 
-func TestCPUProfilerDispose(t *testing.T) {
+func TestCPUProfiler_Dispose(t *testing.T) {
 	t.Parallel()
 
-	iso := v8go.NewIsolate()
+	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	cpuProfiler := v8go.NewCPUProfiler(iso)
+	cpuProfiler := v8.NewCPUProfiler(iso)
 
 	cpuProfiler.Dispose()
 	// noop when called multiple times
@@ -26,7 +25,7 @@ func TestCPUProfilerDispose(t *testing.T) {
 	cpuProfiler.StartProfiling("")
 	cpuProfiler.StopProfiling("")
 
-	cpuProfiler = v8go.NewCPUProfiler(iso)
+	cpuProfiler = v8.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 	iso.Dispose()
 	// verify does not panic once isolate disposed
@@ -37,12 +36,12 @@ func TestCPUProfilerDispose(t *testing.T) {
 func TestCPUProfiler(t *testing.T) {
 	// t.Parallel()
 
-	ctx := v8go.NewContext(nil)
+	ctx := v8.NewContext(nil)
 	iso := ctx.Isolate()
 	defer iso.Dispose()
 	defer ctx.Close()
 
-	cpuProfiler := v8go.NewCPUProfiler(iso)
+	cpuProfiler := v8.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 
 	cpuProfiler.StartProfiling("cpuprofilertest")
@@ -57,73 +56,174 @@ func TestCPUProfiler(t *testing.T) {
 	fatalIf(t, err)
 
 	cpuProfile := cpuProfiler.StopProfiling("cpuprofilertest")
-	if cpuProfile == nil {
-		t.Fatal("expected profiler not to be nil")
-	}
 	defer cpuProfile.Delete()
 
-	root := cpuProfile.GetTopDownRoot()
+	root := cpuProfile.Root
 	if root == nil {
 		t.Fatal("expected root not to be nil")
 	}
-	err = checkNode(root, "(root)", 0, 0)
-	fatalIf(t, err)
-	err = checkChildren(root, []string{"(program)", "start", "(garbage collector)"})
-	fatalIf(t, err)
-
-	start := root.GetChild(1)
-	err = checkNode(start, "start", 23, 15)
-	fatalIf(t, err)
-	err = checkChildren(start, []string{"foo"})
-	fatalIf(t, err)
-
-	foo := start.GetChild(0)
-	err = checkNode(foo, "foo", 15, 13)
-	fatalIf(t, err)
-	err = checkChildren(foo, []string{"delay", "bar", "baz"})
-	fatalIf(t, err)
-
-	baz := foo.GetChild(2)
-	err = checkNode(baz, "baz", 14, 13)
-	fatalIf(t, err)
-	err = checkChildren(baz, []string{"delay"})
-	fatalIf(t, err)
-
-	delay := baz.GetChild(0)
-	err = checkNode(delay, "delay", 12, 15)
-	fatalIf(t, err)
-	err = checkChildren(delay, []string{"loop"})
-	fatalIf(t, err)
+	if root.FunctionName != "(root)" {
+		t.Errorf("expected (root), but got %v", root.FunctionName)
+	}
 }
 
-func checkChildren(node *v8go.CPUProfileNode, names []string) error {
-	nodeName := node.GetFunctionName()
-	if node.GetChildrenCount() != len(names) {
-		present := []string{}
-		for i := 0; i < node.GetChildrenCount(); i++ {
-			present = append(present, node.GetChild(i).GetFunctionName())
-		}
-		return fmt.Errorf("child count for node %s should be %d but was %d: %v", nodeName, len(names), node.GetChildrenCount(), present)
+func TestCPUProfile_Delete(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	cpuProfiler := v8.NewCPUProfiler(iso)
+	defer cpuProfiler.Dispose()
+
+	cpuProfiler.StartProfiling("cpuprofiletest")
+	cpuProfile := cpuProfiler.StopProfiling("cpuprofiletest")
+	cpuProfile.Delete()
+	// noop when called multiple times
+	cpuProfile.Delete()
+}
+
+func TestCPUProfile(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext(nil)
+	iso := ctx.Isolate()
+	defer iso.Dispose()
+	defer ctx.Close()
+
+	cpuProfiler := v8.NewCPUProfiler(iso)
+	defer cpuProfiler.Dispose()
+
+	cpuProfiler.StartProfiling("cpuprofiletest")
+
+	_, err := ctx.RunScript(profileScript, "script.js")
+	fatalIf(t, err)
+	val, err := ctx.Global().Get("start")
+	fatalIf(t, err)
+	fn, err := val.AsFunction()
+	fatalIf(t, err)
+	_, err = fn.Call(ctx.Global())
+	fatalIf(t, err)
+
+	cpuProfile := cpuProfiler.StopProfiling("cpuprofiletest")
+	defer cpuProfile.Delete()
+
+	if cpuProfile.Title != "cpuprofiletest" {
+		t.Errorf("expected cpuprofiletest, but got %v", cpuProfile.Title)
 	}
+
+	root := cpuProfile.Root
+	if root == nil {
+		t.Fatal("expected root not to be nil")
+	}
+	if root.FunctionName != "(root)" {
+		t.Errorf("expected (root), but got %v", root.FunctionName)
+	}
+}
+
+func TestCPUProfileNode(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext(nil)
+	iso := ctx.Isolate()
+	defer iso.Dispose()
+	defer ctx.Close()
+
+	cpuProfiler := v8.NewCPUProfiler(iso)
+	defer cpuProfiler.Dispose()
+
+	cpuProfiler.StartProfiling("cpuprofilenodetest")
+
+	_, err := ctx.RunScript(profileScript, "script.js")
+	fatalIf(t, err)
+	val, err := ctx.Global().Get("start")
+	fatalIf(t, err)
+	fn, err := val.AsFunction()
+	fatalIf(t, err)
+	timeout, err := v8.NewValue(iso, int32(100))
+	fatalIf(t, err)
+	_, err = fn.Call(ctx.Global(), timeout)
+	fatalIf(t, err)
+
+	cpuProfile := cpuProfiler.StopProfiling("cpuprofilenodetest")
+	if cpuProfile == nil {
+		t.Fatal("expected profile not to be nil")
+	}
+	defer cpuProfile.Delete()
+
+	if !cpuProfile.StartTime.Before(cpuProfile.EndTime) {
+		t.Fatal("expected start time before end time")
+	}
+
+	// TODO: Tests are nondeterministic in child #/ordering
+
+	rootNode := cpuProfile.Root
+	if rootNode == nil {
+		t.Fatal("expected top down root not to be nil")
+	}
+	if rootNode.FunctionName != "(root)" {
+		t.Fatalf("expected (root), but got %v", rootNode.FunctionName)
+	}
+	checkChildren(t, rootNode, []string{"(program)", "start", "(garbage collector)"})
+
+	if len(rootNode.Children) != 3 {
+		t.Fatalf("expected 3 children, but got %d", len(rootNode.Children))
+	}
+
+	startNode := rootNode.Children[1]
+	checkChildren(t, startNode, []string{"foo"})
+	checkNode(t, startNode, "script.js", "start", 23, 15)
+
+	parentName := startNode.Parent.FunctionName
+	if parentName != "(root)" {
+		t.Fatalf("expected (root), but got %v", parentName)
+	}
+
+	fooNode := startNode.Children[0]
+	checkChildren(t, fooNode, []string{"delay", "bar", "baz"})
+	checkNode(t, fooNode, "script.js", "foo", 15, 13)
+
+	delayNode := fooNode.Children[0]
+	checkChildren(t, delayNode, []string{"loop"})
+	checkNode(t, delayNode, "script.js", "delay", 12, 15)
+
+	barNode := fooNode.Children[1]
+	checkChildren(t, barNode, []string{"delay"})
+
+	bazNode := fooNode.Children[2]
+	checkChildren(t, bazNode, []string{"delay"})
+}
+
+func checkChildren(t *testing.T, node *v8.CPUProfileNode, names []string) {
+	t.Helper()
+
+	nodeName := node.FunctionName
+	if len(node.Children) != len(names) {
+		t.Fatalf("expected %d children for node %s, found %d: %#v", len(names), nodeName, len(node.Children), node.Children)
+	}
+
 	for i, n := range names {
-		if node.GetChild(i).GetFunctionName() != n {
-			return fmt.Errorf("expected %s child %d to have name %s", nodeName, i, n)
+		if node.Children[i].FunctionName != n {
+			t.Fatalf("expected %s child %d to have name %s, but has %s: %#v", nodeName, i, n, node.Children[i].FunctionName, node.Children)
 		}
 	}
-	return nil
 }
 
-func checkNode(node *v8go.CPUProfileNode, name string, line, column int) error {
-	if node.GetFunctionName() != name {
-		return fmt.Errorf("expected node to have function name `%s` but had `%s`", name, node.GetFunctionName())
+func checkNode(t *testing.T, node *v8.CPUProfileNode, scriptResourceName string, functionName string, line, column int) {
+	t.Helper()
+
+	if node.FunctionName != functionName {
+		t.Fatalf("expected node to have function name %s, but got %s", functionName, node.FunctionName)
 	}
-	if node.GetLineNumber() != line {
-		return fmt.Errorf("expected node %s at line %d, but got %d", name, line, node.GetLineNumber())
+	if node.ScriptResourceName != scriptResourceName {
+		t.Fatalf("expected node to have script resource name %s, but got %s", scriptResourceName, node.ScriptResourceName)
 	}
-	if node.GetColumnNumber() != column {
-		return fmt.Errorf("expected node %s at column %d, but got %d", name, column, node.GetColumnNumber())
+	if node.LineNumber != line {
+		t.Fatalf("expected node at line %d, but got %d", line, node.LineNumber)
 	}
-	return nil
+	if node.ColumnNumber != column {
+		t.Fatalf("expected node at column %d, but got %d", column, node.ColumnNumber)
+	}
 }
 
 // const profileTree = `

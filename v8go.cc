@@ -44,26 +44,6 @@ struct m_template {
   Persistent<Template> ptr;
 };
 
-struct m_cpuProfiler {
-  Isolate* iso;
-  CpuProfiler* ptr;
-};
-
-struct m_cpuProfile {
-  CpuProfile* ptr;
-  const char* title;
-  m_cpuProfileNode* root;
-};
-
-struct m_cpuProfileNode {
-  const CpuProfileNode* ptr;
-  const char* functionName;
-  const char* scriptResourceName;
-  int lineNumber;
-  int columnNumber;
-  int childrenCount;
-};
-
 const char* CopyString(std::string str) {
   int len = str.length();
   char* mem = (char*)malloc(len + 1);
@@ -227,113 +207,104 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
 
 /********** CpuProfiler **********/
 
-CpuProfilerPtr NewCpuProfiler(IsolatePtr iso_ptr) {
+CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr) {
   Isolate* iso = static_cast<Isolate*>(iso_ptr);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
-  m_cpuProfiler* c = new m_cpuProfiler;
+  CPUProfiler* c = new CPUProfiler;
   c->iso = iso;
   c->ptr = CpuProfiler::New(iso);
   return c;
 }
 
-void CpuProfilerDispose(CpuProfilerPtr cpuProfiler) {
-  if (cpuProfiler->ptr == nullptr) {
+void CPUProfilerDispose(CPUProfiler* profiler) {
+  if (profiler->ptr == nullptr) {
     return;
   }
-  cpuProfiler->ptr->Dispose();
+  profiler->ptr->Dispose();
+
+  delete profiler;
 }
 
-void CpuProfilerStartProfiling(IsolatePtr iso_ptr, CpuProfilerPtr cpuProfiler, const char* title) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-
-  Local<String> title_str =
-      String::NewFromUtf8(iso, title, NewStringType::kNormal).ToLocalChecked();
-
-  cpuProfiler->ptr->StartProfiling(title_str);
-}
-
-CpuProfilePtr CpuProfilerStopProfiling(IsolatePtr iso_ptr, CpuProfilerPtr cpuProfiler, const char* title) {
-  Isolate* iso = static_cast<Isolate*>(iso_ptr);
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
-  HandleScope handle_scope(iso);
-
-  Local<String> title_str =
-      String::NewFromUtf8(iso, title, NewStringType::kNormal).ToLocalChecked();
-
-  CpuProfile* cpuProfile = cpuProfiler->ptr->StopProfiling(title_str);
-
-  const CpuProfileNode* r = cpuProfile->GetTopDownRoot();
-  m_cpuProfileNode* root = new m_cpuProfileNode;
-  root->ptr = r;
-  root->childrenCount = r->GetChildrenCount();
-  root->scriptResourceName = r->GetScriptResourceNameStr();
-  root->functionName = r->GetFunctionNameStr();
-  root->lineNumber = r->GetLineNumber();
-  root->columnNumber = r->GetColumnNumber();
-
-  m_cpuProfile* c = new m_cpuProfile;
-  c->ptr = cpuProfile;
-  c->title = title;
-  c->root = root;
-  return c;
-}
-
-CpuProfileNodePtr CpuProfileGetTopDownRoot(CpuProfilePtr ptr) {
-  return ptr->root;
-}
-
-int CpuProfileGetStartTime(CpuProfilePtr cpuProfilePtr) {
-  return cpuProfilePtr->ptr->GetStartTime();
-}
-
-int CpuProfileGetEndTime(CpuProfilePtr cpuProfilePtr) {
-  return cpuProfilePtr->ptr->GetEndTime();
-}
-
-int CpuProfileNodeGetChildrenCount(CpuProfileNodePtr ptr) {
-  return ptr->childrenCount;
-}
-
-const char* CpuProfileNodeGetScriptResourceName(CpuProfileNodePtr ptr) {
-  return ptr->scriptResourceName;
-}
-
-const char* CpuProfileNodeGetFunctionName(CpuProfileNodePtr ptr) {
-  return ptr->functionName;
-}
-
-int CpuProfileNodeGetLineNumber(CpuProfileNodePtr ptr) {
-  return ptr->lineNumber;
-}
-
-int CpuProfileNodeGetColumnNumber(CpuProfileNodePtr ptr) {
-  return ptr->columnNumber;
-}
-
-CpuProfileNodePtr CpuProfileNodeGetChild(CpuProfileNodePtr cpuProfileNode, int index) {
-  const CpuProfileNode* child = cpuProfileNode->ptr->GetChild(index);
-  m_cpuProfileNode* c = new m_cpuProfileNode;
-  c->ptr = child;
-  c->scriptResourceName = child->GetScriptResourceNameStr();
-  c->functionName = child->GetFunctionNameStr();
-  c->lineNumber = child->GetLineNumber();
-  c->columnNumber = child->GetColumnNumber();
-  c->childrenCount = child->GetChildrenCount();
-  return c;
-}
-
-void CpuProfileDelete(CpuProfilePtr cpuProfile) {
-  if (cpuProfile->ptr == nullptr) {
+void CPUProfilerStartProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
     return;
   }
-  cpuProfile->ptr->Delete();
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str = String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+  profiler->ptr->StartProfiling(title_str);
+}
+
+CPUProfileNode* NewCPUProfileNode(const CpuProfileNode* ptr_) {
+  int count = ptr_->GetChildrenCount();
+  CPUProfileNode** children = new CPUProfileNode*[count];
+  for (int i = 0; i < count; ++i) {
+    children[i] = NewCPUProfileNode(ptr_->GetChild(i));
+  }
+
+  CPUProfileNode* root = new CPUProfileNode{
+    ptr_,
+    ptr_->GetScriptResourceNameStr(),
+    ptr_->GetFunctionNameStr(),
+    ptr_->GetLineNumber(),
+    ptr_->GetColumnNumber(),
+    count,
+    children,
+  };
+  return root;
+}
+
+CPUProfile* CPUProfilerStopProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
+    return nullptr;
+  }
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str =
+      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+
+  CPUProfile* profile = new CPUProfile;
+  profile->ptr = profiler->ptr->StopProfiling(title_str);
+
+  Local<String> str = profile->ptr->GetTitle();
+  String::Utf8Value t(profiler->iso, str);
+  profile->title = CopyString(t);
+
+  CPUProfileNode* root = NewCPUProfileNode(profile->ptr->GetTopDownRoot());
+  profile->root = root;
+
+  profile->startTime = profile->ptr->GetStartTime();
+  profile->endTime = profile->ptr->GetEndTime();
+
+  return profile;
+}
+
+void CPUProfileNodeDelete(CPUProfileNode* node) {
+  for (int i = 0; i < node->childrenCount; ++i) {
+    CPUProfileNodeDelete(node->children[i]);
+  }
+
+  delete node;
+}
+
+void CPUProfileDelete(CPUProfile* profile) {
+  if (profile->ptr == nullptr) {
+    return;
+  }
+  profile->ptr->Delete();
+
+  CPUProfileNodeDelete(profile->root);
+
+  delete profile;
 }
 
 /********** Template **********/
