@@ -155,8 +155,6 @@ func TestCPUProfileNode(t *testing.T) {
 		t.Fatal("expected start time before end time")
 	}
 
-	// TODO: Tests are nondeterministic in child #/ordering
-
 	rootNode := cpuProfile.Root
 	if rootNode == nil {
 		t.Fatal("expected top down root not to be nil")
@@ -164,6 +162,7 @@ func TestCPUProfileNode(t *testing.T) {
 	if rootNode.FunctionName != "(root)" {
 		t.Fatalf("expected (root), but got %v", rootNode.FunctionName)
 	}
+
 	checkChildren(t, rootNode, []string{"(program)", "start", "(garbage collector)"})
 
 	if len(rootNode.Children) != 3 {
@@ -225,23 +224,6 @@ func checkNode(t *testing.T, node *v8.CPUProfileNode, scriptResourceName string,
 		t.Fatalf("expected node at column %d, but got %d", column, node.ColumnNumber)
 	}
 }
-
-// const profileTree = `
-// [Top down]:
-//  1062     0   (root) [-1]
-//  1054     0    start [-1]
-//  1054     1      foo [-1]
-//   265     0        baz [-1]
-//   265     1          delay [-1]
-//   264   264            loop [-1]
-//   525     3        delay [-1]
-//   522   522          loop [-1]
-//   263     0        bar [-1]
-//   263     1          delay [-1]
-//   262   262            loop [-1]
-//     2     2    (program) [-1]
-//     6     6    (garbage collector) [-1]
-// `
 
 const profileScript = `function loop(timeout) {
   this.mmm = 0;
