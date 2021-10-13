@@ -30,6 +30,17 @@ typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
 
+typedef enum {
+  ERROR_RANGE = 1,
+  ERROR_REFERENCE,
+  ERROR_SYNTAX,
+  ERROR_TYPE,
+  ERROR_WASM_COMPILE,
+  ERROR_WASM_LINK,
+  ERROR_WASM_RUNTIME,
+  ERROR_GENERIC,
+} ErrorTypeIndex;
+
 typedef struct {
   const char* msg;
   const char* location;
@@ -115,6 +126,7 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
+extern ValuePtr NewValueError(IsolatePtr iso_ptr, ErrorTypeIndex idx, const char* message);
 const char* ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
@@ -180,6 +192,8 @@ int ValueIsSharedArrayBuffer(ValuePtr ptr);
 int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
+
+const char* ExceptionGetMessageString(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
