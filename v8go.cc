@@ -20,6 +20,7 @@ struct _EXCEPTION_POINTERS;
 
 #include "libplatform/libplatform.h"
 #include "v8.h"
+#include "_cgo_export.h"
 
 using namespace v8;
 
@@ -287,7 +288,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   // we can use the context registry to match the Context on the Go side
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
-  ContextPtr goContext(int ctxref);
   m_ctx* ctx = goContext(ctx_ref);
 
   int callback_ref = info.Data().As<Integer>()->Value();
@@ -311,8 +311,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref,
-                              const ValuePtr* thisAndArgs, int args_count);
   ValuePtr val =
       goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
   if (val != nullptr) {
