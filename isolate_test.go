@@ -82,7 +82,7 @@ func TestCallbackRegistry(t *testing.T) {
 
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
-	cb := func(*v8.FunctionCallbackInfo) *v8.Value { return nil }
+	cb := func(*v8.FunctionCallbackInfo) (*v8.Value, error) { return nil, nil }
 
 	cb0 := iso.GetCallback(0)
 	if cb0 != nil {

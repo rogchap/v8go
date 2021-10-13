@@ -311,10 +311,12 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr val =
+  goFunctionCallback_return retval =
       goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
-  if (val != nullptr) {
-    info.GetReturnValue().Set(val->ptr.Get(iso));
+  if (retval.r1 != nullptr) {
+    iso->ThrowException(retval.r1->ptr.Get(iso));
+  } else if (retval.r0 != nullptr) {
+    info.GetReturnValue().Set(retval.r0->ptr.Get(iso));
   } else {
     info.GetReturnValue().SetUndefined();
   }

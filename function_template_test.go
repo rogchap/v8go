@@ -55,32 +55,84 @@ func TestFunctionTemplate_panic_on_nil_callback(t *testing.T) {
 func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
 
-	iso := v8.NewIsolate()
-	defer iso.Dispose()
-	ctx := v8.NewContext(iso)
-	defer ctx.Close()
+	t.Run("can_call", func(t *testing.T) {
+		t.Parallel()
 
-	var args *v8.FunctionCallbackInfo
-	tmpl := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		args = info
-		reply, _ := v8.NewValue(iso, "hello")
-		return reply
+		iso := v8.NewIsolate()
+		defer iso.Dispose()
+		ctx := v8.NewContext(iso)
+		defer ctx.Close()
+
+		var args *v8.FunctionCallbackInfo
+		tmpl := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+			args = info
+			reply, _ := v8.NewValue(iso, "hello")
+			return reply
+		})
+		fn := tmpl.GetFunction(ctx)
+		ten, err := v8.NewValue(iso, int32(10))
+		if err != nil {
+			t.Fatal(err)
+		}
+		ret, err := fn.Call(v8.Undefined(iso), ten)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(args.Args()) != 1 || args.Args()[0].String() != "10" {
+			t.Fatalf("expected args [10], got: %+v", args.Args())
+		}
+		if !ret.IsString() || ret.String() != "hello" {
+			t.Fatalf("expected return value of 'hello', was: %v", ret)
+		}
 	})
-	fn := tmpl.GetFunction(ctx)
-	ten, err := v8.NewValue(iso, int32(10))
-	if err != nil {
-		t.Fatal(err)
-	}
-	ret, err := fn.Call(v8.Undefined(iso), ten)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(args.Args()) != 1 || args.Args()[0].String() != "10" {
-		t.Fatalf("expected args [10], got: %+v", args.Args())
-	}
-	if !ret.IsString() || ret.String() != "hello" {
-		t.Fatalf("expected return value of 'hello', was: %v", ret)
-	}
+
+	t.Run("can_throw_string", func(t *testing.T) {
+		t.Parallel()
+
+		iso := v8.NewIsolate()
+		defer iso.Dispose()
+
+		tmpl := v8.NewFunctionTemplateWithError(iso, func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return nil, fmt.Errorf("fake error")
+		})
+		global := v8.NewObjectTemplate(iso)
+		global.Set("foo", tmpl)
+
+		ctx := v8.NewContext(iso, global)
+		defer ctx.Close()
+
+		ret, err := ctx.RunScript("(() => { try { foo(); return null; } catch (e) { return e; } })()", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ret.IsString() || ret.String() != "fake error" {
+			t.Fatalf("expected return value of 'hello', was: %v", ret)
+		}
+	})
+
+	t.Run("can_throw_exception", func(t *testing.T) {
+		t.Parallel()
+
+		iso := v8.NewIsolate()
+		defer iso.Dispose()
+
+		tmpl := v8.NewFunctionTemplateWithError(iso, func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+			return nil, v8.NewError(iso, "fake error")
+		})
+		global := v8.NewObjectTemplate(iso)
+		global.Set("foo", tmpl)
+
+		ctx := v8.NewContext(iso, global)
+		defer ctx.Close()
+
+		ret, err := ctx.RunScript("(() => { try { foo(); return null; } catch (e) { return e; } })()", "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ret.IsNativeError() || !strings.Contains(ret.String(), "fake error") {
+			t.Fatalf("expected return value of Error('hello'), was: %v", ret)
+		}
+	})
 }
 
 func TestFunctionCallbackInfoThis(t *testing.T) {

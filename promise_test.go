@@ -5,6 +5,7 @@
 package v8go_test
 
 import (
+	"errors"
 	"testing"
 
 	v8 "rogchap.com/v8go"
@@ -107,6 +108,36 @@ func TestPromiseRejected(t *testing.T) {
 	}
 	if then2Rejected {
 		t.Fatalf("unexpectedly called onRejected")
+	}
+}
+
+func TestPromiseThenCanThrow(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	res, _ := v8.NewPromiseResolver(ctx)
+
+	promThenVal := res.GetPromise().ThenWithError(func(info *v8.FunctionCallbackInfo) (*v8.Value, error) {
+		return nil, errors.New("faked error")
+	})
+	promThen, err := promThenVal.AsPromise()
+	if err != nil {
+		t.Fatalf("AsPromise failed: %v", err)
+	}
+
+	val, _ := v8.NewValue(iso, "foo")
+	res.Resolve(val)
+
+	if s := promThen.State(); s != v8.Rejected {
+		t.Fatalf("unexpected state for Promise, want Rejected (%v) got: %v", v8.Rejected, s)
+	}
+
+	if result := promThen.Result(); result.String() != "faked error" {
+		t.Errorf("expected the Promise result to match the resolve value, but got: %s", result)
 	}
 }
 

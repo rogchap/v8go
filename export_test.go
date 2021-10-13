@@ -5,12 +5,12 @@
 package v8go
 
 // RegisterCallback is exported for testing only.
-func (i *Isolate) RegisterCallback(cb FunctionCallback) int {
+func (i *Isolate) RegisterCallback(cb FunctionCallbackWithError) int {
 	return i.registerCallback(cb)
 }
 
 // GetCallback is exported for testing only.
-func (i *Isolate) GetCallback(ref int) FunctionCallback {
+func (i *Isolate) GetCallback(ref int) FunctionCallbackWithError {
 	return i.getCallback(ref)
 }
 
