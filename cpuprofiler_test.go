@@ -140,7 +140,7 @@ func TestCPUProfileNode(t *testing.T) {
 	fatalIf(t, err)
 	fn, err := val.AsFunction()
 	fatalIf(t, err)
-	timeout, err := v8.NewValue(iso, int32(100))
+	timeout, err := v8.NewValue(iso, int32(1000))
 	fatalIf(t, err)
 	_, err = fn.Call(ctx.Global(), timeout)
 	fatalIf(t, err)
@@ -229,7 +229,7 @@ const profileScript = `function loop(timeout) {
   this.mmm = 0;
   var start = Date.now();
   while (Date.now() - start < timeout) {
-    var n = 100;
+    var n = 10;
     while(n > 1) {
       n--;
       this.mmm += n * n * n;
