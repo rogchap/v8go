@@ -1182,12 +1182,12 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1215,12 +1215,12 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1240,12 +1240,12 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
