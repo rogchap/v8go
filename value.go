@@ -555,6 +555,15 @@ func (v *Value) AsObject() (*Object, error) {
 	return &Object{v}, nil
 }
 
+// AsSymbol will cast the value to the Symbol type. If the value is not a Symbol
+// then an error is returned.
+func (v *Value) AsSymbol() (*Symbol, error) {
+	if !v.IsSymbol() {
+		return nil, errors.New("v8go: value is not a Symbol")
+	}
+	return &Symbol{v}, nil
+}
+
 func (v *Value) AsPromise() (*Promise, error) {
 	if !v.IsPromise() {
 		return nil, errors.New("v8go: value is not a Promise")
