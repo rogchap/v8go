@@ -20,6 +20,7 @@ struct _EXCEPTION_POINTERS;
 
 #include "libplatform/libplatform.h"
 #include "v8.h"
+#include "_cgo_export.h"
 
 using namespace v8;
 
@@ -287,7 +288,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   // we can use the context registry to match the Context on the Go side
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
-  ContextPtr goContext(int ctxref);
   m_ctx* ctx = goContext(ctx_ref);
 
   int callback_ref = info.Data().As<Integer>()->Value();
@@ -311,8 +311,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref,
-                              const ValuePtr* thisAndArgs, int args_count);
   ValuePtr val =
       goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
   if (val != nullptr) {
@@ -1182,12 +1180,12 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1215,12 +1213,12 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1240,12 +1238,12 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
