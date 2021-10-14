@@ -14,32 +14,18 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 0
-            - name: Check latest v8 stable version
-              run: cd deps && ./check_latest_v8_version.py
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
             - name: Add depot_tools to PATH
               run: echo "$PWD/deps/depot_tools" >> $GITHUB_PATH
               shell: bash
-            - name: Fetch V8
-              run: cd deps && fetch v8 || true
-            - name: Get latest stable commit ref of v8
-              id: v8_latest_commit
-              run: echo ::set-output name=VALUE::$(curl -sS 'https://omahaproxy.appspot.com/all.json?os=linux&channel=stable' | jq '.[0]["versions"][0]["v8_commit"]')
-            - name: Get latest stable version number of v8
-              id: v8_latest_version
-              run: echo ::set-output name=VALUE::$(curl -sS 'https://omahaproxy.appspot.com/all.json?os=linux&channel=stable' | jq '.[0]["versions"][0]["v8_version"]')
-            - name: Checkout v8 to stable commit ref
-              run: cd deps/v8 && git fetch && git checkout ${{steps.v8_latest_commit.outputs.VALUE}}
-            - name: Update include folder and cgo.go
-              run: cd deps && ./update_include_folder.py
-            - name: Update v8_version file
-              run: cd deps && rm v8_version && echo ${{steps.v8_latest_commit.outputs.VALUE}} >> v8_version
+            - name: Run upgrade script
+              run: cd deps && ./upgrade_v8.py
             - name: Create PR metadata
               id: pr_metadata
               run: |
-                echo ::set-output name=pr_branch::"v8_${{steps.v8_latest_version.outputs.VALUE}}_upgrade"
+                echo ::set-output name=pr_branch::"v8_$(cat deps/v8_version)_upgrade"
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
