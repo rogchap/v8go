@@ -14,6 +14,9 @@ jobs:
               with:
                   submodules: true
                   fetch-depth: 0
+            - uses: actions/setup-python@v2
+              with:
+                python-version: '3.8'
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
@@ -21,7 +24,7 @@ jobs:
               run: echo "$PWD/deps/depot_tools" >> $GITHUB_PATH
               shell: bash
             - name: Run upgrade script
-              run: cd deps && ./upgrade_v8.py
+              run: cd deps && python upgrade_v8.py
             - name: Create PR metadata
               id: pr_metadata
               run: |
