@@ -96,6 +96,20 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	return valueResult(c, rtn)
 }
 
+// RunScript executes the source JavaScript; origin or filename provides a
+// reference for the script and used in the stack trace if there is an error.
+// error will be of type `JSError` of not nil.
+func (c *Context) RunCompiledScript(source string, compiledSource []byte, origin string) (*Value, error) {
+	cSource := C.CString(source)
+	cOrigin := C.CString(origin)
+	defer C.free(unsafe.Pointer(cSource))
+	defer C.free(unsafe.Pointer(cOrigin))
+
+	rtn := C.RunCompiledScript(c.ptr, cSource, (*C.uchar)(unsafe.Pointer(&compiledSource[0])), C.int(len(compiledSource)), cOrigin)
+
+	return valueResult(c, rtn)
+}
+
 // Global returns the global proxy object.
 // Global proxy object is a thin wrapper whose prototype points to actual
 // context's global object with the properties like Object, etc. This is

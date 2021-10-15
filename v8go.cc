@@ -130,6 +130,10 @@ extern "C" {
   Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
 
+#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
+  ISOLATE_SCOPE(iso);                       \
+  m_ctx* ctx = isolateInternalContext(iso);
+
 void Init() {
 #ifdef _WIN32
   V8::InitializeExternalStartupData(".");
@@ -202,6 +206,34 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.peak_malloced_memory(),
                             hs.number_of_native_contexts(),
                             hs.number_of_detached_contexts()};
+}
+
+// TODO: It would be great if we could check that the script was already compiled
+// and return that from the v8 hashtable instead
+ScriptCompilerCachedData CompileScript(IsolatePtr iso, const char* s, const char* o) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  Context::Scope context_scope(ctx->ptr.Get(iso));
+
+  Local<String> src =
+      String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
+  Local<String> ogn =
+      String::NewFromUtf8(iso, o, NewStringType::kNormal).ToLocalChecked();
+
+  ScriptOrigin script_origin(ogn);
+
+  ScriptCompiler::Source source(src, script_origin);
+
+  Local<UnboundScript> unboundedScript = ScriptCompiler::CompileUnboundScript(
+      iso,
+      &source,
+      ScriptCompiler::CompileOptions::kEagerCompile).ToLocalChecked();
+
+  ScriptCompiler::CachedData* cachedData = ScriptCompiler::CreateCodeCache(unboundedScript);
+
+  return ScriptCompilerCachedData{
+    cachedData->data,
+    cachedData->length,
+  };
 }
 
 /********** Template **********/
@@ -450,6 +482,49 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
   return rtn;
 }
 
+RtnValue RunCompiledScript(ContextPtr ctx, const char* source, const uint8_t* cd, int cdLen, const char* origin) {
+  LOCAL_CONTEXT(ctx);
+
+  RtnValue rtn = {nullptr, nullptr};
+
+  MaybeLocal<String> maybeSrc =
+      String::NewFromUtf8(iso, source, NewStringType::kNormal);
+  MaybeLocal<String> maybeOgn =
+      String::NewFromUtf8(iso, origin, NewStringType::kNormal);
+  Local<String> src, ogn;
+  if (!maybeSrc.ToLocal(&src) || !maybeOgn.ToLocal(&ogn)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+
+  ScriptCompiler::CachedData* cached_data = new ScriptCompiler::CachedData(cd, cdLen);
+
+  ScriptOrigin script_origin(ogn);
+
+  ScriptCompiler::Source cached_source(src, script_origin, cached_data);
+
+  ScriptCompiler::CompileOptions option = ScriptCompiler::kConsumeCodeCache;
+
+  Local<UnboundScript> unboundScript;
+  if (!ScriptCompiler::CompileUnboundScript(iso, &cached_source, option).ToLocal(&unboundScript)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  Local<Script> script = unboundScript->BindToCurrentContext();
+  Local<Value> result;
+  if (!script->Run(local_ctx).ToLocal(&result)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
+}
+
 RtnValue JSONParse(ContextPtr ctx, const char* str) {
   LOCAL_CONTEXT(ctx);
   RtnValue rtn = {nullptr, nullptr};
@@ -538,10 +613,6 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
   }                                        \
   Context::Scope context_scope(local_ctx); \
   Local<Value> value = val->ptr.Get(iso);
-
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
-  ISOLATE_SCOPE(iso);                       \
-  m_ctx* ctx = isolateInternalContext(iso);
 
 ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);

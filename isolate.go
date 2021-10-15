@@ -4,11 +4,13 @@
 
 package v8go
 
+// #include <stdlib.h>
 // #include "v8go.h"
 import "C"
 
 import (
 	"sync"
+	"unsafe"
 )
 
 var v8once sync.Once
@@ -73,6 +75,23 @@ func (i *Isolate) TerminateExecution() {
 // on the stack and the termination exception is still active.
 func (i *Isolate) IsExecutionTerminating() bool {
 	return C.IsolateIsExecutionTerminating(i.ptr) == 1
+}
+
+type ScriptCompilerCachedData []byte
+
+//TODO
+// CompileScript will compile the specified script (context-independent).
+func (i *Isolate) CompileScript(source, origin string) ScriptCompilerCachedData {
+	cSource := C.CString(source)
+	cOrigin := C.CString(origin)
+	defer C.free(unsafe.Pointer(cSource))
+	defer C.free(unsafe.Pointer(cOrigin))
+
+	p := C.CompileScript(i.ptr, cSource, cOrigin)
+	if p.length < 1 {
+		return nil
+	}
+	return []byte(C.GoBytes(unsafe.Pointer(p.data), p.length))
 }
 
 // GetHeapStatistics returns heap statistics for an isolate.

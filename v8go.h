@@ -31,6 +31,11 @@ typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
 
 typedef struct {
+  const uint8_t* data;
+  int length;
+} ScriptCompilerCachedData;
+
+typedef struct {
   const char* msg;
   const char* location;
   const char* stack;
@@ -73,6 +78,15 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
+
+extern ScriptCompilerCachedData CompileScript(IsolatePtr iso_ptr,
+                                              const char* s,
+                                              const char* origin);
+extern RtnValue RunCompiledScript(ContextPtr ctx_ptr,
+                                  const char* source,
+                                  const uint8_t* data,
+                                  int data_length,
+                                  const char* origin);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
