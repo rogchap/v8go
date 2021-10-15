@@ -230,6 +230,20 @@ void TemplateSetValue(TemplatePtr ptr,
   tmpl->Set(prop_name, val->ptr.Get(iso), (PropertyAttribute)attributes);
 }
 
+int TemplateSetAnyValue(TemplatePtr ptr,
+                        ValuePtr key,
+                        ValuePtr val,
+                        int attributes) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<Value> local_key = key->ptr.Get(iso);
+  if (!local_key->IsName()) {
+    return false;
+  }
+  tmpl->Set(local_key.As<Name>(), val->ptr.Get(iso), (PropertyAttribute)attributes);
+  return true;
+}
+
 void TemplateSetTemplate(TemplatePtr ptr,
                          const char* name,
                          TemplatePtr obj,
@@ -239,6 +253,20 @@ void TemplateSetTemplate(TemplatePtr ptr,
   Local<String> prop_name =
       String::NewFromUtf8(iso, name, NewStringType::kNormal).ToLocalChecked();
   tmpl->Set(prop_name, obj->ptr.Get(iso), (PropertyAttribute)attributes);
+}
+
+int TemplateSetAnyTemplate(TemplatePtr ptr,
+                           ValuePtr key,
+                           TemplatePtr obj,
+                           int attributes) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<Value> local_key = key->ptr.Get(iso);
+  if (!local_key->IsName()) {
+    return false;
+  }
+  tmpl->Set(Local<Name>::Cast(local_key), obj->ptr.Get(iso), (PropertyAttribute)attributes);
+  return true;
 }
 
 /********** ObjectTemplate **********/
@@ -1043,6 +1071,12 @@ void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
 
+void ObjectSetAnyKey(ValuePtr ptr, ValuePtr key, ValuePtr prop_val) {
+  LOCAL_OBJECT(ptr);
+  Local<Value> local_key = key->ptr.Get(iso);
+  obj->Set(local_ctx, local_key, prop_val->ptr.Get(iso)).Check();
+}
+
 void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
@@ -1060,6 +1094,26 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   }
   Local<Value> result;
   if (!obj->Get(local_ctx, key_val).ToLocal(&result)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+
+  rtn.value = tracked_value(ctx, new_val);
+  return rtn;
+}
+
+RtnValue ObjectGetAnyKey(ValuePtr ptr, ValuePtr key) {
+  LOCAL_OBJECT(ptr);
+  RtnValue rtn = {nullptr, nullptr};
+
+  Local<Value> local_key = key->ptr.Get(iso);
+  Local<Value> result;
+  if (!obj->Get(local_ctx, local_key).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
@@ -1099,6 +1153,12 @@ int ObjectHas(ValuePtr ptr, const char* key) {
   return obj->Has(local_ctx, key_val).ToChecked();
 }
 
+int ObjectHasAnyKey(ValuePtr ptr, ValuePtr key) {
+  LOCAL_OBJECT(ptr);
+  Local<Value> local_key = key->ptr.Get(iso);
+  return obj->Has(local_ctx, local_key).ToChecked();
+}
+
 int ObjectHasIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
   return obj->Has(local_ctx, idx).ToChecked();
@@ -1111,9 +1171,73 @@ int ObjectDelete(ValuePtr ptr, const char* key) {
   return obj->Delete(local_ctx, key_val).ToChecked();
 }
 
+int ObjectDeleteAnyKey(ValuePtr ptr, ValuePtr key) {
+  LOCAL_OBJECT(ptr);
+  Local<Value> local_key = key->ptr.Get(iso);
+  return obj->Delete(local_ctx, local_key).ToChecked();
+}
+
 int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
   return obj->Delete(local_ctx, idx).ToChecked();
+}
+
+/********** Symbol **********/
+
+ValuePtr BuiltinSymbol(IsolatePtr iso, SymbolIndex idx) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  Local<Symbol> sym;
+  switch (idx) {
+  case SYMBOL_ASYNC_ITERATOR:
+    sym = Symbol::GetAsyncIterator(iso);
+    break;
+  case SYMBOL_HAS_INSTANCE:
+    sym = Symbol::GetHasInstance(iso);
+    break;
+  case SYMBOL_IS_CONCAT_SPREADABLE:
+    sym = Symbol::GetIsConcatSpreadable(iso);
+    break;
+  case SYMBOL_ITERATOR:
+    sym = Symbol::GetIterator(iso);
+    break;
+  case SYMBOL_MATCH:
+    sym = Symbol::GetMatch(iso);
+    break;
+  case SYMBOL_REPLACE:
+    sym = Symbol::GetReplace(iso);
+    break;
+  case SYMBOL_SEARCH:
+    sym = Symbol::GetSearch(iso);
+    break;
+  case SYMBOL_SPLIT:
+    sym = Symbol::GetSplit(iso);
+    break;
+  case SYMBOL_TO_PRIMITIVE:
+    sym = Symbol::GetToPrimitive(iso);
+    break;
+  case SYMBOL_TO_STRING_TAG:
+    sym = Symbol::GetToStringTag(iso);
+    break;
+  case SYMBOL_UNSCOPABLES:
+    sym = Symbol::GetUnscopables(iso);
+    break;
+  default:
+    return nullptr;
+  }
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, sym);
+  return tracked_value(ctx, val);
+}
+
+const char* SymbolDescription(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  Local<Symbol> sym = value.As<Symbol>();
+  Local<Value> descr = sym->Description();
+  String::Utf8Value utf8(iso, descr);
+  return CopyString(utf8);
+
 }
 
 /********** Promise **********/

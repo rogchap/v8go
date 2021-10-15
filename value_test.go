@@ -435,6 +435,32 @@ func TestValueObject(t *testing.T) {
 	}
 }
 
+func TestValueAsSymbol(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
+	t.Run("valid", func(t *testing.T) {
+		val, _ := ctx.RunScript("Symbol.iterator", "")
+		got, err := val.AsSymbol()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if want := "Symbol.iterator"; got.Description() != want {
+			t.Errorf("Description: expected %q, but got %q", want, got.Description())
+		}
+	})
+
+	t.Run("invalid", func(t *testing.T) {
+		val, _ := ctx.RunScript("1", "")
+		if _, err := val.AsSymbol(); err == nil {
+			t.Error("Expected error but got <nil>")
+		}
+	})
+}
+
 func TestValuePromise(t *testing.T) {
 	t.Parallel()
 

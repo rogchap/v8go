@@ -49,6 +49,8 @@ func TestObjectSet(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
+
+	symIter := v8.SymbolIterator(ctx.Isolate())
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
 	obj, _ := val.AsObject()
 	obj.Set("bar", "baz")
@@ -61,6 +63,9 @@ func TestObjectSet(t *testing.T) {
 	}
 	if err := obj.Set("a", 0); err == nil {
 		t.Error("expected error but got <nil>")
+	}
+	if err := obj.SetSymbol(symIter, "sym"); err != nil {
+		t.Errorf("unexpected error: %v", err)
 	}
 	if err := obj.SetIdx(10, "ten"); err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -79,13 +84,20 @@ func TestObjectGet(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
+	symIter := v8.SymbolIterator(ctx.Isolate())
+	val, err := ctx.RunScript("const foo = { bar: 'baz', [Symbol.iterator]: 'gee'}; foo", "")
+	if err != nil {
+		t.Fatalf("RunScript failed: %v", err)
+	}
 	obj, _ := val.AsObject()
 	if bar, _ := obj.Get("bar"); bar.String() != "baz" {
 		t.Errorf("unexpected value: %q", bar)
 	}
 	if baz, _ := obj.Get("baz"); !baz.IsUndefined() {
 		t.Errorf("unexpected value: %q", baz)
+	}
+	if got, _ := obj.GetSymbol(symIter); got.String() != "gee" {
+		t.Errorf("unexpected value: %q", got)
 	}
 	ctx.RunScript("foo[5] = 5", "")
 	if five, _ := obj.GetIdx(5); five.Integer() != 5 {
@@ -102,13 +114,17 @@ func TestObjectHas(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
+	symIter := v8.SymbolIterator(ctx.Isolate())
+	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2, [Symbol.iterator]: 3}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("a") {
 		t.Error("expected true, got false")
 	}
 	if obj.Has("c") {
 		t.Error("expected false, got true")
+	}
+	if !obj.HasSymbol(symIter) {
+		t.Error("expected true, got false")
 	}
 	if !obj.HasIdx(2) {
 		t.Error("expected true, got false")
@@ -124,7 +140,8 @@ func TestObjectDelete(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
+	symIter := v8.SymbolIterator(ctx.Isolate())
+	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2, [Symbol.iterator]: 3}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("bar") {
 		t.Error("expected property to exist")
@@ -133,6 +150,12 @@ func TestObjectDelete(t *testing.T) {
 		t.Error("expected delete to return true, got false")
 	}
 	if obj.Has("bar") {
+		t.Error("expected property to be deleted")
+	}
+	if !obj.DeleteSymbol(symIter) {
+		t.Error("expected delete to return true, got false")
+	}
+	if obj.HasSymbol(symIter) {
 		t.Error("expected property to be deleted")
 	}
 	if !obj.DeleteIdx(2) {

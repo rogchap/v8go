@@ -55,6 +55,23 @@ func TestObjectTemplate(t *testing.T) {
 	}
 }
 
+func TestObjectTemplateSetSymbol(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	obj := v8.NewObjectTemplate(iso)
+
+	val, _ := v8.NewValue(iso, "bar")
+	objVal := v8.NewObjectTemplate(iso)
+
+	if err := obj.SetSymbol(v8.SymbolIterator(iso), val); err != nil {
+		t.Errorf("failed to set property: %v", err)
+	}
+	if err := obj.SetSymbol(v8.SymbolIterator(iso), objVal); err != nil {
+		t.Errorf("failed to set template property: %v", err)
+	}
+}
+
 func TestObjectTemplate_panic_on_nil_isolate(t *testing.T) {
 	t.Parallel()
 
