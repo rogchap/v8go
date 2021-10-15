@@ -80,23 +80,18 @@ func TestContextRegistry(t *testing.T) {
 	ctxref := ctx.Ref()
 
 	c1 := v8.GetContext(ctxref)
-	if c1 != nil {
-		t.Error("expected context to be <nil>")
-	}
-
-	ctx.Register()
-	c2 := v8.GetContext(ctxref)
-	if c2 == nil {
+	if c1 == nil {
 		t.Error("expected context, but got <nil>")
 	}
-	if c2 != ctx {
-		t.Errorf("contexts should match %p != %p", c2, ctx)
+	if c1 != ctx {
+		t.Errorf("contexts should match %p != %p", c1, ctx)
 	}
-	ctx.Deregister()
 
-	c3 := v8.GetContext(ctxref)
-	if c3 != nil {
-		t.Error("expected context to be <nil>")
+	ctx.Close()
+
+	c2 := v8.GetContext(ctxref)
+	if c2 != nil {
+		t.Error("expected context to be <nil> after close")
 	}
 }
 
@@ -115,6 +110,44 @@ func TestMemoryLeak(t *testing.T) {
 	}
 	if n := iso.GetHeapStatistics().NumberOfNativeContexts; n >= 6000 {
 		t.Errorf("Context not being GC'd, got %d native contexts", n)
+	}
+}
+
+// https://github.com/rogchap/v8go/issues/186
+func TestRegistryFromJSON(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	global := v8.NewObjectTemplate(iso)
+	err := global.Set("location", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		v, err := v8.NewValue(iso, "world")
+		fatalIf(t, err)
+		return v
+	}))
+	fatalIf(t, err)
+
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	v, err := ctx.RunScript(`
+		new Proxy({
+			"hello": "unknown"
+		}, {
+			get: function () {
+				return location()
+			},
+		})
+	`, "main.js")
+	fatalIf(t, err)
+
+	s, err := v8.JSONStringify(ctx, v)
+	fatalIf(t, err)
+
+	expected := `{"hello":"world"}`
+	if s != expected {
+		t.Fatalf("expected %q, got %q", expected, s)
 	}
 }
 

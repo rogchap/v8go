@@ -181,7 +181,7 @@ func TestValueConstants(t *testing.T) {
 		tt := tt
 
 		val, err := ctx.RunScript(tt.source, "test.js")
-		failIf(t, err)
+		fatalIf(t, err)
 
 		if tt.value.SameValue(val) != tt.same {
 			t.Errorf("SameValue on JS `%s` and V8 value %+v didn't return %v",
@@ -482,9 +482,9 @@ func TestValueSameValue(t *testing.T) {
 
 	objTempl := v8.NewObjectTemplate(iso)
 	obj1, err := objTempl.NewInstance(ctx)
-	failIf(t, err)
+	fatalIf(t, err)
 	obj2, err := objTempl.NewInstance(ctx)
-	failIf(t, err)
+	fatalIf(t, err)
 
 	if obj1.Value.SameValue(obj2.Value) != false {
 		t.Errorf("SameValue on two different values didn't return false")

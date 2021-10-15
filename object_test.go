@@ -19,7 +19,7 @@ func TestObjectMethodCall(t *testing.T) {
 	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	obj, _ := val.AsObject()
 	val, err := obj.MethodCall("print")
-	failIf(t, err)
+	fatalIf(t, err)
 	if val.String() != "some val" {
 		t.Errorf("unexpected value: %q", val)
 	}
@@ -29,11 +29,11 @@ func TestObjectMethodCall(t *testing.T) {
 	}
 
 	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
-	failIf(t, err)
+	fatalIf(t, err)
 	obj, _ = val.AsObject()
 	arg, _ := v8.NewValue(iso, "arg")
 	val, err = obj.MethodCall("print", arg)
-	failIf(t, err)
+	fatalIf(t, err)
 	if val.String() != "arg" {
 		t.Errorf("unexpected value: %q", val)
 	}
