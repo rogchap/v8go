@@ -80,9 +80,17 @@ func TestObjectPrivateProperties(t *testing.T) {
 	defer ctx.Close()
 
 	tmpl := v8.NewObjectTemplate(iso)
+	obj, _ := tmpl.NewInstance(ctx)
+	err := obj.SetInternal(0, "This should fail")
+
+	if err == nil {
+		t.Errorf("Setting an internal field without calling SetInternalFieldCount should fail")
+	}
+
+	tmpl = v8.NewObjectTemplate(iso)
 	tmpl.SetInternalFieldCount(1)
 
-	obj, _ := tmpl.NewInstance(ctx)
+	obj, _ = tmpl.NewInstance(ctx)
 
 	obj.SetInternal(0, "baz")
 	v, err := obj.GetInternal(0)
