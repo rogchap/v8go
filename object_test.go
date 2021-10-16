@@ -73,7 +73,7 @@ func TestObjectSet(t *testing.T) {
 	}
 }
 
-func TestObjectPrivateProperties(t *testing.T) {
+func TestObjectInternalFields(t *testing.T) {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 	ctx := v8.NewContext(iso)
@@ -81,7 +81,7 @@ func TestObjectPrivateProperties(t *testing.T) {
 
 	tmpl := v8.NewObjectTemplate(iso)
 	obj, _ := tmpl.NewInstance(ctx)
-	err := obj.SetInternal(0, "This should fail")
+	err := obj.SetInternalField(0, "This should fail")
 
 	if err == nil {
 		t.Errorf("Setting an internal field without calling SetInternalFieldCount should fail")
@@ -92,14 +92,14 @@ func TestObjectPrivateProperties(t *testing.T) {
 
 	obj, _ = tmpl.NewInstance(ctx)
 
-	obj.SetInternal(0, "baz")
-	v, err := obj.GetInternal(0)
+	obj.SetInternalField(0, "baz")
+	v, err := obj.GetInternalField(0)
 
 	if v.String() != "baz" || err != nil {
 		t.Errorf("unexpected value: %q", v)
 	}
 
-	err = obj.SetInternal(1, "baz")
+	err = obj.SetInternalField(1, "baz")
 
 	if err == nil {
 		t.Error("Should get \"index exceeded internal field count\" error")

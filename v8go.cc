@@ -1055,7 +1055,7 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
-int ObjectSetInternal(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   m_value* prop_val = static_cast<m_value*>(val_ptr);
 
@@ -1093,7 +1093,7 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   return rtn;
 }
 
-RtnValue ObjectGetInternal(ValuePtr ptr, uint32_t idx) {
+RtnValue ObjectGetInternalField(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
 
