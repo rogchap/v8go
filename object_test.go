@@ -105,7 +105,12 @@ func TestObjectInternalFields(t *testing.T) {
 		t.Errorf("unexpected value: %q", v)
 	}
 
-	obj.SetInternalField(0, "baz")
+	if err := obj.SetInternalField(0, t); err == nil {
+		t.Error("expected unsupported value error")
+	}
+
+	err = obj.SetInternalField(0, "baz")
+	fatalIf(t, err)
 	if v := obj.GetInternalField(0); v.String() != "baz" {
 		t.Errorf("unexpected value: %q", v)
 	}
