@@ -84,7 +84,8 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 	return nil
 }
 
-// SetInternalField sets the value of an internal field.
+// SetInternalField sets the value of an internal field for an ObjectTemplate instance.
+// Panics if the index isn't in the range set by (*ObjectTemplate).SetInternalFieldCount.
 func (o *Object) SetInternalField(idx uint32, val interface{}) error {
 	value, err := coerceValue(o.ctx.iso, val)
 
@@ -95,10 +96,16 @@ func (o *Object) SetInternalField(idx uint32, val interface{}) error {
 	inserted := C.ObjectSetInternalField(o.ptr, C.uint32_t(idx), value.ptr)
 
 	if inserted == 0 {
-		return errors.New("v8go: index exceeded internal field count")
+		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
 	}
 
 	return nil
+}
+
+// InternalFieldCount returns the number of internal fields this Object has.
+func (o *Object) InternalFieldCount() uint32 {
+	count := C.ObjectInternalFieldCount(o.ptr)
+	return uint32(count)
 }
 
 // Get tries to get a Value for a given Object property key.
@@ -110,10 +117,16 @@ func (o *Object) Get(key string) (*Value, error) {
 	return valueResult(o.ctx, rtn)
 }
 
-// GetInternalField tries to get a Value for a given Object internal property key.
-func (o *Object) GetInternalField(idx uint32) (*Value, error) {
+// GetInternalField gets the Value set by SetInternalField for the given index
+// or the JS undefined value if the index hadn't been set.
+// Panics if given an out of range index.
+func (o *Object) GetInternalField(idx uint32) *Value {
 	rtn := C.ObjectGetInternalField(o.ptr, C.uint32_t(idx))
-	return valueResult(o.ctx, rtn)
+	if rtn == nil {
+		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
+	}
+	return &Value{rtn, o.ctx}
+
 }
 
 // GetIdx tries to get a Value at a give Object index.

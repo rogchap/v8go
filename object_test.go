@@ -80,29 +80,38 @@ func TestObjectInternalFields(t *testing.T) {
 	defer ctx.Close()
 
 	tmpl := v8.NewObjectTemplate(iso)
-	obj, _ := tmpl.NewInstance(ctx)
-	err := obj.SetInternalField(0, "This should fail")
-
-	if err == nil {
-		t.Errorf("Setting an internal field without calling SetInternalFieldCount should fail")
+	obj, err := tmpl.NewInstance(ctx)
+	fatalIf(t, err)
+	if count := obj.InternalFieldCount(); count != 0 {
+		t.Errorf("expected 0 got %v", count)
+	}
+	if recoverPanic(func() { obj.GetInternalField(0) }) == nil {
+		t.Error("expected panic")
 	}
 
 	tmpl = v8.NewObjectTemplate(iso)
 	tmpl.SetInternalFieldCount(1)
+	if count := tmpl.InternalFieldCount(); count != 1 {
+		t.Errorf("expected 1 got %v", count)
+	}
 
-	obj, _ = tmpl.NewInstance(ctx)
+	obj, err = tmpl.NewInstance(ctx)
+	fatalIf(t, err)
+	if count := obj.InternalFieldCount(); count != 1 {
+		t.Errorf("expected 1 got %v", count)
+	}
 
-	obj.SetInternalField(0, "baz")
-	v, err := obj.GetInternalField(0)
-
-	if v.String() != "baz" || err != nil {
+	if v := obj.GetInternalField(0); !v.SameValue(v8.Undefined(iso)) {
 		t.Errorf("unexpected value: %q", v)
 	}
 
-	err = obj.SetInternalField(1, "baz")
+	obj.SetInternalField(0, "baz")
+	if v := obj.GetInternalField(0); v.String() != "baz" {
+		t.Errorf("unexpected value: %q", v)
+	}
 
-	if err == nil {
-		t.Error("Should get \"index exceeded internal field count\" error")
+	if recoverPanic(func() { obj.SetInternalField(1, "baz") }) == nil {
+		t.Error("expected panic from index out of bounds")
 	}
 }
 
