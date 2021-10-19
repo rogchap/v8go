@@ -1,8 +1,6 @@
 package v8go
 
 type CPUProfileNode struct {
-	// p *C.CPUProfileNode
-
 	// The resource name for script from where the function originates.
 	scriptResourceName string
 

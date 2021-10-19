@@ -41,12 +41,17 @@ func TestCPUProfileNode(t *testing.T) {
 	if rootNode == nil {
 		t.Fatal("expected top down root not to be nil")
 	}
-	if rootNode.GetChildrenCount() != 3 {
-		t.Fatalf("expected root node to have 3 children, but got %d", rootNode.GetChildrenCount())
+	count := rootNode.GetChildrenCount()
+	var startNode *v8.CPUProfileNode
+	for i := 0; i < count; i++ {
+		if rootNode.GetChild(i).GetFunctionName() == "start" {
+			startNode = rootNode.GetChild(i)
+		}
 	}
-	checkChildren(t, rootNode, []string{"(program)", "start", "(garbage collector)"})
+	if startNode == nil {
+		t.Fatal("expected root to have child node with function name start")
+	}
 
-	startNode := rootNode.GetChild(1)
 	checkChildren(t, startNode, []string{"foo"})
 	checkNode(t, startNode, "script.js", "start", 23, 15)
 
