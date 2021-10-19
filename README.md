@@ -193,7 +193,7 @@ these PRs into your branch. You are now ready to raise the PR against `master` w
 ### Flushing after C/C++ standard library printing for debugging
 
 When using the C/C++ standard library functions for printing (e.g. `printf`), then the output will be buffered by default.
-This can cause some confusion, especially because test the binary (created through `go test`) does not flush the buffer
+This can cause some confusion, especially because the test binary (created through `go test`) does not flush the buffer
 at exit (at the time of writing). When standard output is the terminal, then it will use line buffering and flush when
 a new line is printed, otherwise (e.g. if the output is redirected to a pipe or file) it will be fully buffered and not even
 flush at the end of a line. When the test binary is executed through `go test .` (e.g. instead of
