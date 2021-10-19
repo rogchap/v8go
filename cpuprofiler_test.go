@@ -64,7 +64,9 @@ func TestCPUProfiler(t *testing.T) {
 	fatalIf(t, err)
 	fn, err := val.AsFunction()
 	fatalIf(t, err)
-	_, err = fn.Call(ctx.Global())
+	timeout, err := v8.NewValue(iso, int32(0))
+	fatalIf(t, err)
+	_, err = fn.Call(ctx.Global(), timeout)
 	fatalIf(t, err)
 
 	cpuProfile := cpuProfiler.StopProfiling(title)

@@ -49,10 +49,8 @@ func TestCPUProfileNode(t *testing.T) {
 		}
 	}
 	if startNode == nil {
-		t.Fatal("expected root to have child node with function name start")
+		t.Fatal("expected node not to be nil")
 	}
-
-	checkChildren(t, startNode, []string{"foo"})
 	checkNode(t, startNode, "script.js", "start", 23, 15)
 
 	parentName := startNode.GetParent().GetFunctionName()
@@ -60,34 +58,36 @@ func TestCPUProfileNode(t *testing.T) {
 		t.Fatalf("expected (root), but got %v", parentName)
 	}
 
-	fooNode := startNode.GetChild(0)
-	checkChildren(t, fooNode, []string{"delay", "bar", "baz"})
+	fooNode := findChild(t, startNode, "foo")
 	checkNode(t, fooNode, "script.js", "foo", 15, 13)
 
-	delayNode := fooNode.GetChild(0)
-	checkChildren(t, delayNode, []string{"loop"})
+	delayNode := findChild(t, fooNode, "delay")
 	checkNode(t, delayNode, "script.js", "delay", 12, 15)
 
-	barNode := fooNode.GetChild(1)
-	checkChildren(t, barNode, []string{"delay"})
+	barNode := findChild(t, fooNode, "bar")
+	checkNode(t, barNode, "script.js", "bar", 13, 13)
 
-	bazNode := fooNode.GetChild(2)
-	checkChildren(t, bazNode, []string{"delay"})
+	loopNode := findChild(t, delayNode, "loop")
+	checkNode(t, loopNode, "script.js", "loop", 1, 14)
+
+	bazNode := findChild(t, fooNode, "baz")
+	checkNode(t, bazNode, "script.js", "baz", 14, 13)
 }
 
-func checkChildren(t *testing.T, node *v8.CPUProfileNode, names []string) {
+func findChild(t *testing.T, node *v8.CPUProfileNode, functionName string) *v8.CPUProfileNode {
 	t.Helper()
 
-	if node.GetChildrenCount() != len(names) {
-		t.Fatalf("expected root node to have %d children, but got %d", len(names), node.GetChildrenCount())
-	}
-
-	for i, n := range names {
-		childFunctionName := node.GetChild(i).GetFunctionName()
-		if childFunctionName != n {
-			t.Fatalf("expected child %d to have name %s, but has %s", i, n, childFunctionName)
+	var child *v8.CPUProfileNode
+	count := node.GetChildrenCount()
+	for i := 0; i < count; i++ {
+		if node.GetChild(i).GetFunctionName() == functionName {
+			child = node.GetChild(i)
 		}
 	}
+	if child == nil {
+		t.Fatal("failed to find child node")
+	}
+	return child
 }
 
 func checkNode(t *testing.T, node *v8.CPUProfileNode, scriptResourceName string, functionName string, line, column int) {
