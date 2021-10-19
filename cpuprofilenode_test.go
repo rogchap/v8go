@@ -41,6 +41,9 @@ func TestCPUProfileNode(t *testing.T) {
 	if rootNode == nil {
 		t.Fatal("expected top down root not to be nil")
 	}
+	if rootNode.GetChildrenCount() != 3 {
+		t.Fatalf("expected root node to have 3 children, but got %d", rootNode.GetChildrenCount())
+	}
 	checkChildren(t, rootNode, []string{"(program)", "start", "(garbage collector)"})
 
 	startNode := rootNode.GetChild(1)
@@ -69,6 +72,10 @@ func TestCPUProfileNode(t *testing.T) {
 
 func checkChildren(t *testing.T, node *v8.CPUProfileNode, names []string) {
 	t.Helper()
+
+	if node.GetChildrenCount() != len(names) {
+		t.Fatalf("expected root node to have %d children, but got %d", len(names), node.GetChildrenCount())
+	}
 
 	for i, n := range names {
 		childFunctionName := node.GetChild(i).GetFunctionName()

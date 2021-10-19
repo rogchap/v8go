@@ -47,6 +47,10 @@ func (c *CPUProfileNode) GetParent() *CPUProfileNode {
 	return c.parent
 }
 
+func (c *CPUProfileNode) GetChildrenCount() int {
+	return len(c.children)
+}
+
 // Retrieves a child node by index.
 func (c *CPUProfileNode) GetChild(index int) *CPUProfileNode {
 	return c.children[index]

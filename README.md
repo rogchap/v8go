@@ -113,7 +113,7 @@ case <- time.After(200 * time.Milliseconds):
 
 ### CPU Profiler
 
-```
+```go
 func createProfile() {
   cpuProfiler := v8.NewCPUProfiler(v8.NewIsolate()) // create a new profiler
   cpuProfiler.StartProfiling("my-profile") // start profiling
@@ -122,18 +122,19 @@ func createProfile() {
 
   cpuProfile := cpuProfiler.StopProfiling("my-profile") // stop profiling returns a cpu profile
 
-  printTree("", cpuProfile.Root) // a helper function for printing the tree
+  printTree("", cpuProfile.GetTopDownRoot()) // a helper function for printing the tree
 }
 
 func printTree(nest string, node *v8.CPUProfileNode) {
-	fmt.Printf("%s%s %s:%d:%d\n", nest, node.FunctionName, node.ScriptResourceName, node.LineNumber, node.ColumnNumber)
-	if len(node.Children) == 0 {
-		return
-	}
-	nest = fmt.Sprintf("%s  ", nest)
-	for _, c := range node.Children {
-		printTree(nest, c)
-	}
+  fmt.Printf("%s%s %s:%d:%d\n", nest, node.GetFunctionName(), node.GetScriptResourceName(), node.GetLineNumber(), node.GetColumnNumber())
+  count := node.GetChildrenCount()
+  if count == 0 {
+    return
+  }
+  nest = fmt.Sprintf("%s  ", nest)
+  for i := 0; i < count; i++ {
+    printTree(nest, node.GetChild(i))
+  }
 }
 
 <!-- Top Down Root -->
