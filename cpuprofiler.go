@@ -23,7 +23,7 @@ type CPUProfiler struct {
 func NewCPUProfiler(iso *Isolate) *CPUProfiler {
 	profiler := C.NewCPUProfiler(iso.ptr)
 	return &CPUProfiler{
-		p:   (*C.CPUProfiler)(unsafe.Pointer(profiler)),
+		p:   profiler,
 		iso: iso,
 	}
 }
@@ -34,7 +34,7 @@ func (c *CPUProfiler) Dispose() {
 		return
 	}
 
-	C.CPUProfilerDispose((*C.CPUProfiler)(unsafe.Pointer(c.p)))
+	C.CPUProfilerDispose(c.p)
 	c.p = nil
 }
 
@@ -42,35 +42,26 @@ func (c *CPUProfiler) Dispose() {
 // profiles may be collected at once. Attempts to start collecting several
 // profiles with the same title are silently ignored.
 func (c *CPUProfiler) StartProfiling(title string) {
-	if c.p == nil || c.iso.ptr == nil {
-		return
-	}
-
 	tstr := C.CString(title)
 	defer C.free(unsafe.Pointer(tstr))
 
-	C.CPUProfilerStartProfiling((*C.CPUProfiler)(unsafe.Pointer(c.p)), tstr)
+	C.CPUProfilerStartProfiling(c.p, tstr)
 }
 
 // Stops collecting CPU profile with a given title and returns it.
 // If the title given is empty, finishes the last profile started.
 func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
-	if c.p == nil || c.iso.ptr == nil {
-		return nil
-	}
-
 	tstr := C.CString(title)
 	defer C.free(unsafe.Pointer(tstr))
 
-	profile := C.CPUProfilerStopProfiling((*C.CPUProfiler)(unsafe.Pointer(c.p)), tstr)
-	p := (*C.CPUProfile)(unsafe.Pointer(profile))
+	profile := C.CPUProfilerStopProfiling(c.p, tstr)
 
 	return &CPUProfile{
-		p:         p,
-		Title:     C.GoString(p.title),
-		Root:      NewCPUProfileNode(p.root, nil),
-		StartTime: time.Unix(0, int64(p.startTime)/1000),
-		EndTime:   time.Unix(0, int64(p.endTime)/1000),
+		p:         profile,
+		Title:     C.GoString(profile.title),
+		Root:      NewCPUProfileNode(profile.root, nil),
+		StartTime: time.Unix(0, int64(profile.startTime)*1000),
+		EndTime:   time.Unix(0, int64(profile.endTime)*1000),
 	}
 }
 

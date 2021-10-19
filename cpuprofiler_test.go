@@ -21,16 +21,27 @@ func TestCPUProfiler_Dispose(t *testing.T) {
 	// noop when called multiple times
 	cpuProfiler.Dispose()
 
-	// verify does not panic once disposed
-	cpuProfiler.StartProfiling("")
-	cpuProfiler.StopProfiling("")
+	// verify panics when profiler disposed
+	if recoverPanic(func() { cpuProfiler.StartProfiling("") }) == nil {
+		t.Error("expected panic")
+	}
+
+	if recoverPanic(func() { cpuProfiler.StopProfiling("") }) == nil {
+		t.Error("expected panic")
+	}
 
 	cpuProfiler = v8.NewCPUProfiler(iso)
 	defer cpuProfiler.Dispose()
 	iso.Dispose()
-	// verify does not panic once isolate disposed
-	cpuProfiler.StartProfiling("")
-	cpuProfiler.StopProfiling("")
+
+	// verify panics when isolate disposed
+	if recoverPanic(func() { cpuProfiler.StartProfiling("") }) == nil {
+		t.Error("expected panic")
+	}
+
+	if recoverPanic(func() { cpuProfiler.StopProfiling("") }) == nil {
+		t.Error("expected panic")
+	}
 }
 
 func TestCPUProfiler(t *testing.T) {
