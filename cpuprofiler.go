@@ -42,6 +42,10 @@ func (c *CPUProfiler) Dispose() {
 // profiles may be collected at once. Attempts to start collecting several
 // profiles with the same title are silently ignored.
 func (c *CPUProfiler) StartProfiling(title string) {
+	if c.p == nil || c.iso.ptr == nil {
+		panic("profiler or isolate are nil")
+	}
+
 	tstr := C.CString(title)
 	defer C.free(unsafe.Pointer(tstr))
 
@@ -51,6 +55,10 @@ func (c *CPUProfiler) StartProfiling(title string) {
 // Stops collecting CPU profile with a given title and returns it.
 // If the title given is empty, finishes the last profile started.
 func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
+	if c.p == nil || c.iso.ptr == nil {
+		panic("profiler or isolate are nil")
+	}
+
 	tstr := C.CString(title)
 	defer C.free(unsafe.Pointer(tstr))
 
