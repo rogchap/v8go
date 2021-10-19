@@ -231,6 +231,19 @@ and select your pushed branch eg. `v8_7_upgrade`.
 1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux, macOS and Windows; merge
 these PRs into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
 
+### Flushing after C/C++ standard library printing for debugging
+
+When using the C/C++ standard library functions for printing (e.g. `printf`), then the output will be buffered by default.
+This can cause some confusion, especially because the test binary (created through `go test`) does not flush the buffer
+at exit (at the time of writing). When standard output is the terminal, then it will use line buffering and flush when
+a new line is printed, otherwise (e.g. if the output is redirected to a pipe or file) it will be fully buffered and not even
+flush at the end of a line. When the test binary is executed through `go test .` (e.g. instead of
+separately compiled with `go test -c` and run with `./v8go.test`) Go may redirect standard output internally, resulting in
+standard output being fully buffered.
+
+A simple way to avoid this problem is to flush the standard output stream after printing with the `fflush(stdout);` statement.
+Not relying on the flushing at exit can also help ensure the output is printed before a crash.
+
 ### Formatting
 
 Go has `go fmt`, C has `clang-format`. Any changes to the `v8go.h|cc` should be formated with `clang-format` with the

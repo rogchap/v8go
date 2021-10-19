@@ -21,6 +21,7 @@ struct _EXCEPTION_POINTERS;
 #include "libplatform/libplatform.h"
 #include "v8.h"
 #include "v8-profiler.h"
+#include "_cgo_export.h"
 
 using namespace v8;
 
@@ -379,6 +380,20 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   return rtn;
 }
 
+void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->SetInternalFieldCount(field_count);
+}
+
+int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  return obj_tmpl->InternalFieldCount();
+}
+
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
@@ -390,7 +405,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   // we can use the context registry to match the Context on the Go side
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
-  ContextPtr goContext(int ctxref);
   m_ctx* ctx = goContext(ctx_ref);
 
   int callback_ref = info.Data().As<Integer>()->Value();
@@ -414,8 +428,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref,
-                              const ValuePtr* thisAndArgs, int args_count);
   ValuePtr val =
       goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
   if (val != nullptr) {
@@ -1153,6 +1165,24 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
+int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+
+  if (idx >= obj->InternalFieldCount()) {
+    return 0;
+  }
+
+  obj->SetInternalField(idx, prop_val->ptr.Get(iso));
+
+  return 1;
+}
+
+int ObjectInternalFieldCount(ValuePtr ptr) {
+  LOCAL_OBJECT(ptr);
+  return obj->InternalFieldCount();
+}
+
 RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
@@ -1176,6 +1206,24 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;
+}
+
+ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+
+  if (idx >= obj->InternalFieldCount()) {
+    return nullptr;
+  }
+
+  Local<Value> result = obj->GetInternalField(idx);
+
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result);
+
+  return tracked_value(ctx, new_val);
 }
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
@@ -1285,12 +1333,12 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1318,12 +1366,12 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1343,12 +1391,12 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 

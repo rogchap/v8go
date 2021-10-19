@@ -141,6 +141,8 @@ extern void TemplateSetTemplate(TemplatePtr ptr,
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
+extern void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count);
+extern int ObjectTemplateInternalFieldCount(TemplatePtr ptr);
 
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
@@ -227,8 +229,11 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+extern int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+extern int ObjectInternalFieldCount(ValuePtr ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
 extern RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx);
+extern ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx);
 int ObjectHas(ValuePtr ptr, const char* key);
 int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);
