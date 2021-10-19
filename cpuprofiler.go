@@ -10,7 +10,6 @@ package v8go
 */
 import "C"
 import (
-	"time"
 	"unsafe"
 )
 
@@ -66,77 +65,27 @@ func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
 
 	return &CPUProfile{
 		p:         profile,
-		Title:     C.GoString(profile.title),
-		Root:      NewCPUProfileNode(profile.root, nil),
-		StartTime: timeUnixMicro(int64(profile.startTime)),
-		EndTime:   timeUnixMicro(int64(profile.endTime)),
+		title:     C.GoString(profile.title),
+		root:      newCPUProfileNode(profile.root, nil),
+		startTime: timeUnixMicro(-int64(profile.startTime)),
+		endTime:   timeUnixMicro(-int64(profile.endTime)),
 	}
 }
 
-type CPUProfile struct {
-	p *C.CPUProfile
-
-	// The CPU profile title
-	Title string
-
-	// Root is the root node of the top down call tree.
-	Root *CPUProfileNode
-
-	// StartTime is the time when the profile recording was started (in microseconds)
-	// since some unspecified starting point.
-	StartTime time.Time
-
-	// EndTime is the time when the profile recording was stopped (in microseconds)
-	// since some unspecified starting point.
-	// The point is equal to the starting point used by StartTime.
-	EndTime time.Time
-}
-
-type CPUProfileNode struct {
-	p *C.CPUProfileNode
-
-	// The resource name for script from where the function originates.
-	ScriptResourceName string
-
-	// The function name (empty string for anonymous functions.)
-	FunctionName string
-
-	// The number of the line where the function originates.
-	LineNumber int
-
-	// The number of the column where the function originates.
-	ColumnNumber int
-
-	// The children node of this node.
-	Children []*CPUProfileNode
-
-	// The parent node of this node.
-	Parent *CPUProfileNode
-}
-
-func NewCPUProfileNode(node *C.CPUProfileNode, parent *CPUProfileNode) *CPUProfileNode {
+func newCPUProfileNode(node *C.CPUProfileNode, parent *CPUProfileNode) *CPUProfileNode {
 	n := &CPUProfileNode{
-		p:                  node,
-		ScriptResourceName: C.GoString(node.scriptResourceName),
-		FunctionName:       C.GoString(node.functionName),
-		LineNumber:         int(node.lineNumber),
-		ColumnNumber:       int(node.columnNumber),
-		Parent:             parent,
+		scriptResourceName: C.GoString(node.scriptResourceName),
+		functionName:       C.GoString(node.functionName),
+		lineNumber:         int(node.lineNumber),
+		columnNumber:       int(node.columnNumber),
+		parent:             parent,
 	}
 
 	if node.childrenCount > 0 {
 		for _, child := range (*[1 << 28]*C.CPUProfileNode)(unsafe.Pointer(node.children))[:node.childrenCount:node.childrenCount] {
-			n.Children = append(n.Children, NewCPUProfileNode(child, n))
+			n.children = append(n.children, newCPUProfileNode(child, n))
 		}
 	}
 
 	return n
-}
-
-func (c *CPUProfile) Delete() {
-	if c.p == nil {
-		return
-	}
-	C.CPUProfileDelete(c.p)
-	c.p = nil
 }
