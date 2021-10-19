@@ -68,29 +68,50 @@ func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
 		p:         profile,
 		Title:     C.GoString(profile.title),
 		Root:      NewCPUProfileNode(profile.root, nil),
-		StartTime: time.Unix(0, int64(profile.startTime)*1000),
-		EndTime:   time.Unix(0, int64(profile.endTime)*1000),
+		StartTime: timeUnixMicro(int64(profile.startTime)),
+		EndTime:   timeUnixMicro(int64(profile.endTime)),
 	}
 }
 
 type CPUProfile struct {
 	p *C.CPUProfile
 
-	Title     string
-	Root      *CPUProfileNode
+	// The CPU profile title
+	Title string
+
+	// Root is the root node of the top down call tree.
+	Root *CPUProfileNode
+
+	// StartTime is the time when the profile recording was started (in microseconds)
+	// since some unspecified starting point.
 	StartTime time.Time
-	EndTime   time.Time
+
+	// EndTime is the time when the profile recording was stopped (in microseconds)
+	// since some unspecified starting point.
+	// The point is equal to the starting point used by StartTime.
+	EndTime time.Time
 }
 
 type CPUProfileNode struct {
 	p *C.CPUProfileNode
 
+	// The resource name for script from where the function originates.
 	ScriptResourceName string
-	FunctionName       string
-	LineNumber         int
-	ColumnNumber       int
-	Children           []*CPUProfileNode
-	Parent             *CPUProfileNode
+
+	// The function name (empty string for anonymous functions.)
+	FunctionName string
+
+	// The number of the line where the function originates.
+	LineNumber int
+
+	// The number of the column where the function originates.
+	ColumnNumber int
+
+	// The children node of this node.
+	Children []*CPUProfileNode
+
+	// The parent node of this node.
+	Parent *CPUProfileNode
 }
 
 func NewCPUProfileNode(node *C.CPUProfileNode, parent *CPUProfileNode) *CPUProfileNode {

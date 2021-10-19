@@ -45,7 +45,7 @@ func TestCPUProfiler_Dispose(t *testing.T) {
 }
 
 func TestCPUProfiler(t *testing.T) {
-	// t.Parallel()
+	t.Parallel()
 
 	ctx := v8.NewContext(nil)
 	iso := ctx.Isolate()
