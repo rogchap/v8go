@@ -101,7 +101,7 @@ go func() {
 
 select {
 case val := <- vals:
-    // sucess
+    // success
 case err := <- errs:
     // javascript error
 case <- time.After(200 * time.Milliseconds):
@@ -109,6 +109,54 @@ case <- time.After(200 * time.Milliseconds):
     vm.TerminateExecution() // terminate the execution 
     err := <- errs // will get a termination error back from the running script
 }
+```
+
+### CPU Profiler
+
+```go
+func createProfile() {
+	iso := v8.NewIsolate()
+	ctx := v8.NewContext(iso)
+	cpuProfiler := v8.NewCPUProfiler(iso)
+
+	cpuProfiler.StartProfiling("my-profile")
+
+	ctx.RunScript(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
+	val, _ := ctx.Global().Get("start")
+	fn, _ := val.AsFunction()
+	fn.Call(ctx.Global())
+
+	cpuProfile := cpuProfiler.StopProfiling("my-profile")
+
+	printTree("", cpuProfile.GetTopDownRoot()) # helper function to print the profile
+}
+
+func printTree(nest string, node *v8.CPUProfileNode) {
+	fmt.Printf("%s%s %s:%d:%d\n", nest, node.GetFunctionName(), node.GetScriptResourceName(), node.GetLineNumber(), node.GetColumnNumber())
+	count := node.GetChildrenCount()
+	if count == 0 {
+		return
+	}
+	nest = fmt.Sprintf("%s  ", nest)
+	for i := 0; i < count; i++ {
+		printTree(nest, node.GetChild(i))
+	}
+}
+
+// Output
+// (root) :0:0
+//   (program) :0:0
+//   start script.js:23:15
+//     foo script.js:15:13
+//       delay script.js:12:15
+//         loop script.js:1:14
+//       bar script.js:13:13
+//         delay script.js:12:15
+//           loop script.js:1:14
+//       baz script.js:14:13
+//         delay script.js:12:15
+//           loop script.js:1:14
+//   (garbage collector) :0:0
 ```
 
 ## Documentation
@@ -189,6 +237,19 @@ Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) 
 and select your pushed branch eg. `v8_7_upgrade`.
 1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux, macOS and Windows; merge
 these PRs into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
+
+### Flushing after C/C++ standard library printing for debugging
+
+When using the C/C++ standard library functions for printing (e.g. `printf`), then the output will be buffered by default.
+This can cause some confusion, especially because the test binary (created through `go test`) does not flush the buffer
+at exit (at the time of writing). When standard output is the terminal, then it will use line buffering and flush when
+a new line is printed, otherwise (e.g. if the output is redirected to a pipe or file) it will be fully buffered and not even
+flush at the end of a line. When the test binary is executed through `go test .` (e.g. instead of
+separately compiled with `go test -c` and run with `./v8go.test`) Go may redirect standard output internally, resulting in
+standard output being fully buffered.
+
+A simple way to avoid this problem is to flush the standard output stream after printing with the `fflush(stdout);` statement.
+Not relying on the flushing at exit can also help ensure the output is printed before a crash.
 
 ### Formatting
 

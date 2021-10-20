@@ -8,3 +8,11 @@ func fatalIf(t *testing.T, err error) {
 		t.Fatal(err)
 	}
 }
+
+func recoverPanic(f func()) (recovered interface{}) {
+	defer func() {
+		recovered = recover()
+	}()
+	f()
+	return nil
+}
