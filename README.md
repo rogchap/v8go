@@ -115,42 +115,48 @@ case <- time.After(200 * time.Milliseconds):
 
 ```go
 func createProfile() {
-  cpuProfiler := v8.NewCPUProfiler(v8.NewIsolate()) // create a new profiler
-  cpuProfiler.StartProfiling("my-profile") // start profiling
+	iso := v8.NewIsolate()
+	ctx := v8.NewContext(iso)
+	cpuProfiler := v8.NewCPUProfiler(iso)
 
-  ctx.RunScript(src, filename) # src is the profile script from cpuprofiler_test.go
+	cpuProfiler.StartProfiling("my-profile")
 
-  cpuProfile := cpuProfiler.StopProfiling("my-profile") // stop profiling returns a cpu profile
+	ctx.RunScript(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
+	val, _ := ctx.Global().Get("start")
+	fn, _ := val.AsFunction()
+	fn.Call(ctx.Global())
 
-  printTree("", cpuProfile.GetTopDownRoot()) // a helper function for printing the tree
+	cpuProfile := cpuProfiler.StopProfiling("my-profile")
+
+	printTree("", cpuProfile.GetTopDownRoot()) # helper function to print the profile
 }
 
 func printTree(nest string, node *v8.CPUProfileNode) {
-  fmt.Printf("%s%s %s:%d:%d\n", nest, node.GetFunctionName(), node.GetScriptResourceName(), node.GetLineNumber(), node.GetColumnNumber())
-  count := node.GetChildrenCount()
-  if count == 0 {
-    return
-  }
-  nest = fmt.Sprintf("%s  ", nest)
-  for i := 0; i < count; i++ {
-    printTree(nest, node.GetChild(i))
-  }
+	fmt.Printf("%s%s %s:%d:%d\n", nest, node.GetFunctionName(), node.GetScriptResourceName(), node.GetLineNumber(), node.GetColumnNumber())
+	count := node.GetChildrenCount()
+	if count == 0 {
+		return
+	}
+	nest = fmt.Sprintf("%s  ", nest)
+	for i := 0; i < count; i++ {
+		printTree(nest, node.GetChild(i))
+	}
 }
 
-<!-- Top Down Root -->
-<!-- (root) :0:0 -->
-<!--   (program) :0:0 -->
-<!--   start script.js:23:15 -->
-<!--     foo script.js:15:13 -->
-<!--       delay script.js:12:15 -->
-<!--         loop script.js:1:14 -->
-<!--       bar script.js:13:13 -->
-<!--         delay script.js:12:15 -->
-<!--           loop script.js:1:14 -->
-<!--       baz script.js:14:13 -->
-<!--         delay script.js:12:15 -->
-<!--           loop script.js:1:14 -->
-<!--   (garbage collector) :0:0 -->
+// Output
+// (root) :0:0
+//   (program) :0:0
+//   start script.js:23:15
+//     foo script.js:15:13
+//       delay script.js:12:15
+//         loop script.js:1:14
+//       bar script.js:13:13
+//         delay script.js:12:15
+//           loop script.js:1:14
+//       baz script.js:14:13
+//         delay script.js:12:15
+//           loop script.js:1:14
+//   (garbage collector) :0:0
 ```
 
 ## Documentation
