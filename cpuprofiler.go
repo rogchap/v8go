@@ -67,8 +67,8 @@ func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
 		p:         profile,
 		title:     C.GoString(profile.title),
 		root:      newCPUProfileNode(profile.root, nil),
-		startTime: timeUnixMicro(-int64(profile.startTime)),
-		endTime:   timeUnixMicro(-int64(profile.endTime)),
+		startTime: timeUnixMicro(int64(profile.startTime)),
+		endTime:   timeUnixMicro(int64(profile.endTime)),
 	}
 }
 
