@@ -10,6 +10,7 @@ package v8go
 */
 import "C"
 import (
+	"time"
 	"unsafe"
 )
 
@@ -64,11 +65,11 @@ func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
 	profile := C.CPUProfilerStopProfiling(c.p, tstr)
 
 	return &CPUProfile{
-		p:         profile,
-		title:     C.GoString(profile.title),
-		root:      newCPUProfileNode(profile.root, nil),
-		startTime: timeUnixMicro(int64(profile.startTime)),
-		endTime:   timeUnixMicro(int64(profile.endTime)),
+		p:               profile,
+		title:           C.GoString(profile.title),
+		root:            newCPUProfileNode(profile.root, nil),
+		startTimeOffset: time.Duration(profile.startTime) * time.Millisecond,
+		endTimeOffset:   time.Duration(profile.endTime) * time.Millisecond,
 	}
 }
 

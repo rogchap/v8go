@@ -44,8 +44,8 @@ func TestCPUProfile(t *testing.T) {
 		t.Errorf("expected (root), but got %v", root.GetFunctionName())
 	}
 
-	if !cpuProfile.GetStartTime().Before(cpuProfile.GetEndTime()) {
-		t.Fatalf("expected profile start time (%s) before end time (%s)", cpuProfile.GetStartTime(), cpuProfile.GetEndTime())
+	if cpuProfile.GetDuration() <= 0 {
+		t.Fatalf("expected positive profile duration (%s)", cpuProfile.GetDuration())
 	}
 }
 

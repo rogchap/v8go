@@ -15,14 +15,14 @@ type CPUProfile struct {
 	// root is the root node of the top down call tree.
 	root *CPUProfileNode
 
-	// startTime is the time when the profile recording was started (in microseconds)
+	// startTimeOffset is the time when the profile recording was started
 	// since some unspecified starting point.
-	startTime time.Time
+	startTimeOffset time.Duration
 
-	// endTime is the time when the profile recording was stopped (in microseconds)
+	// endTimeOffset is the time when the profile recording was stopped
 	// since some unspecified starting point.
-	// The point is equal to the starting point used by startTime.
-	endTime time.Time
+	// The point is equal to the starting point used by startTimeOffset.
+	endTimeOffset time.Duration
 }
 
 // Returns CPU profile title.
@@ -35,17 +35,9 @@ func (c *CPUProfile) GetTopDownRoot() *CPUProfileNode {
 	return c.root
 }
 
-// Returns the time when the profile recording was started (in microseconds)
-// since some unspecified starting point.
-func (c *CPUProfile) GetStartTime() time.Time {
-	return c.startTime
-}
-
-// Returns the time when the profile recording was stopped (in microseconds)
-// since some unspecified starting point.
-// The point is equal to the starting point used by startTime.
-func (c *CPUProfile) GetEndTime() time.Time {
-	return c.endTime
+// Returns the duration of the profile.
+func (c *CPUProfile) GetDuration() time.Duration {
+	return c.endTimeOffset - c.startTimeOffset
 }
 
 // Deletes the profile and removes it from CpuProfiler's list.
