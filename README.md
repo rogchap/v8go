@@ -101,7 +101,7 @@ go func() {
 
 select {
 case val := <- vals:
-    // sucess
+    // success
 case err := <- errs:
     // javascript error
 case <- time.After(200 * time.Milliseconds):
@@ -109,6 +109,54 @@ case <- time.After(200 * time.Milliseconds):
     vm.TerminateExecution() // terminate the execution 
     err := <- errs // will get a termination error back from the running script
 }
+```
+
+### CPU Profiler
+
+```go
+func createProfile() {
+	iso := v8.NewIsolate()
+	ctx := v8.NewContext(iso)
+	cpuProfiler := v8.NewCPUProfiler(iso)
+
+	cpuProfiler.StartProfiling("my-profile")
+
+	ctx.RunScript(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
+	val, _ := ctx.Global().Get("start")
+	fn, _ := val.AsFunction()
+	fn.Call(ctx.Global())
+
+	cpuProfile := cpuProfiler.StopProfiling("my-profile")
+
+	printTree("", cpuProfile.GetTopDownRoot()) # helper function to print the profile
+}
+
+func printTree(nest string, node *v8.CPUProfileNode) {
+	fmt.Printf("%s%s %s:%d:%d\n", nest, node.GetFunctionName(), node.GetScriptResourceName(), node.GetLineNumber(), node.GetColumnNumber())
+	count := node.GetChildrenCount()
+	if count == 0 {
+		return
+	}
+	nest = fmt.Sprintf("%s  ", nest)
+	for i := 0; i < count; i++ {
+		printTree(nest, node.GetChild(i))
+	}
+}
+
+// Output
+// (root) :0:0
+//   (program) :0:0
+//   start script.js:23:15
+//     foo script.js:15:13
+//       delay script.js:12:15
+//         loop script.js:1:14
+//       bar script.js:13:13
+//         delay script.js:12:15
+//           loop script.js:1:14
+//       baz script.js:14:13
+//         delay script.js:12:15
+//           loop script.js:1:14
+//   (garbage collector) :0:0
 ```
 
 ## Documentation

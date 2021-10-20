@@ -20,6 +20,7 @@ struct _EXCEPTION_POINTERS;
 
 #include "libplatform/libplatform.h"
 #include "v8.h"
+#include "v8-profiler.h"
 #include "_cgo_export.h"
 
 using namespace v8;
@@ -203,6 +204,108 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.peak_malloced_memory(),
                             hs.number_of_native_contexts(),
                             hs.number_of_detached_contexts()};
+}
+
+/********** CpuProfiler **********/
+
+CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  CPUProfiler* c = new CPUProfiler;
+  c->iso = iso;
+  c->ptr = CpuProfiler::New(iso);
+  return c;
+}
+
+void CPUProfilerDispose(CPUProfiler* profiler) {
+  if (profiler->ptr == nullptr) {
+    return;
+  }
+  profiler->ptr->Dispose();
+
+  delete profiler;
+}
+
+void CPUProfilerStartProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
+    return;
+  }
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str = String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+  profiler->ptr->StartProfiling(title_str);
+}
+
+CPUProfileNode* NewCPUProfileNode(const CpuProfileNode* ptr_) {
+  int count = ptr_->GetChildrenCount();
+  CPUProfileNode** children = new CPUProfileNode*[count];
+  for (int i = 0; i < count; ++i) {
+    children[i] = NewCPUProfileNode(ptr_->GetChild(i));
+  }
+
+  CPUProfileNode* root = new CPUProfileNode{
+    ptr_,
+    ptr_->GetScriptResourceNameStr(),
+    ptr_->GetFunctionNameStr(),
+    ptr_->GetLineNumber(),
+    ptr_->GetColumnNumber(),
+    count,
+    children,
+  };
+  return root;
+}
+
+CPUProfile* CPUProfilerStopProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
+    return nullptr;
+  }
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str =
+      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+
+  CPUProfile* profile = new CPUProfile;
+  profile->ptr = profiler->ptr->StopProfiling(title_str);
+
+  Local<String> str = profile->ptr->GetTitle();
+  String::Utf8Value t(profiler->iso, str);
+  profile->title = CopyString(t);
+
+  CPUProfileNode* root = NewCPUProfileNode(profile->ptr->GetTopDownRoot());
+  profile->root = root;
+
+  profile->startTime = profile->ptr->GetStartTime();
+  profile->endTime = profile->ptr->GetEndTime();
+
+  return profile;
+}
+
+void CPUProfileNodeDelete(CPUProfileNode* node) {
+  for (int i = 0; i < node->childrenCount; ++i) {
+    CPUProfileNodeDelete(node->children[i]);
+  }
+
+  delete node;
+}
+
+void CPUProfileDelete(CPUProfile* profile) {
+  if (profile->ptr == nullptr) {
+    return;
+  }
+  profile->ptr->Delete();
+
+  CPUProfileNodeDelete(profile->root);
+
+  delete profile;
 }
 
 /********** Template **********/

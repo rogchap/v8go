@@ -8,15 +8,30 @@
 
 namespace v8 {
 class Isolate;
+class CpuProfiler;
+class CpuProfile;
+class CpuProfileNode;
 }
 
 typedef v8::Isolate* IsolatePtr;
+typedef v8::CpuProfiler* CpuProfilerPtr;
+typedef v8::CpuProfile* CpuProfilePtr;
+typedef const v8::CpuProfileNode* CpuProfileNodePtr;
 
 extern "C" {
 #else
 // Opaque to cgo, but useful to treat it as a pointer to a distinct type
 typedef struct v8Isolate v8Isolate;
 typedef v8Isolate* IsolatePtr;
+
+typedef struct v8CpuProfiler v8CpuProfiler;
+typedef v8CpuProfiler* CpuProfilerPtr;
+
+typedef struct v8CpuProfile v8CpuProfile;
+typedef v8CpuProfile* CpuProfilePtr;
+
+typedef struct v8CpuProfileNode v8CpuProfileNode;
+typedef const v8CpuProfileNode* CpuProfileNodePtr;
 #endif
 
 #include <stddef.h>
@@ -29,6 +44,29 @@ typedef struct m_template m_template;
 typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
+
+typedef struct {
+  CpuProfilerPtr ptr;
+  IsolatePtr iso;
+} CPUProfiler;
+
+typedef struct CPUProfileNode {
+  CpuProfileNodePtr ptr;
+  const char* scriptResourceName;
+  const char* functionName;
+  int lineNumber;
+  int columnNumber;
+  int childrenCount;
+  struct CPUProfileNode** children;
+} CPUProfileNode;
+
+typedef struct {
+  CpuProfilePtr ptr;
+  const char* title;
+  CPUProfileNode* root;
+  int64_t startTime;
+  int64_t endTime;
+} CPUProfile;
 
 typedef struct {
   const char* msg;
@@ -73,6 +111,12 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
+
+extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
+extern void CPUProfilerDispose(CPUProfiler* ptr);
+extern void CPUProfilerStartProfiling(CPUProfiler* ptr, const char* title);
+extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr, const char* title);
+extern void CPUProfileDelete(CPUProfile* ptr);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
