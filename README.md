@@ -1,7 +1,7 @@
 # Execute JavaScript from Go
 
 <a href="https://github.com/rogchap/v8go/releases"><img src="https://img.shields.io/github/v/release/rogchap/v8go" alt="Github release"></a>
-[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go) 
+[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go)
 [![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
 [![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
 ![V8 Build](https://github.com/rogchap/v8go/workflows/V8%20Build/badge.svg)
@@ -106,7 +106,7 @@ case err := <- errs:
     // javascript error
 case <- time.After(200 * time.Milliseconds):
     vm := ctx.Isolate() // get the Isolate from the context
-    vm.TerminateExecution() // terminate the execution 
+    vm.TerminateExecution() // terminate the execution
     err := <- errs // will get a termination error back from the running script
 }
 ```
@@ -177,7 +177,7 @@ To set this up:
 2. Add the Mingw-w64 bin to your PATH environment variable (`C:\msys64\mingw64\bin` by default)
 3. Open MSYS2 MSYS and execute `pacman -S mingw-w64-x86_64-toolchain`
 
-V8 requires 64-bit on Windows, therefore it will not work on 32-bit systems. 
+V8 requires 64-bit on Windows, therefore it will not work on 32-bit systems.
 
 ## V8 dependency
 
@@ -215,26 +215,16 @@ This project also aims to keep up-to-date with the latest (stable) release of V8
 
 ### Upgrading the V8 binaries
 
-This process is non-trivial, and hopefully we can automate more of this in the future.
+We have the [upgradev8](https://github.com/rogchap/v8go/.github/workflow/v8upgrade.yml) workflow.
+The workflow is triggered every day or manually.
 
-1) Make sure to clone the projects submodules (ie. the V8's `depot_tools` project): `git submodule update --init --recursive`
-1) Add the `depot_tools` folder to your `PATH` eg: `export PATH=~/Development/rogchap/v8go/deps/depot_tools:$PATH`
-1) From the `deps` folder run `fetch v8`; you only need to do this once, if you don't already have the V8 source.
-1) Find the current stable release (`v8_version`) here: [https://omahaproxy.appspot.com](https://omahaproxy.appspot.com)
-1) Create a new git branch from `master` eg. `git checkout -b v8_7_upgrade`
-1) Enter the v8 folder and fetch all the latest git branches: `cd deps/v8 && git fetch`
-1) Find the right `branch-heads/**` to checkout, for example if the `v8_version` is 8.7.220.31 then you want to `git checkout
-branch-heads/8.7`. You can check all the `branch-heads` with `git branch --remotes | grep branch-heads/`
-1) Copy all the contents of `deps/v8/include` to `deps/include` making sure not to delete any of the `vendor.go` files,
-which are required for users that are using `go mod vendor`. If there are any new folders added, make sure to create new
-`vendor.go` files in each folder within `deps/include` and update `cgo.go`.
-1) Optionally build the V8 binary for your OS: `cd deps && ./build.py`. V8 is a large project, and building the binary
-can take up to 30 minutes. Once built all the tests should still pass via `go test -v .`
-1) Commit your changes, making sure that the git submodules have been updated to the new checksum for the version of V8.
-Make sure *NOT* to add your build of the binary, as this will be build via CI.
+If the current [v8_version](https://github.com/rogchap/v8go/deps/v8_version) is different from the latest stable version, the workflow takes care of fetching the latest stable v8 files and copying them into `deps/include`. The last step of the workflow opens a new PR with the branch name `v8_upgrade/<v8-version>` with all the changes.
+
+The next steps are:
+
 1) Because the build is so long, this is not automatically triggered. Go to the [V8
 Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) Github Action, Select "Run workflow",
-and select your pushed branch eg. `v8_7_upgrade`.
+and select your pushed branch eg. `v8_upgrade/<v8-version>`.
 1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux, macOS and Windows; merge
 these PRs into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
 
