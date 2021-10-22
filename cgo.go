@@ -8,8 +8,9 @@ package v8go
 
 // #cgo CXXFLAGS: -fno-rtti -fpic -std=c++14 -DV8_COMPRESS_POINTERS -DV8_31BIT_SMIS_ON_64BIT_ARCH -I${SRCDIR}/deps/include
 // #cgo LDFLAGS: -pthread -lv8
-// #cgo darwin LDFLAGS: -L${SRCDIR}/deps/darwin_x86_64
-// #cgo linux LDFLAGS: -L${SRCDIR}/deps/linux_x86_64
+// #cgo darwin LDFLAGS: -L${SRCDIR}/deps/darwin_x64
+// #cgo linux,amd64 LDFLAGS: -L${SRCDIR}/deps/linux_x64
+// #cgo linux,arm64 LDFLAGS: -L${SRCDIR}/deps/linux_arm64
 // #cgo windows LDFLAGS: -L${SRCDIR}/deps/windows_x86_64 -static -ldbghelp -lssp -lwinmm -lz
 import "C"
 
@@ -17,8 +18,9 @@ import "C"
 // contain V8 libraries and headers which otherwise would be ignored.
 // DO NOT REMOVE
 import (
-	_ "rogchap.com/v8go/deps/darwin_x86_64"
+	_ "rogchap.com/v8go/deps/darwin_x64"
 	_ "rogchap.com/v8go/deps/include"
-	_ "rogchap.com/v8go/deps/linux_x86_64"
+	_ "rogchap.com/v8go/deps/linux_arm64"
+	_ "rogchap.com/v8go/deps/linux_x64"
 	_ "rogchap.com/v8go/deps/windows_x86_64"
 )
