@@ -1,11 +1,12 @@
 name: V8 Build
 
 on: workflow_dispatch
-              
+
 jobs:
     build:
         name: Build V8 for ${{ matrix.platform }}
         strategy:
+            fail-fast: false
             matrix:
                 platform: [ubuntu-18.04, macos-latest, windows-latest]
         runs-on: ${{ matrix.platform }}
