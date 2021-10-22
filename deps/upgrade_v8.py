@@ -73,11 +73,11 @@ def create_vendor_files(src_path):
     with open(os.path.join(directory_path, 'vendor.go'), 'w') as temp_file:
       temp_file.write(vendor_file_template % (directory, directory))
 
-def update_v8_file(src_path, version):
+def update_v8_version_file(src_path, version):
   with open(os.path.join(src_path, V8_VERSION_FILE), "w") as v8_file:
     v8_file.write(version)
 
-def read_v8_file(src_path):
+def read_v8_version_file(src_path):
   v8_version_file = open(os.path.join(src_path, V8_VERSION_FILE), "r")
   return v8_version_file.read().strip()
 
@@ -88,7 +88,7 @@ def get_latest_v8_info():
   return json.loads(json_response)
 
 # Current version
-current_v8_version_installed = read_v8_file(deps_path)
+current_v8_version_installed = read_v8_version_file(deps_path)
 
 # Get latest version
 latest_v8_info = get_latest_v8_info()
@@ -107,4 +107,4 @@ if current_v8_version_installed != latest_stable_v8_version:
   shutil.rmtree(deps_include_path)
   shutil.copytree(v8_include_path, deps_include_path, dirs_exist_ok=True)
   create_vendor_files(deps_include_path)
-  update_v8_file(deps_path, latest_stable_v8_version)
+  update_v8_version_file(deps_path, latest_stable_v8_version)

@@ -222,7 +222,7 @@ If the current [v8_version](https://github.com/rogchap/v8go/deps/v8_version) is 
 
 The next steps are:
 
-1) Because the build is so long, this is not automatically triggered. Go to the [V8
+1) The build is not yet triggered automatically. To trigger it manually, go to the [V8
 Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) Github Action, Select "Run workflow",
 and select your pushed branch eg. `v8_upgrade/<v8-version>`.
 1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux, macOS and Windows; merge
