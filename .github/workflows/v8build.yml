@@ -4,11 +4,17 @@ on: workflow_dispatch
 
 jobs:
     build:
-        name: Build V8 for ${{ matrix.platform }}
+        name: Build V8 for ${{ matrix.platform }} ${{ matrix.arch }}
         strategy:
             fail-fast: false
             matrix:
-                platform: [ubuntu-18.04, macos-latest, windows-latest]
+                platform: [ubuntu-latest, macos-11, windows-latest]
+                arch: [x86_64, arm64]
+                exclude:
+                - platform: ubuntu-latest
+                  arch: arm64
+                - platform: windows-latest
+                  arch: arm64
         runs-on: ${{ matrix.platform }}
         steps:
             - name: Checkout
@@ -20,11 +26,11 @@ jobs:
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
             - name: Build V8 linux
-              if: matrix.platform == 'ubuntu-18.04'
+              if: matrix.platform == 'ubuntu-latest'
               run: cd deps && ./build.py --no-clang
             - name: Build V8 macOS
-              if: matrix.platform == 'macos-latest'
-              run: cd deps && ./build.py
+              if: matrix.platform == 'macos-11'
+              run: cd deps && ./build.py --arch ${{ matrix.arch }}
             - name: Add MSYS2 to PATH
               if: matrix.platform == 'windows-latest'
               run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
@@ -44,4 +50,3 @@ jobs:
                 delete-branch: true
                 title: V8 static library for ${{ matrix.platform  }}
                 body: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
-

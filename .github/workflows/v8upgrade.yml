@@ -8,7 +8,7 @@ on:
 jobs:
     upgrade:
         name: Upgrade V8
-        runs-on: ubuntu-18.04
+        runs-on: ubuntu-latest
         steps:
             - name: Checkout
               uses: actions/checkout@v2
@@ -40,5 +40,3 @@ jobs:
                 delete-branch: true
                 title: ${{steps.pr_metadata.outputs.pr_commit_message}}
                 body: ${{steps.pr_metadata.outputs.pr_body}}
-
-

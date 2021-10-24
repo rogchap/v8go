@@ -8,6 +8,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
+parser.add_argument('--arch', dest='arch', type=str)
 parser.set_defaults(debug=False, clang=True)
 args = parser.parse_args()
 
@@ -57,6 +58,11 @@ v8_untrusted_code_mitigations=false
 exclude_unwind_tables=true
 """
 
+arm64_gn_args = """
+v8_target_cpu="arm64"
+target_cpu="arm64"
+"""
+
 def v8deps():
     spec = "solutions = %s" % gclient_sln
     env = os.environ.copy()
@@ -96,13 +102,17 @@ def main():
     v8deps()
     if is_windows:
         apply_mingw_patches()
-    
+
     gn_path = os.path.join(tools_path, "gn")
     assert(os.path.exists(gn_path))
     ninja_path = os.path.join(tools_path, "ninja" + (".exe" if is_windows else ""))
     assert(os.path.exists(ninja_path))
 
-    build_path = os.path.join(deps_path, ".build", os_arch())
+    arch = os_arch()
+    if args.arch == "arm64":
+        arch = platform.system().lower()+"_arm64"
+
+    build_path = os.path.join(deps_path, ".build", arch)
     env = os.environ.copy()
 
     is_debug = 'true' if args.debug else 'false'
@@ -113,8 +123,13 @@ def main():
     symbol_level = 1 if args.debug else 0
     strip_debug_info = 'false' if args.debug else 'true'
     gnargs = gn_args % (is_debug, is_clang, symbol_level, strip_debug_info)
+
+    if args.arch == "arm64":
+        combined_gn_args = gn_args + arm64_gn_args
+        gnargs = combined_gn_args % (is_debug, is_clang, symbol_level, strip_debug_info)
+
     gen_args = gnargs.replace('\n', ' ')
-    
+
     subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gen_args]),
                         cwd=v8_path,
                         env=env)
@@ -123,7 +138,7 @@ def main():
                         env=env)
 
     lib_fn = os.path.join(build_path, "obj/libv8_monolith.a")
-    dest_path = os.path.join(deps_path, os_arch())
+    dest_path = os.path.join(deps_path, arch)
     if not os.path.exists(dest_path):
         os.makedirs(dest_path)
     dest_fn = os.path.join(dest_path, 'libv8.a')
