@@ -8,7 +8,7 @@ on:
 jobs:
     upgrade:
         name: Upgrade V8
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-18.04
         steps:
             - name: Checkout
               uses: actions/checkout@v2

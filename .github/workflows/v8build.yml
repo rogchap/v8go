@@ -8,10 +8,10 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                platform: [ubuntu-latest, macos-11, windows-latest]
+                platform: [ubuntu-18.04, macos-11, windows-latest]
                 arch: [x86_64, arm64]
                 exclude:
-                - platform: ubuntu-latest
+                - platform: ubuntu-18.04
                   arch: arm64
                 - platform: windows-latest
                   arch: arm64
@@ -26,7 +26,7 @@ jobs:
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
             - name: Build V8 linux
-              if: matrix.platform == 'ubuntu-latest'
+              if: matrix.platform == 'ubuntu-18.04'
               run: cd deps && ./build.py --no-clang
             - name: Build V8 macOS
               if: matrix.platform == 'macos-11'
