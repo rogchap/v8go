@@ -6,17 +6,34 @@
 #define V8GO_H
 #ifdef __cplusplus
 
-namespace v8 {
-class Isolate;
-}
+#if defined(__MINGW32__) || defined(__MINGW64__)
+// MinGW header files do not implicitly include windows.h
+struct _EXCEPTION_POINTERS;
+#endif
+
+#include "libplatform/libplatform.h"
+#include "v8.h"
+#include "v8-profiler.h"
 
 typedef v8::Isolate* IsolatePtr;
+typedef v8::CpuProfiler* CpuProfilerPtr;
+typedef v8::CpuProfile* CpuProfilePtr;
+typedef const v8::CpuProfileNode* CpuProfileNodePtr;
 
 extern "C" {
 #else
 // Opaque to cgo, but useful to treat it as a pointer to a distinct type
 typedef struct v8Isolate v8Isolate;
 typedef v8Isolate* IsolatePtr;
+
+typedef struct v8CpuProfiler v8CpuProfiler;
+typedef v8CpuProfiler* CpuProfilerPtr;
+
+typedef struct v8CpuProfile v8CpuProfile;
+typedef v8CpuProfile* CpuProfilePtr;
+
+typedef struct v8CpuProfileNode v8CpuProfileNode;
+typedef const v8CpuProfileNode* CpuProfileNodePtr;
 #endif
 
 #include <stddef.h>
@@ -34,6 +51,29 @@ typedef struct {
   const uint8_t* data;
   int length;
 } ScriptCompilerCachedData;
+
+typedef struct {
+  CpuProfilerPtr ptr;
+  IsolatePtr iso;
+} CPUProfiler;
+
+typedef struct CPUProfileNode {
+  CpuProfileNodePtr ptr;
+  const char* scriptResourceName;
+  const char* functionName;
+  int lineNumber;
+  int columnNumber;
+  int childrenCount;
+  struct CPUProfileNode** children;
+} CPUProfileNode;
+
+typedef struct {
+  CpuProfilePtr ptr;
+  const char* title;
+  CPUProfileNode* root;
+  int64_t startTime;
+  int64_t endTime;
+} CPUProfile;
 
 typedef struct {
   const char* msg;
@@ -88,6 +128,12 @@ extern RtnValue RunCompiledScript(ContextPtr ctx_ptr,
                                   int data_length,
                                   const char* origin);
 
+extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
+extern void CPUProfilerDispose(CPUProfiler* ptr);
+extern void CPUProfilerStartProfiling(CPUProfiler* ptr, const char* title);
+extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr, const char* title);
+extern void CPUProfileDelete(CPUProfile* ptr);
+
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
@@ -111,6 +157,8 @@ extern void TemplateSetTemplate(TemplatePtr ptr,
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
+extern void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count);
+extern int ObjectTemplateInternalFieldCount(TemplatePtr ptr);
 
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
@@ -197,8 +245,11 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+extern int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+extern int ObjectInternalFieldCount(ValuePtr ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
 extern RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx);
+extern ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx);
 int ObjectHas(ValuePtr ptr, const char* key);
 int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);

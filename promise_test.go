@@ -102,11 +102,11 @@ func TestPromiseRejected(t *testing.T) {
 		t.Fatalf("expected [%v], was: %+v", val2, thenInfo.Args())
 	}
 
-	if then2Fulfilled {
-		t.Fatalf("unexpectedly called onFulfilled")
+	if !then2Fulfilled {
+		t.Fatalf("expected call to onFulfilled, got none")
 	}
-	if !then2Rejected {
-		t.Fatalf("expected call to onRejected, got none")
+	if then2Rejected {
+		t.Fatalf("unexpectedly called onRejected")
 	}
 }
 

@@ -13,13 +13,7 @@
 #include <string>
 #include <vector>
 
-#if defined(__MINGW32__) || defined(__MINGW64__)
-// MinGW header files do not implicitly include windows.h
-struct _EXCEPTION_POINTERS;
-#endif
-
-#include "libplatform/libplatform.h"
-#include "v8.h"
+#include "_cgo_export.h"
 
 using namespace v8;
 
@@ -208,8 +202,6 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.number_of_detached_contexts()};
 }
 
-// TODO: It would be great if we could check that the script was already compiled
-// and return that from the v8 hashtable instead
 ScriptCompilerCachedData CompileScript(IsolatePtr iso, const char* s, const char* o) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   Context::Scope context_scope(ctx->ptr.Get(iso));
@@ -234,6 +226,108 @@ ScriptCompilerCachedData CompileScript(IsolatePtr iso, const char* s, const char
     cachedData->data,
     cachedData->length,
   };
+}
+
+/********** CpuProfiler **********/
+
+CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  CPUProfiler* c = new CPUProfiler;
+  c->iso = iso;
+  c->ptr = CpuProfiler::New(iso);
+  return c;
+}
+
+void CPUProfilerDispose(CPUProfiler* profiler) {
+  if (profiler->ptr == nullptr) {
+    return;
+  }
+  profiler->ptr->Dispose();
+
+  delete profiler;
+}
+
+void CPUProfilerStartProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
+    return;
+  }
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str = String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+  profiler->ptr->StartProfiling(title_str);
+}
+
+CPUProfileNode* NewCPUProfileNode(const CpuProfileNode* ptr_) {
+  int count = ptr_->GetChildrenCount();
+  CPUProfileNode** children = new CPUProfileNode*[count];
+  for (int i = 0; i < count; ++i) {
+    children[i] = NewCPUProfileNode(ptr_->GetChild(i));
+  }
+
+  CPUProfileNode* root = new CPUProfileNode{
+    ptr_,
+    ptr_->GetScriptResourceNameStr(),
+    ptr_->GetFunctionNameStr(),
+    ptr_->GetLineNumber(),
+    ptr_->GetColumnNumber(),
+    count,
+    children,
+  };
+  return root;
+}
+
+CPUProfile* CPUProfilerStopProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
+    return nullptr;
+  }
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str =
+      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+
+  CPUProfile* profile = new CPUProfile;
+  profile->ptr = profiler->ptr->StopProfiling(title_str);
+
+  Local<String> str = profile->ptr->GetTitle();
+  String::Utf8Value t(profiler->iso, str);
+  profile->title = CopyString(t);
+
+  CPUProfileNode* root = NewCPUProfileNode(profile->ptr->GetTopDownRoot());
+  profile->root = root;
+
+  profile->startTime = profile->ptr->GetStartTime();
+  profile->endTime = profile->ptr->GetEndTime();
+
+  return profile;
+}
+
+void CPUProfileNodeDelete(CPUProfileNode* node) {
+  for (int i = 0; i < node->childrenCount; ++i) {
+    CPUProfileNodeDelete(node->children[i]);
+  }
+
+  delete node;
+}
+
+void CPUProfileDelete(CPUProfile* profile) {
+  if (profile->ptr == nullptr) {
+    return;
+  }
+  profile->ptr->Delete();
+
+  CPUProfileNodeDelete(profile->root);
+
+  delete profile;
 }
 
 /********** Template **********/
@@ -308,6 +402,20 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   return rtn;
 }
 
+void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->SetInternalFieldCount(field_count);
+}
+
+int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  return obj_tmpl->InternalFieldCount();
+}
+
 /********** FunctionTemplate **********/
 
 static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
@@ -319,7 +427,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   // we can use the context registry to match the Context on the Go side
   Local<Context> local_ctx = iso->GetCurrentContext();
   int ctx_ref = local_ctx->GetEmbedderData(1).As<Integer>()->Value();
-  ContextPtr goContext(int ctxref);
   m_ctx* ctx = goContext(ctx_ref);
 
   int callback_ref = info.Data().As<Integer>()->Value();
@@ -343,8 +450,6 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr goFunctionCallback(int ctxref, int cbref,
-                              const ValuePtr* thisAndArgs, int args_count);
   ValuePtr val =
       goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
   if (val != nullptr) {
@@ -1121,6 +1226,24 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
+int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+
+  if (idx >= obj->InternalFieldCount()) {
+    return 0;
+  }
+
+  obj->SetInternalField(idx, prop_val->ptr.Get(iso));
+
+  return 1;
+}
+
+int ObjectInternalFieldCount(ValuePtr ptr) {
+  LOCAL_OBJECT(ptr);
+  return obj->InternalFieldCount();
+}
+
 RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
   RtnValue rtn = {nullptr, nullptr};
@@ -1144,6 +1267,24 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
 
   rtn.value = tracked_value(ctx, new_val);
   return rtn;
+}
+
+ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx) {
+  LOCAL_OBJECT(ptr);
+
+  if (idx >= obj->InternalFieldCount()) {
+    return nullptr;
+  }
+
+  Local<Value> result = obj->GetInternalField(idx);
+
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, result);
+
+  return tracked_value(ctx, new_val);
 }
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
@@ -1253,12 +1394,12 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1286,12 +1427,12 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 
@@ -1311,12 +1452,12 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
-  m_value* promise_val = new m_value;
-  promise_val->iso = iso;
-  promise_val->ctx = ctx;
-  promise_val->ptr =
-      Persistent<Value, CopyablePersistentTraits<Value>>(iso, promise);
-  rtn.value = tracked_value(ctx, promise_val);
+  m_value* result_val = new m_value;
+  result_val->iso = iso;
+  result_val->ctx = ctx;
+  result_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+  rtn.value = tracked_value(ctx, result_val);
   return rtn;
 }
 

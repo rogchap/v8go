@@ -73,6 +73,53 @@ func TestObjectSet(t *testing.T) {
 	}
 }
 
+func TestObjectInternalFields(t *testing.T) {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	tmpl := v8.NewObjectTemplate(iso)
+	obj, err := tmpl.NewInstance(ctx)
+	fatalIf(t, err)
+	if count := obj.InternalFieldCount(); count != 0 {
+		t.Errorf("expected 0 got %v", count)
+	}
+	if recoverPanic(func() { obj.GetInternalField(0) }) == nil {
+		t.Error("expected panic")
+	}
+
+	tmpl = v8.NewObjectTemplate(iso)
+	tmpl.SetInternalFieldCount(1)
+	if count := tmpl.InternalFieldCount(); count != 1 {
+		t.Errorf("expected 1 got %v", count)
+	}
+
+	obj, err = tmpl.NewInstance(ctx)
+	fatalIf(t, err)
+	if count := obj.InternalFieldCount(); count != 1 {
+		t.Errorf("expected 1 got %v", count)
+	}
+
+	if v := obj.GetInternalField(0); !v.SameValue(v8.Undefined(iso)) {
+		t.Errorf("unexpected value: %q", v)
+	}
+
+	if err := obj.SetInternalField(0, t); err == nil {
+		t.Error("expected unsupported value error")
+	}
+
+	err = obj.SetInternalField(0, "baz")
+	fatalIf(t, err)
+	if v := obj.GetInternalField(0); v.String() != "baz" {
+		t.Errorf("unexpected value: %q", v)
+	}
+
+	if recoverPanic(func() { obj.SetInternalField(1, "baz") }) == nil {
+		t.Error("expected panic from index out of bounds")
+	}
+}
+
 func TestObjectGet(t *testing.T) {
 	t.Parallel()
 
