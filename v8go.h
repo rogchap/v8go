@@ -19,6 +19,7 @@ typedef v8::Isolate* IsolatePtr;
 typedef v8::CpuProfiler* CpuProfilerPtr;
 typedef v8::CpuProfile* CpuProfilePtr;
 typedef const v8::CpuProfileNode* CpuProfileNodePtr;
+typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
 
 extern "C" {
 #else
@@ -34,6 +35,9 @@ typedef v8CpuProfile* CpuProfilePtr;
 
 typedef struct v8CpuProfileNode v8CpuProfileNode;
 typedef const v8CpuProfileNode* CpuProfileNodePtr;
+
+typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
+typedef v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #endif
 
 #include <stddef.h>
@@ -46,11 +50,6 @@ typedef struct m_template m_template;
 typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
-
-typedef struct {
-  const uint8_t* data;
-  int length;
-} ScriptCompilerCachedData;
 
 typedef struct {
   CpuProfilerPtr ptr;
@@ -80,6 +79,17 @@ typedef struct {
   const char* location;
   const char* stack;
 } RtnError;
+
+typedef struct {
+  ScriptCompilerCachedDataPtr ptr;
+  const uint8_t* data;
+  int length;
+} ScriptCompilerCachedData;
+
+typedef struct {
+  ScriptCompilerCachedData* ptr;
+  RtnError error;
+} RtnCachedData;
 
 typedef struct {
   ValuePtr value;
@@ -119,13 +129,13 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern ScriptCompilerCachedData CompileScript(IsolatePtr iso_ptr,
-                                              const char* s,
-                                              const char* origin);
+extern RtnCachedData CompileScript(IsolatePtr iso_ptr,
+                                   const char* s,
+                                   const char* origin,
+                                   int option);
 extern RtnValue RunCompiledScript(ContextPtr ctx_ptr,
                                   const char* source,
-                                  const uint8_t* data,
-                                  int data_length,
+                                  ScriptCompilerCachedData* ptr,
                                   const char* origin);
 
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
