@@ -13,14 +13,6 @@
 #include <string>
 #include <vector>
 
-#if defined(__MINGW32__) || defined(__MINGW64__)
-// MinGW header files do not implicitly include windows.h
-struct _EXCEPTION_POINTERS;
-#endif
-
-#include "libplatform/libplatform.h"
-#include "v8.h"
-#include "v8-profiler.h"
 #include "_cgo_export.h"
 
 using namespace v8;

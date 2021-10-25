@@ -6,12 +6,14 @@
 #define V8GO_H
 #ifdef __cplusplus
 
-namespace v8 {
-class Isolate;
-class CpuProfiler;
-class CpuProfile;
-class CpuProfileNode;
-}
+#if defined(__MINGW32__) || defined(__MINGW64__)
+// MinGW header files do not implicitly include windows.h
+struct _EXCEPTION_POINTERS;
+#endif
+
+#include "libplatform/libplatform.h"
+#include "v8.h"
+#include "v8-profiler.h"
 
 typedef v8::Isolate* IsolatePtr;
 typedef v8::CpuProfiler* CpuProfilerPtr;
