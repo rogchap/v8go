@@ -48,9 +48,16 @@ typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
 
 typedef struct {
+  const char* msg;
+  const char* location;
+  const char* stack;
+} RtnError;
+
+typedef struct {
   const uint8_t* data;
   int length;
-} ScriptCompilerCachedData;
+  RtnError error;
+} RtnCachedData;
 
 typedef struct {
   CpuProfilerPtr ptr;
@@ -74,12 +81,6 @@ typedef struct {
   int64_t startTime;
   int64_t endTime;
 } CPUProfile;
-
-typedef struct {
-  const char* msg;
-  const char* location;
-  const char* stack;
-} RtnError;
 
 typedef struct {
   ValuePtr value;
@@ -119,9 +120,10 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern ScriptCompilerCachedData CompileScript(IsolatePtr iso_ptr,
-                                              const char* s,
-                                              const char* origin);
+extern RtnCachedData CompileScript(IsolatePtr iso_ptr,
+                                  const char* s,
+                                  const char* origin,
+                                  int opt);
 extern RtnValue RunCompiledScript(ContextPtr ctx_ptr,
                                   const char* source,
                                   const uint8_t* data,
