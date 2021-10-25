@@ -202,13 +202,9 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.number_of_detached_contexts()};
 }
 
-RtnCachedData CompileScript(IsolatePtr iso, const char* s, const char* o, int opt) {
+ScriptCompilerCachedData CompileScript(IsolatePtr iso, const char* s, const char* o) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
-  TryCatch try_catch(iso);
-  Local<Context> local_ctx = ctx->ptr.Get(iso);
-  Context::Scope context_scope(local_ctx);
-
-  RtnCachedData rtn = {nullptr, nullptr};
+  Context::Scope context_scope(ctx->ptr.Get(iso));
 
   Local<String> src =
       String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
@@ -219,22 +215,17 @@ RtnCachedData CompileScript(IsolatePtr iso, const char* s, const char* o, int op
 
   ScriptCompiler::Source source(src, script_origin);
 
-  ScriptCompiler::CompileOptions option = static_cast<ScriptCompiler::CompileOptions>(opt);
+  Local<UnboundScript> unboundedScript = ScriptCompiler::CompileUnboundScript(
+      iso,
+      &source,
+      ScriptCompiler::CompileOptions::kEagerCompile).ToLocalChecked();
 
-  Local<UnboundScript> unboundScript;
-  if (!ScriptCompiler::CompileUnboundScript(iso, &source, option).ToLocal(&unboundScript)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
+  ScriptCompiler::CachedData* cachedData = ScriptCompiler::CreateCodeCache(unboundedScript);
+
+  return ScriptCompilerCachedData{
+    cachedData->data,
+    cachedData->length,
   };
-  ScriptCompiler::CachedData* code_cache = ScriptCompiler::CreateCodeCache(unboundScript);
-
-  ScriptCompilerCachedData* cached_data = new ScriptCompilerCachedData;
-  cached_data->ptr = code_cache;
-  cached_data->data = code_cache->data;
-  cached_data->length = code_cache->length;
-
-  rtn.ptr = cached_data;
-  return rtn;
 }
 
 /********** CpuProfiler **********/
@@ -596,7 +587,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
   return rtn;
 }
 
-RtnValue RunCompiledScript(ContextPtr ctx, const char* source, ScriptCompilerCachedData* data, const char* origin) {
+RtnValue RunCompiledScript(ContextPtr ctx, const char* source, const uint8_t* cd, int cdLen, const char* origin) {
   LOCAL_CONTEXT(ctx);
 
   RtnValue rtn = {nullptr, nullptr};
@@ -611,9 +602,11 @@ RtnValue RunCompiledScript(ContextPtr ctx, const char* source, ScriptCompilerCac
     return rtn;
   }
 
+  ScriptCompiler::CachedData* cached_data = new ScriptCompiler::CachedData(cd, cdLen);
+
   ScriptOrigin script_origin(ogn);
 
-  ScriptCompiler::Source cached_source(src, script_origin, data->ptr);
+  ScriptCompiler::Source cached_source(src, script_origin, cached_data);
 
   ScriptCompiler::CompileOptions option = ScriptCompiler::kConsumeCodeCache;
 

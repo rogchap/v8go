@@ -77,23 +77,21 @@ func (i *Isolate) IsExecutionTerminating() bool {
 	return C.IsolateIsExecutionTerminating(i.ptr) == 1
 }
 
-// CompileScript compiles the source JavaScript (context-independent);
-// origin (a.k.a filename) provides a reference for the script and used
-// in the stack trace if there is an error; option defaults to
-// no compile-time options but can be provided to eagerly compile or
-// consume from code cache.
-// error will be of type `JSError` if not nil.
-func (i *Isolate) CompileScript(source, origin string, option ScriptCompilerCompileOption) (*ScriptCompilerCachedData, error) {
+type ScriptCompilerCachedData []byte
+
+//TODO
+// CompileScript will compile the specified script (context-independent).
+func (i *Isolate) CompileScript(source, origin string) ScriptCompilerCachedData {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	rtn := C.CompileScript(i.ptr, cSource, cOrigin, C.int(option))
-	if rtn.ptr == nil {
-		return nil, newJSError(rtn.error)
+	p := C.CompileScript(i.ptr, cSource, cOrigin)
+	if p.length < 1 {
+		return nil
 	}
-	return &ScriptCompilerCachedData{rtn.ptr}, nil
+	return []byte(C.GoBytes(unsafe.Pointer(p.data), p.length))
 }
 
 // GetHeapStatistics returns heap statistics for an isolate.

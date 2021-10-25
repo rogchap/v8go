@@ -96,17 +96,16 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	return valueResult(c, rtn)
 }
 
-// TODO: Rename? Ex: RunScriptWithCache?
-// RunCompiledScript executes the source JavaScript; origin or filename provides a
+// RunScript executes the source JavaScript; origin or filename provides a
 // reference for the script and used in the stack trace if there is an error.
 // error will be of type `JSError` of not nil.
-func (c *Context) RunCompiledScript(source string, cachedData *ScriptCompilerCachedData, origin string) (*Value, error) {
+func (c *Context) RunCompiledScript(source string, compiledSource []byte, origin string) (*Value, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	rtn := C.RunCompiledScript(c.ptr, cSource, cachedData.ptr, cOrigin)
+	rtn := C.RunCompiledScript(c.ptr, cSource, (*C.uchar)(unsafe.Pointer(&compiledSource[0])), C.int(len(compiledSource)), cOrigin)
 
 	return valueResult(c, rtn)
 }
