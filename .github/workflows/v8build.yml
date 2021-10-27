@@ -8,6 +8,12 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
+                # We use macos-11 over macos-latest because macos-latest defaults to Catalina(10.15) and not Big Sur(11.0)
+                # We can switch to macos-latest whenever Big Sur becomes the default
+                # See https://github.com/actions/virtual-environments#available-environments
+                #
+                # We need xcode 12.4 or newer to cross compile between arm64/amd64
+                # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
                 platform: [ubuntu-18.04, macos-11, windows-latest]
                 arch: [x86_64, arm64]
                 exclude:
@@ -27,7 +33,7 @@ jobs:
               shell: bash
             - name: Build V8 linux
               if: matrix.platform == 'ubuntu-18.04'
-              run: cd deps && ./build.py --no-clang
+              run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }}
             - name: Build V8 macOS
               if: matrix.platform == 'macos-11'
               run: cd deps && ./build.py --arch ${{ matrix.arch }}
@@ -37,7 +43,7 @@ jobs:
               shell: bash
             - name: Build V8 windows
               if: matrix.platform == 'windows-latest'
-              run: cd deps; python build.py --no-clang
+              run: cd deps; python build.py --no-clang --arch ${{ matrix.arch }}
               env:
                 MSYSTEM: MINGW64
                 DEPOT_TOOLS_WIN_TOOLCHAIN: 0

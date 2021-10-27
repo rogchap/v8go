@@ -5,10 +5,20 @@ import subprocess
 import shutil
 import argparse
 
+valid_archs = ['arm64', 'x86_64']
+# "x86_64" is called "amd64" on Windows
+current_arch = platform.uname()[4].lower().replace("amd64", "x86_64")
+default_arch = current_arch if current_arch in valid_archs else None
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
-parser.add_argument('--arch', dest='arch', type=str)
+parser.add_argument('--arch',
+    dest='arch',
+    action='store',
+    choices=valid_archs,
+    default=default_arch,
+    required=default_arch is None)
 parser.set_defaults(debug=False, clang=True)
 args = parser.parse_args()
 
@@ -41,6 +51,8 @@ gclient_sln = [
 gn_args = """
 is_debug=%s
 is_clang=%s
+target_cpu="%s"
+v8_target_cpu="%s"
 clang_use_chrome_plugins=false
 use_custom_libcxx=false
 use_sysroot=false
@@ -58,11 +70,6 @@ v8_untrusted_code_mitigations=false
 exclude_unwind_tables=true
 """
 
-arm64_gn_args = """
-v8_target_cpu="arm64"
-target_cpu="arm64"
-"""
-
 def v8deps():
     spec = "solutions = %s" % gclient_sln
     env = os.environ.copy()
@@ -76,8 +83,12 @@ def cmd(args):
 
 def os_arch():
     u = platform.uname()
-    # "x86_64" is called "amd64" on Windows
-    return (u[0] + "_" + u[4]).lower().replace("amd64", "x86_64")
+    return u[0].lower() + "_" + args.arch
+
+def v8_arch():
+    if args.arch == "x86_64":
+        return "x64"
+    return args.arch
 
 def apply_mingw_patches():
     v8_build_path = os.path.join(v8_path, "build")
@@ -108,11 +119,7 @@ def main():
     ninja_path = os.path.join(tools_path, "ninja" + (".exe" if is_windows else ""))
     assert(os.path.exists(ninja_path))
 
-    arch = os_arch()
-    if args.arch == "arm64":
-        arch = platform.system().lower()+"_arm64"
-
-    build_path = os.path.join(deps_path, ".build", arch)
+    build_path = os.path.join(deps_path, ".build", os_arch())
     env = os.environ.copy()
 
     is_debug = 'true' if args.debug else 'false'
@@ -122,12 +129,9 @@ def main():
     #   compiled library by an order of magnitude and further slow down compilation
     symbol_level = 1 if args.debug else 0
     strip_debug_info = 'false' if args.debug else 'true'
-    gnargs = gn_args % (is_debug, is_clang, symbol_level, strip_debug_info)
 
-    if args.arch == "arm64":
-        combined_gn_args = gn_args + arm64_gn_args
-        gnargs = combined_gn_args % (is_debug, is_clang, symbol_level, strip_debug_info)
-
+    arch = v8_arch()
+    gnargs = gn_args % (is_debug, is_clang, arch, arch, symbol_level, strip_debug_info)
     gen_args = gnargs.replace('\n', ' ')
 
     subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gen_args]),
@@ -138,7 +142,7 @@ def main():
                         env=env)
 
     lib_fn = os.path.join(build_path, "obj/libv8_monolith.a")
-    dest_path = os.path.join(deps_path, arch)
+    dest_path = os.path.join(deps_path, os_arch())
     if not os.path.exists(dest_path):
         os.makedirs(dest_path)
     dest_fn = os.path.join(dest_path, 'libv8.a')
