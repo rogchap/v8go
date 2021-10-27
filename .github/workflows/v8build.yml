@@ -50,9 +50,8 @@ jobs:
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
-                commit-message: Update V8 static library for ${{ matrix.platform  }}
-                branch: v8-lib
+                commit-message: Update V8 static library for ${{ matrix.platform }} ${{ matrix.arch }}
                 branch-suffix: random
                 delete-branch: true
-                title: V8 static library for ${{ matrix.platform  }}
-                body: Auto-generated pull request to build V8 for ${{ matrix.platform  }}
+                title: V8 static library for ${{ matrix.platform }} ${{ matrix.arch }}
+                body: Auto-generated pull request to build V8 for ${{ matrix.platform }} ${{ matrix.arch }}
