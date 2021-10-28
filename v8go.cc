@@ -778,7 +778,7 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
     return nullptr;
   }
 
-  uint32_t* idx = new uint32_t;
+  uint32_t* idx = (uint32_t*)malloc(sizeof(uint32_t));
   *idx = array_index->Value();
   return idx;
 }
@@ -840,7 +840,7 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 
   int word_count = bint->WordCount();
   int sign_bit = 0;
-  uint64_t* words = new uint64_t[word_count];
+  uint64_t* words = (uint64_t*)malloc(sizeof(uint64_t) * word_count);
   bint->ToWordsArray(&sign_bit, &word_count, words);
   ValueBigInt rtn = {words, word_count, sign_bit};
   return rtn;
