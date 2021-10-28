@@ -5,9 +5,20 @@ import subprocess
 import shutil
 import argparse
 
+valid_archs = ['arm64', 'x86_64']
+# "x86_64" is called "amd64" on Windows
+current_arch = platform.uname()[4].lower().replace("amd64", "x86_64")
+default_arch = current_arch if current_arch in valid_archs else None
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--debug', dest='debug', action='store_true')
 parser.add_argument('--no-clang', dest='clang', action='store_false')
+parser.add_argument('--arch',
+    dest='arch',
+    action='store',
+    choices=valid_archs,
+    default=default_arch,
+    required=default_arch is None)
 parser.set_defaults(debug=False, clang=True)
 args = parser.parse_args()
 
@@ -40,6 +51,8 @@ gclient_sln = [
 gn_args = """
 is_debug=%s
 is_clang=%s
+target_cpu="%s"
+v8_target_cpu="%s"
 clang_use_chrome_plugins=false
 use_custom_libcxx=false
 use_sysroot=false
@@ -70,8 +83,12 @@ def cmd(args):
 
 def os_arch():
     u = platform.uname()
-    # "x86_64" is called "amd64" on Windows
-    return (u[0] + "_" + u[4]).lower().replace("amd64", "x86_64")
+    return u[0].lower() + "_" + args.arch
+
+def v8_arch():
+    if args.arch == "x86_64":
+        return "x64"
+    return args.arch
 
 def apply_mingw_patches():
     v8_build_path = os.path.join(v8_path, "build")
@@ -96,7 +113,7 @@ def main():
     v8deps()
     if is_windows:
         apply_mingw_patches()
-    
+
     gn_path = os.path.join(tools_path, "gn")
     assert(os.path.exists(gn_path))
     ninja_path = os.path.join(tools_path, "ninja" + (".exe" if is_windows else ""))
@@ -112,9 +129,11 @@ def main():
     #   compiled library by an order of magnitude and further slow down compilation
     symbol_level = 1 if args.debug else 0
     strip_debug_info = 'false' if args.debug else 'true'
-    gnargs = gn_args % (is_debug, is_clang, symbol_level, strip_debug_info)
+
+    arch = v8_arch()
+    gnargs = gn_args % (is_debug, is_clang, arch, arch, symbol_level, strip_debug_info)
     gen_args = gnargs.replace('\n', ' ')
-    
+
     subprocess.check_call(cmd([gn_path, "gen", build_path, "--args=" + gen_args]),
                         cwd=v8_path,
                         env=env)
