@@ -286,6 +286,7 @@ void CPUProfileNodeDelete(CPUProfileNode* node) {
     CPUProfileNodeDelete(node->children[i]);
   }
 
+  delete[] node->children;
   delete node;
 }
 
@@ -294,6 +295,7 @@ void CPUProfileDelete(CPUProfile* profile) {
     return;
   }
   profile->ptr->Delete();
+  free((void *)profile->title);
 
   CPUProfileNodeDelete(profile->root);
 
