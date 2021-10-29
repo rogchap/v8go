@@ -230,7 +230,9 @@ void CPUProfilerStartProfiling(CPUProfiler* profiler, const char* title) {
   Isolate::Scope isolate_scope(profiler->iso);
   HandleScope handle_scope(profiler->iso);
 
-  Local<String> title_str = String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+  Local<String> title_str =
+      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal)
+          .ToLocalChecked();
   profiler->ptr->StartProfiling(title_str);
 }
 
@@ -242,13 +244,13 @@ CPUProfileNode* NewCPUProfileNode(const CpuProfileNode* ptr_) {
   }
 
   CPUProfileNode* root = new CPUProfileNode{
-    ptr_,
-    ptr_->GetScriptResourceNameStr(),
-    ptr_->GetFunctionNameStr(),
-    ptr_->GetLineNumber(),
-    ptr_->GetColumnNumber(),
-    count,
-    children,
+      ptr_,
+      ptr_->GetScriptResourceNameStr(),
+      ptr_->GetFunctionNameStr(),
+      ptr_->GetLineNumber(),
+      ptr_->GetColumnNumber(),
+      count,
+      children,
   };
   return root;
 }
@@ -263,7 +265,8 @@ CPUProfile* CPUProfilerStopProfiling(CPUProfiler* profiler, const char* title) {
   HandleScope handle_scope(profiler->iso);
 
   Local<String> title_str =
-      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal).ToLocalChecked();
+      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal)
+          .ToLocalChecked();
 
   CPUProfile* profile = new CPUProfile;
   profile->ptr = profiler->ptr->StopProfiling(title_str);
@@ -295,7 +298,7 @@ void CPUProfileDelete(CPUProfile* profile) {
     return;
   }
   profile->ptr->Delete();
-  free((void *)profile->title);
+  free((void*)profile->title);
 
   CPUProfileNodeDelete(profile->root);
 
@@ -374,7 +377,8 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   return rtn;
 }
 
-void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count) {
+void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr,
+                                         uint32_t field_count) {
   LOCAL_TEMPLATE(ptr);
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
@@ -1214,8 +1218,8 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx) {
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx = ctx;
-  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, result);
+  new_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
 
   return tracked_value(ctx, new_val);
 }
