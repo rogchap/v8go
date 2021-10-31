@@ -103,6 +103,13 @@ func (i *Isolate) Dispose() {
 	i.ptr = nil
 }
 
+// ThrowException will schedule for an exception to be thrown.
+func (i *Isolate) ThrowException(value *Value) *Value {
+	return &Value{
+		ptr: C.ThrowException(value.ptr),
+	}
+}
+
 // Deprecated: use `iso.Dispose()`.
 func (i *Isolate) Close() {
 	i.Dispose()

@@ -198,6 +198,25 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.number_of_detached_contexts()};
 }
 
+/********** Exceptions & Errors **********/
+
+ValuePtr ThrowException(ValuePtr value) {
+  Isolate* iso = value->iso;
+  m_ctx* ctx = value->ctx;
+
+  ISOLATE_SCOPE(iso);
+
+  Local<Value> throw_ret_val = iso->ThrowException(value->ptr.Get(iso));
+
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, throw_ret_val);
+
+  return tracked_value(ctx, new_val);
+}
+
 /********** CpuProfiler **********/
 
 CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr) {

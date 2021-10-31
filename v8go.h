@@ -114,6 +114,8 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
+extern ValuePtr ThrowException(ValuePtr value);
+
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
 extern void CPUProfilerDispose(CPUProfiler* ptr);
 extern void CPUProfilerStartProfiling(CPUProfiler* ptr, const char* title);
