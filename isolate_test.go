@@ -135,6 +135,68 @@ func TestIsolateGarbageCollection(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
+func TestIsolateThrowException(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	strErr, err := v8.NewValue(iso, "some type error")
+
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	throwError := func(val *v8.Value) {
+		v := iso.ThrowException(val)
+
+		if !v.IsNullOrUndefined() {
+			t.Error("expected result to be null or undefined")
+		}
+	}
+
+	// Function that throws a simple string error from within the function. It is meant
+	// to emulate when an error is returned within Go.
+	fn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		throwError(strErr)
+
+		return nil
+	})
+
+	// Function that is passed a TypeError from JavaScript.
+	fn2 := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		args := info.Args()
+
+		if len(args) < 1 {
+			t.Error("expected a TypeError argument")
+		}
+
+		typeErr := args[0]
+
+		throwError(typeErr)
+
+		return nil
+	})
+
+	global := v8.NewObjectTemplate(iso)
+	global.Set("foo", fn)
+	global.Set("foo2", fn2)
+
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+
+	_, e := ctx.RunScript("foo()", "forever.js")
+
+	if e.Error() != "some type error" {
+		t.Errorf("expected \"some type error\" error but got: %v", e)
+	}
+
+	_, e = ctx.RunScript("foo2(new TypeError('this is a test'))", "forever.js")
+
+	if e.Error() != "TypeError: this is a test" {
+		t.Errorf("expected \"TypeError: this is a test\" error but got: %v", e)
+	}
+}
+
 func BenchmarkIsolateInitialization(b *testing.B) {
 	b.ReportAllocs()
 	for n := 0; n < b.N; n++ {
