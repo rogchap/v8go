@@ -124,7 +124,7 @@ extern RtnCachedData CompileScript(IsolatePtr iso_ptr,
                                   const char* s,
                                   const char* origin,
                                   int opt);
-extern RtnValue RunCompiledScript(ContextPtr ctx_ptr,
+extern RtnValue RunScript(ContextPtr ctx_ptr,
                                   const char* source,
                                   const uint8_t* data,
                                   int data_length,
@@ -140,7 +140,7 @@ extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
 extern void ContextFree(ContextPtr ptr);
-extern RtnValue RunScript(ContextPtr ctx_ptr,
+extern RtnValue CompileAndRun(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);

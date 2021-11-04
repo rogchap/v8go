@@ -558,7 +558,7 @@ void ContextFree(ContextPtr ctx) {
   delete ctx;
 }
 
-RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
+RtnValue CompileAndRun(ContextPtr ctx, const char* source, const char* origin) {
   LOCAL_CONTEXT(ctx);
 
   RtnValue rtn = {nullptr, nullptr};
@@ -593,7 +593,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
   return rtn;
 }
 
-RtnValue RunCompiledScript(ContextPtr ctx, const char* source, const uint8_t* cd, int cdLen, const char* origin) {
+RtnValue RunScript(ContextPtr ctx, const char* source, const uint8_t* cd, int cdLen, const char* origin) {
   LOCAL_CONTEXT(ctx);
 
   RtnValue rtn = {nullptr, nullptr};

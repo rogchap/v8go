@@ -47,7 +47,7 @@ func TestIsolateTermination(t *testing.T) {
 	}()
 
 	script := `function loop() { while (true) { } }; foo(loop);`
-	_, e := ctx.RunScript(script, "forever.js")
+	_, e := ctx.CompileAndRun(script, "forever.js")
 	if e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
 	}
@@ -71,7 +71,7 @@ func TestIsolateCompileScript(t *testing.T) {
 	d1, err := i1.CompileScript(s, "script.js", v8.ScriptCompilerCompileOptionEagerCompile)
 	fatalIf(t, err)
 
-	val, err := c2.RunCompiledScript(s, d1, "script.js")
+	val, err := c2.RunScript(s, d1, "script.js")
 	fatalIf(t, err)
 	if val.String() != "bar" {
 		t.Fatalf("invalid value returned, expected bar got %v", val)
@@ -174,10 +174,10 @@ func BenchmarkIsolateInitAndRun(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		vm := v8.NewIsolate()
 		ctx := v8.NewContext(vm)
-		ctx.RunScript(script, "main.js")
+		ctx.CompileAndRun(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)
-		ctx.RunScript(cmd, "cmd.js")
+		ctx.CompileAndRun(cmd, "cmd.js")
 		ctx.Close()
 		vm.Close() // force disposal of the VM
 	}
