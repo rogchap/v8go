@@ -30,13 +30,13 @@ jobs:
               id: pr_metadata
               run: |
                 echo ::set-output name=pr_branch::"v8_$(cat deps/v8_version)_upgrade"
+                echo ::set-output name=pr_commit_message::"Upgrade V8 binaries for $(cat deps/v8_version) version"
+                echo ::set-output name=pr_body::"Auto-generated pull request to upgrade V8 binary for $(cat deps/v8_version) version"
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:
-                commit-message: Upgrade V8 binaries
+                commit-message: ${{steps.pr_metadata.outputs.pr_commit_message}}
                 branch: ${{steps.pr_metadata.outputs.pr_branch}}
                 delete-branch: true
-                title: Upgrade V8 binary
-                body: Auto-generated pull request to upgarde V8 binary
-
-
+                title: ${{steps.pr_metadata.outputs.pr_commit_message}}
+                body: ${{steps.pr_metadata.outputs.pr_body}}

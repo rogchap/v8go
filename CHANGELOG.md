@@ -8,7 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Support for calling constructors functions with NewInstance on Function
-- Build v8 with i18n support
 - Access "this" from function callback
 - value.SameValue(otherValue) function to compare values for sameness
 - Undefined, Null functions to get these constant values for the isolate
@@ -16,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for calling `IsExecutionTerminating` on isolate to check if execution is still terminating.
 - Support for setting and getting internal fields for template object instances
 - Support for CPU profiling
+- Add V8 build for Apple Silicon
 
 ### Changed
 - Removed error return value from NewIsolate which never fails

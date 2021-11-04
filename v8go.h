@@ -12,8 +12,8 @@ struct _EXCEPTION_POINTERS;
 #endif
 
 #include "libplatform/libplatform.h"
-#include "v8.h"
 #include "v8-profiler.h"
+#include "v8.h"
 
 typedef v8::Isolate* IsolatePtr;
 typedef v8::CpuProfiler* CpuProfilerPtr;
@@ -133,7 +133,8 @@ extern RtnValue RunScript(ContextPtr ctx_ptr,
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
 extern void CPUProfilerDispose(CPUProfiler* ptr);
 extern void CPUProfilerStartProfiling(CPUProfiler* ptr, const char* title);
-extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr, const char* title);
+extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr,
+                                            const char* title);
 extern void CPUProfileDelete(CPUProfile* ptr);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
@@ -159,7 +160,8 @@ extern void TemplateSetTemplate(TemplatePtr ptr,
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
-extern void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count);
+extern void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr,
+                                                uint32_t field_count);
 extern int ObjectTemplateInternalFieldCount(TemplatePtr ptr);
 
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
