@@ -51,7 +51,7 @@ func TestValueFormatting(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			if s := fmt.Sprintf("%v", val); s != tt.defaultVerb {
 				t.Errorf("incorrect format for %%v: %s", s)
 			}
@@ -88,7 +88,7 @@ func TestValueString(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			result, _ := ctx.CompileAndRun(tt.source, "test.js")
+			result, _ := ctx.RunScript(tt.source, "test.js")
 			str := result.String()
 			if str != tt.out {
 				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
@@ -117,7 +117,7 @@ func TestValueDetailString(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			result, _ := ctx.CompileAndRun(tt.source, "test.js")
+			result, _ := ctx.RunScript(tt.source, "test.js")
 			str := result.DetailString()
 			if str != tt.out {
 				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
@@ -152,7 +152,7 @@ func TestValueBoolean(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			if b := val.Boolean(); b != tt.out {
 				t.Errorf("unexpected value: expected %v, got %v", tt.out, b)
 			}
@@ -180,7 +180,7 @@ func TestValueConstants(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 
-		val, err := ctx.CompileAndRun(tt.source, "test.js")
+		val, err := ctx.RunScript(tt.source, "test.js")
 		fatalIf(t, err)
 
 		if tt.value.SameValue(val) != tt.same {
@@ -216,7 +216,7 @@ func TestValueArrayIndex(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			idx, ok := val.ArrayIndex()
 			if ok != tt.ok {
 				t.Errorf("unexpected ok: expected %v, got %v", tt.ok, ok)
@@ -259,7 +259,7 @@ func TestValueInt32(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			if i32 := val.Int32(); i32 != tt.expected {
 				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i32)
 			}
@@ -298,7 +298,7 @@ func TestValueInteger(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			if i64 := val.Integer(); i64 != tt.expected {
 				t.Errorf("unexpected value: expected %v, got %v", tt.expected, i64)
 			}
@@ -335,7 +335,7 @@ func TestValueNumber(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			f64 := val.Number()
 			if math.IsNaN(tt.expected) {
 				if !math.IsNaN(f64) {
@@ -368,7 +368,7 @@ func TestValueUint32(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			if u32 := val.Uint32(); u32 != tt.expected {
 				t.Errorf("unexpected value: expected %v, got %v", tt.expected, u32)
 			}
@@ -402,7 +402,7 @@ func TestValueBigInt(t *testing.T) {
 			ctx := v8.NewContext(iso)
 			defer ctx.Close()
 
-			val, _ := ctx.CompileAndRun(tt.source, "test.js")
+			val, _ := ctx.RunScript(tt.source, "test.js")
 			b := val.BigInt()
 			if b == nil && tt.expected != nil {
 				t.Errorf("uexpected <nil> value")
@@ -426,7 +426,7 @@ func TestValueObject(t *testing.T) {
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	val, _ := ctx.CompileAndRun("1", "")
+	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsObject(); err == nil {
 		t.Error("Expected error but got <nil>")
 	}
@@ -442,11 +442,11 @@ func TestValuePromise(t *testing.T) {
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	val, _ := ctx.CompileAndRun("1", "")
+	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsPromise(); err == nil {
 		t.Error("Expected error but got <nil>")
 	}
-	if _, err := ctx.CompileAndRun("new Promise(()=>{})", ""); err != nil {
+	if _, err := ctx.RunScript("new Promise(()=>{})", ""); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
@@ -459,11 +459,11 @@ func TestValueFunction(t *testing.T) {
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	val, _ := ctx.CompileAndRun("1", "")
+	val, _ := ctx.RunScript("1", "")
 	if _, err := val.AsFunction(); err == nil {
 		t.Error("Expected error but got <nil>")
 	}
-	val, err := ctx.CompileAndRun("(a, b) => { return a + b; }", "")
+	val, err := ctx.RunScript("(a, b) => { return a + b; }", "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -599,7 +599,7 @@ func TestValueIsXXX(t *testing.T) {
 			ctx := v8.NewContext(iso)
 			defer ctx.Close()
 
-			val, err := ctx.CompileAndRun(tt.source, "test.js")
+			val, err := ctx.RunScript(tt.source, "test.js")
 			if err != nil {
 				t.Fatalf("failed to run script: %v", err)
 			}
@@ -631,7 +631,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		{
 			"object",
 			func(ctx *v8.Context) *v8.Value {
-				val, _ := ctx.CompileAndRun("let foo = {a:1, b:2}; foo", "test.js")
+				val, _ := ctx.RunScript("let foo = {a:1, b:2}; foo", "test.js")
 				return val
 			},
 			[]byte(`{"a":1,"b":2}`),
@@ -639,7 +639,7 @@ func TestValueMarshalJSON(t *testing.T) {
 		{
 			"objectFunc",
 			func(ctx *v8.Context) *v8.Value {
-				val, _ := ctx.CompileAndRun("let foo = {a:1, b:()=>{}}; foo", "test.js")
+				val, _ := ctx.RunScript("let foo = {a:1, b:()=>{}}; foo", "test.js")
 				return val
 			},
 			[]byte(`{"a":1}`),

@@ -21,9 +21,9 @@ import v8 "rogchap.com/v8go"
 
 ```go
 ctx := v8.NewContext() // creates a new V8 context with a new Isolate aka VM
-ctx.CompileAndRun("const add = (a, b) => a + b", "math.js") // executes a script on the global context
-ctx.CompileAndRun("const result = add(3, 4)", "main.js") // any functions previously added to the context can be called
-val, _ := ctx.CompileAndRun("result", "value.js") // return a value in JavaScript back to Go
+ctx.RunScript("const add = (a, b) => a + b", "math.js") // executes a script on the global context
+ctx.RunScript("const result = add(3, 4)", "main.js") // any functions previously added to the context can be called
+val, _ := ctx.RunScript("result", "value.js") // return a value in JavaScript back to Go
 fmt.Printf("addition result: %s", val)
 ```
 
@@ -32,10 +32,10 @@ fmt.Printf("addition result: %s", val)
 ```go
 iso := v8.NewIsolate() // creates a new JavaScript VM
 ctx1 := v8.NewContext(iso) // new context within the VM
-ctx1.CompileAndRun("const multiply = (a, b) => a * b", "math.js")
+ctx1.RunScript("const multiply = (a, b) => a * b", "math.js")
 
 ctx2 := v8.NewContext(iso) // another context on the same VM
-if _, err := ctx2.CompileAndRun("multiply(3, 4)", "main.js"); err != nil {
+if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
   // this will error as multiply is not defined in this context
 }
 ```
@@ -52,7 +52,7 @@ printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.V
 global := v8.NewObjectTemplate(iso) // a template that represents a JS Object
 global.Set("print", printfn) // sets the "print" property of the Object to our function
 ctx := v8.NewContext(iso, global) // new Context with the global Object set to our object template
-ctx.CompileAndRun("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
+ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
 ```
 
 ### Update a JavaScript object from Go
@@ -61,7 +61,7 @@ ctx.CompileAndRun("print('foo')", "print.js") // will execute the Go callback wi
 ctx := v8.NewContext() // new context with a default VM
 obj := ctx.Global() // get the global object from the context
 obj.Set("version", "v1.0.0") // set the property "version" on the object
-val, _ := ctx.CompileAndRun("version", "version.js") // global object will have the property set within the JS VM
+val, _ := ctx.RunScript("version", "version.js") // global object will have the property set within the JS VM
 fmt.Printf("version: %s", val)
 
 if obj.Has("version") { // check if a property exists on the object
@@ -72,7 +72,7 @@ if obj.Has("version") { // check if a property exists on the object
 ### JavaScript errors
 
 ```go
-val, err := ctx.CompileAndRun(src, filename)
+val, err := ctx.RunScript(src, filename)
 if err != nil {
   e := err.(*v8.JSError) // JavaScript errors will be returned as the JSError struct
   fmt.Println(e.Message) // the message of the exception thrown
@@ -84,21 +84,26 @@ if err != nil {
 }
 ```
 
-### Separate compilation of a script from running a script
+### Pre-compile context-independent scripts to speed-up execution times
 
-For scripts that are large or are repeatedly run on contexts belonging to different
-isolates, it is beneficial to compile the script in an isolate (so it is not
-bound to a context) and then use that compiled script as a cached data source
-when wanting to run it to avoid recompiling each time.
+For scripts that are large or are repeatedly run in different contexts,
+it is beneficial to compile the script once and used the cached data from that
+compilation to avoid recompiling every time you want to run it.
 
 ```go
 source := "const multiply = (a, b) => a * b"
 iso1 := v8.NewIsolate() // creates a new JavaScript VM
-cachedData, _ := iso1.CompileScript(source, "math.js") // compile script to get cached data
+ctx1 := v8.NewContext() // new context within the VM
+script1, _ := iso1.CompileUnboundScript(source, "math.js", v8.CompileOptions{}) // compile script to get cached data
+val, _ := script1.Run(ctx1)
+
+cachedData := script1.CreateCodeCache()
 
 iso2 := v8.NewIsolate() // create a new JavaScript VM
 ctx2 := v8.NewContext(iso2) // new context within the VM
-ctx2.RunScript(source, cachedData, "math.js") // run with cached data to skip compilation and get faster execution time
+
+script2, _ := iso2.CompileUnboundScript(source, "math.js", v8.CompileOptions{CachedData: cachedData}) // compile script in new isolate with cached data
+val, _ = script2.Run(ctx2)
 ```
 
 ### Terminate long running scripts
@@ -108,7 +113,7 @@ vals := make(chan *v8.Value, 1)
 errs := make(chan error, 1)
 
 go func() {
-    val, err := ctx.CompileAndRun(script, "forever.js") // exec a long running script
+    val, err := ctx.RunScript(script, "forever.js") // exec a long running script
     if err != nil {
         errs <- err
         return
@@ -138,7 +143,7 @@ func createProfile() {
 
 	cpuProfiler.StartProfiling("my-profile")
 
-	ctx.CompileAndRun(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
+	ctx.RunScript(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
 	val, _ := ctx.Global().Get("start")
 	fn, _ := val.AsFunction()
 	fn.Call(ctx.Global())

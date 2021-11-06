@@ -77,23 +77,51 @@ func (i *Isolate) IsExecutionTerminating() bool {
 	return C.IsolateIsExecutionTerminating(i.ptr) == 1
 }
 
-// CompileScript compiles the source JavaScript (context-independent);
-// origin (a.k.a filename) provides a reference for the script and used
-// in the stack trace if there is an error; option defaults to
-// no compile-time options but can be provided to eagerly compile or
-// consume from code cache.
+type CompileOptions struct {
+	CachedData *ScriptCompilerCachedData
+
+	Option ScriptCompilerCompileOption
+}
+
+// CompileUnboundScript will create an UnboundScript (i.e. context-indepdent)
+// using the provided source JavaScript, origin (a.k.a. filename), and options.
+// If options contain a non-null CachedData, compilation of the script will use
+// that code cache.
 // error will be of type `JSError` if not nil.
-func (i *Isolate) CompileScript(source, origin string, option ScriptCompilerCompileOption) (ScriptCompilerCachedData, error) {
+func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOptions) (*UnboundScript, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	rtn := C.CompileScript(i.ptr, cSource, cOrigin, C.int(option))
-	if rtn.length < 1 {
+	if opts.CachedData != nil {
+		opts.Option = scriptCompilerConsumeCodeCache
+	}
+
+	cOptions := C.CompileOptions{
+		compileOption: C.int(opts.Option),
+	}
+	if opts.CachedData != nil {
+		cOptions.cachedData = C.ScriptCompilerCachedData{
+			data:   (*C.uchar)(unsafe.Pointer(&opts.CachedData.Bytes[0])),
+			length: C.int(len(opts.CachedData.Bytes)),
+		}
+		if opts.CachedData.Rejected {
+			cOptions.cachedData.rejected = C.int(1)
+		}
+	}
+
+	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)
+	if rtn.ptr == nil {
 		return nil, newJSError(rtn.error)
 	}
-	return []byte(C.GoBytes(unsafe.Pointer(rtn.data), rtn.length)), nil
+	if opts.CachedData != nil {
+		opts.CachedData.Rejected = int(rtn.cachedDataRejected) == 1
+	}
+	return &UnboundScript{
+		ptr: rtn.ptr,
+		iso: i,
+	}, nil
 }
 
 // GetHeapStatistics returns heap statistics for an isolate.

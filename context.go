@@ -82,30 +82,16 @@ func (c *Context) Isolate() *Isolate {
 	return c.iso
 }
 
-// CompileAndRun executes the source JavaScript; origin (a.k.a. filename) provides a
+// RunScript executes the source JavaScript; origin (a.k.a. filename) provides a
 // reference for the script and used in the stack trace if there is an error.
 // error will be of type `JSError` if not nil.
-func (c *Context) CompileAndRun(source string, origin string) (*Value, error) {
+func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
-	rtn := C.CompileAndRun(c.ptr, cSource, cOrigin)
-	return valueResult(c, rtn)
-}
-
-// RunScript executes the source JavaScript using the compiled source;
-// origin (a.k.a. filename) provides a reference for the script and used in
-// the stack trace if there is an error.
-// error will be of type `JSError` if not nil.
-func (c *Context) RunScript(source string, compiledSource []byte, origin string) (*Value, error) {
-	cSource := C.CString(source)
-	cOrigin := C.CString(origin)
-	defer C.free(unsafe.Pointer(cSource))
-	defer C.free(unsafe.Pointer(cOrigin))
-
-	rtn := C.RunScript(c.ptr, cSource, (*C.uchar)(unsafe.Pointer(&compiledSource[0])), C.int(len(compiledSource)), cOrigin)
+	rtn := C.RunScript(c.ptr, cSource, cOrigin)
 	return valueResult(c, rtn)
 }
 

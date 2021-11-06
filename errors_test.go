@@ -66,8 +66,8 @@ func TestJSErrorOutput(t *testing.T) {
 	b;
 	`
 
-	ctx.CompileAndRun(math, "math.js")
-	_, err := ctx.CompileAndRun(main, "main.js")
+	ctx.RunScript(math, "math.js")
+	_, err := ctx.RunScript(main, "main.js")
 	if err == nil {
 		t.Error("expected error but got <nil>")
 		return

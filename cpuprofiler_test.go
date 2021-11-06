@@ -58,7 +58,7 @@ func TestCPUProfiler(t *testing.T) {
 	title := "cpuprofilertest"
 	cpuProfiler.StartProfiling(title)
 
-	_, err := ctx.CompileAndRun(profileScript, "script.js")
+	_, err := ctx.RunScript(profileScript, "script.js")
 	fatalIf(t, err)
 	val, err := ctx.Global().Get("start")
 	fatalIf(t, err)

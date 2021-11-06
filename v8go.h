@@ -19,6 +19,7 @@ typedef v8::Isolate* IsolatePtr;
 typedef v8::CpuProfiler* CpuProfilerPtr;
 typedef v8::CpuProfile* CpuProfilePtr;
 typedef const v8::CpuProfileNode* CpuProfileNodePtr;
+typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
 
 extern "C" {
 #else
@@ -34,6 +35,9 @@ typedef v8CpuProfile* CpuProfilePtr;
 
 typedef struct v8CpuProfileNode v8CpuProfileNode;
 typedef const v8CpuProfileNode* CpuProfileNodePtr;
+
+typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
+typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #endif
 
 #include <stddef.h>
@@ -42,10 +46,12 @@ typedef const v8CpuProfileNode* CpuProfileNodePtr;
 typedef struct m_ctx m_ctx;
 typedef struct m_value m_value;
 typedef struct m_template m_template;
+typedef struct m_unboundScript m_unboundScript;
 
 typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
+typedef m_unboundScript* UnboundScriptPtr;
 
 typedef struct {
   const char* msg;
@@ -54,10 +60,22 @@ typedef struct {
 } RtnError;
 
 typedef struct {
+  UnboundScriptPtr ptr;
+  int cachedDataRejected;
+  RtnError error;
+} RtnUnboundScript;
+
+typedef struct {
+  ScriptCompilerCachedDataPtr ptr;
   const uint8_t* data;
   int length;
-  RtnError error;
-} RtnCachedData;
+  int rejected;
+} ScriptCompilerCachedData;
+
+typedef struct {
+  ScriptCompilerCachedData cachedData;
+  int compileOption;
+} CompileOptions;
 
 typedef struct {
   CpuProfilerPtr ptr;
@@ -120,15 +138,15 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
-extern RtnCachedData CompileScript(IsolatePtr iso_ptr,
-                                  const char* s,
-                                  const char* origin,
-                                  int opt);
-extern RtnValue RunScript(ContextPtr ctx_ptr,
+extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                   const char* source,
-                                  const uint8_t* data,
-                                  int data_length,
-                                  const char* origin);
+                                  const char* origin,
+                                  CompileOptions options);
+extern ScriptCompilerCachedData* UnboundScriptCreateCodeCache(IsolatePtr iso_ptr,
+                                                UnboundScriptPtr us_ptr);
+extern void ScriptCompilerCachedDataDelete(ScriptCompilerCachedDataPtr cached_data);
+extern RtnValue UnboundScriptRun(ContextPtr ctx_ptr,
+                                 UnboundScriptPtr us_ptr);
 
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
 extern void CPUProfilerDispose(CPUProfiler* ptr);
@@ -141,7 +159,7 @@ extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
 extern void ContextFree(ContextPtr ptr);
-extern RtnValue CompileAndRun(ContextPtr ctx_ptr,
+extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);
 extern RtnValue JSONParse(ContextPtr ctx_ptr, const char* str);

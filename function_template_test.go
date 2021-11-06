@@ -102,7 +102,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	global.Set("foo", foo)
 
 	ctx := v8.NewContext(iso, global)
-	ctx.CompileAndRun("foo.bar()", "")
+	ctx.RunScript("foo.bar()", "")
 
 	v, _ := this.Get("name")
 	if v.String() != "foobar" {
@@ -121,7 +121,7 @@ func ExampleFunctionTemplate() {
 	global.Set("print", printfn, v8.ReadOnly)
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
-	ctx.CompileAndRun("print('foo', 'bar', 0, 1)", "")
+	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
 	// Output:
 	// [foo bar 0 1]
 }
@@ -149,7 +149,7 @@ func ExampleFunctionTemplate_fetch() {
 
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
-	val, _ := ctx.CompileAndRun("fetch('https://rogchap.com/v8go')", "")
+	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
 	prom, _ := val.AsPromise()
 
 	// wait for the promise to resolve
