@@ -140,11 +140,7 @@ func TestIsolateThrowException(t *testing.T) {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 
-	strErr, err := v8.NewValue(iso, "some type error")
-
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	strErr, _ := v8.NewValue(iso, "some type error")
 
 	throwError := func(val *v8.Value) {
 		v := iso.ThrowException(val)
@@ -164,13 +160,7 @@ func TestIsolateThrowException(t *testing.T) {
 
 	// Function that is passed a TypeError from JavaScript.
 	fn2 := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		args := info.Args()
-
-		if len(args) < 1 {
-			t.Error("expected a TypeError argument")
-		}
-
-		typeErr := args[0]
+		typeErr := info.Args()[0]
 
 		throwError(typeErr)
 
@@ -184,13 +174,13 @@ func TestIsolateThrowException(t *testing.T) {
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 
-	_, e := ctx.RunScript("foo()", "forever.js")
+	_, e := ctx.RunScript("foo()", "foo.js")
 
 	if e.Error() != "some type error" {
 		t.Errorf("expected \"some type error\" error but got: %v", e)
 	}
 
-	_, e = ctx.RunScript("foo2(new TypeError('this is a test'))", "forever.js")
+	_, e = ctx.RunScript("foo2(new TypeError('this is a test'))", "foo.js")
 
 	if e.Error() != "TypeError: this is a test" {
 		t.Errorf("expected \"TypeError: this is a test\" error but got: %v", e)

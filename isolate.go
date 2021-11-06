@@ -103,7 +103,9 @@ func (i *Isolate) Dispose() {
 	i.ptr = nil
 }
 
-// ThrowException will schedule for an exception to be thrown.
+// ThrowException will schedule for an exception to be thrown. This prevents
+// any JavaScript to be invoked and the caller must run immediately and the
+// JavaScript will only run after the exeption is handled.
 func (i *Isolate) ThrowException(value *Value) *Value {
 	return &Value{
 		ptr: C.ThrowException(value.ptr),
