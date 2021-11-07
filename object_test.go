@@ -16,6 +16,8 @@ func TestObjectMethodCall(t *testing.T) {
 
 	ctx := v8.NewContext()
 	iso := ctx.Isolate()
+	defer iso.Dispose()
+	defer ctx.Close()
 	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	obj, _ := val.AsObject()
 	val, err := obj.MethodCall("print")
