@@ -109,7 +109,7 @@ func (i *Isolate) Dispose() {
 // the exception has been handled does it become legal to invoke JavaScript operations.
 func (i *Isolate) ThrowException(value *Value) *Value {
 	return &Value{
-		ptr: C.ThrowException(value.ptr),
+		ptr: C.IsolateThrowException(i.ptr, value.ptr),
 	}
 }
 

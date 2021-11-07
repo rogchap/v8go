@@ -200,8 +200,11 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
 
 /********** Exceptions & Errors **********/
 
-ValuePtr ThrowException(ValuePtr value) {
-  Isolate* iso = value->iso;
+ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
+  if (iso == nullptr) {
+    return nullptr;
+  }
+
   m_ctx* ctx = value->ctx;
 
   ISOLATE_SCOPE(iso);
