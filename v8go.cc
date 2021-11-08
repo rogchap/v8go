@@ -1465,7 +1465,6 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
 
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
   m_value* rtnval = new m_value;
