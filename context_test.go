@@ -32,6 +32,7 @@ func TestContextExec(t *testing.T) {
 
 	iso := ctx.Isolate()
 	ctx2 := v8.NewContext(iso)
+	defer ctx2.Close()
 	_, err = ctx2.RunScript(`add`, "ctx2.js")
 	if err == nil {
 		t.Error("error expected but was <nil>")
