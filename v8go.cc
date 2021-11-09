@@ -378,7 +378,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
 }
 
 void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr,
-                                         uint32_t field_count) {
+                                         int field_count) {
   LOCAL_TEMPLATE(ptr);
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
@@ -1163,7 +1163,7 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
-int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   m_value* prop_val = static_cast<m_value*>(val_ptr);
 
@@ -1206,7 +1206,7 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   return rtn;
 }
 
-ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx) {
+ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
   LOCAL_OBJECT(ptr);
 
   if (idx >= obj->InternalFieldCount()) {
