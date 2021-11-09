@@ -19,4 +19,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Go Test
-      run: go test -v --tags leakcheck ./...
+      env:
+        CC: clang
+        CXX: clang++
+      run: |
+        go test -c --tags leakcheck
+        ./v8go.test
