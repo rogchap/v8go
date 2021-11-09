@@ -87,6 +87,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	t.Parallel()
 
 	iso := v8.NewIsolate()
+	defer iso.Dispose()
 
 	foo := v8.NewObjectTemplate(iso)
 	foo.Set("name", "foobar")
@@ -102,6 +103,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	global.Set("foo", foo)
 
 	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
 	ctx.RunScript("foo.bar()", "")
 
 	v, _ := this.Get("name")
