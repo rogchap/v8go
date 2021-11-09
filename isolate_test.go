@@ -47,7 +47,7 @@ func TestIsolateTermination(t *testing.T) {
 	}()
 
 	script := `function loop() { while (true) { } }; foo(loop);`
-	_, e := ctx.CompileAndRun(script, "forever.js")
+	_, e := ctx.RunScript(script, "forever.js")
 	if e == nil || !strings.HasPrefix(e.Error(), "ExecutionTerminated") {
 		t.Errorf("unexpected error: %v", e)
 	}
@@ -57,29 +57,73 @@ func TestIsolateTermination(t *testing.T) {
 	}
 }
 
-func TestIsolateCompileScript(t *testing.T) {
+func TestIsolateCompileUnboundScript(t *testing.T) {
 	s := "function foo() { return 'bar'; }; foo()"
 
 	i1 := v8.NewIsolate()
 	defer i1.Dispose()
+	c1 := v8.NewContext(i1)
+	defer c1.Close()
+
+	_, err := i1.CompileUnboundScript("invalid js", "filename", v8.CompileOptions{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	us, err := i1.CompileUnboundScript(s, "script.js", v8.CompileOptions{Option: v8.ScriptCompilerEagerCompile})
+	fatalIf(t, err)
+
+	val, err := us.Run(c1)
+	fatalIf(t, err)
+	if val.String() != "bar" {
+		t.Fatalf("invalid value returned, expected bar got %v", val)
+	}
+
+	cachedData := us.CreateCodeCache()
 
 	i2 := v8.NewIsolate()
 	defer i2.Dispose()
 	c2 := v8.NewContext(i2)
 	defer c2.Close()
 
-	d1, err := i1.CompileScript(s, "script.js", v8.ScriptCompilerCompileOptionEagerCompile)
+	opts := v8.CompileOptions{CachedData: cachedData}
+	usWithCachedData, err := i2.CompileUnboundScript(s, "script.js", opts)
 	fatalIf(t, err)
+	if usWithCachedData == nil {
+		t.Fatal("expected unbound script from cached data not to be nil")
+	}
+	if opts.CachedData.Rejected {
+		t.Fatal("expected cached data to be used, not rejected")
+	}
 
-	val, err := c2.RunScript(s, d1, "script.js")
+	val, err = usWithCachedData.Run(c2)
 	fatalIf(t, err)
 	if val.String() != "bar" {
 		t.Fatalf("invalid value returned, expected bar got %v", val)
 	}
+}
 
-	_, err = i1.CompileScript("invalid js", "filename", v8.ScriptCompilerCompileOptionEagerCompile)
-	if err == nil {
-		t.Fatal("expected error")
+func TestIsolateCompileUnboundScript_CachedDataRejected(t *testing.T) {
+	s := "function foo() { return 'bar'; }; foo()"
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	// Try to compile an unbound script using cached data that does not match this source
+	opts := v8.CompileOptions{CachedData: &v8.ScriptCompilerCachedData{Bytes: []byte("Math.sqrt(4)")}}
+	us, err := iso.CompileUnboundScript(s, "script.js", opts)
+	fatalIf(t, err)
+	if !opts.CachedData.Rejected {
+		t.Error("expected cached data to be rejected")
+	}
+
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	// Verify that unbound script is still compiled and able to be used
+	val, err := us.Run(ctx)
+	fatalIf(t, err)
+	if val.String() != "bar" {
+		t.Errorf("invalid value returned, expected bar got %v", val)
 	}
 }
 
@@ -174,10 +218,10 @@ func BenchmarkIsolateInitAndRun(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		vm := v8.NewIsolate()
 		ctx := v8.NewContext(vm)
-		ctx.CompileAndRun(script, "main.js")
+		ctx.RunScript(script, "main.js")
 		str, _ := json.Marshal(makeObject())
 		cmd := fmt.Sprintf("process(%s)", str)
-		ctx.CompileAndRun(cmd, "cmd.js")
+		ctx.RunScript(cmd, "cmd.js")
 		ctx.Close()
 		vm.Close() // force disposal of the VM
 	}

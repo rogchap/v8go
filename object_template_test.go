@@ -113,7 +113,7 @@ func TestGlobalObjectTemplate(t *testing.T) {
 		tt := tt
 		t.Run(tt.source, func(t *testing.T) {
 			ctx := v8.NewContext(iso, tt.global())
-			val, err := ctx.CompileAndRun(tt.source, "test.js")
+			val, err := ctx.RunScript(tt.source, "test.js")
 			if err != nil {
 				t.Fatalf("unexpected error runing script: %v", err)
 			}

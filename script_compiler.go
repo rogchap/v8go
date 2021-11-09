@@ -4,12 +4,15 @@
 
 package v8go
 
-type ScriptCompilerCachedData []byte
-
 type ScriptCompilerCompileOption int
 
 const (
-	ScriptCompilerCompileOptionNoCompileOptions = iota
-	ScriptCompilerCompileOptionConsumeCodeCache
-	ScriptCompilerCompileOptionEagerCompile
+	ScriptCompilerNoCompileOptions = iota
+	scriptCompilerConsumeCodeCache
+	ScriptCompilerEagerCompile
 )
+
+type ScriptCompilerCachedData struct {
+	Bytes    []byte
+	Rejected bool
+}

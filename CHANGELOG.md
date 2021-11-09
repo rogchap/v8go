@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for setting and getting internal fields for template object instances
 - Support for CPU profiling
 - Add V8 build for Apple Silicon
+- Support for compiling a context-dependent UnboundScript which can be run in any context of the isolate it was compiled in.
+- Support for creating a code cache from an UnboundScript which can be used to create an UnboundScript in other isolates
+to run a pre-compiled script in new contexts.
 
 ### Changed
 - Removed error return value from NewIsolate which never fails
@@ -23,8 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed error return value from Context.Isolate() which never fails
 - Removed error return value from NewObjectTemplate and NewFunctionTemplate. Panic if given a nil argument.
 - Function Call accepts receiver as first argument.
-- Changed ctx.RunScript to accept a cached data argument available by compiling a script with iso.CompileScript.
-- Introduced ctx.CompileAndRun which accepts the same arguments and behaves the same as ctx.RunScript _used to_.
 
 ### Fixed
 - Add some missing error propagation

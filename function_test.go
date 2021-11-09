@@ -17,7 +17,7 @@ func TestFunctionCall(t *testing.T) {
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	_, err := ctx.CompileAndRun("function add(a, b) { return a + b; }", "")
+	_, err := ctx.RunScript("function add(a, b) { return a + b; }", "")
 	fatalIf(t, err)
 	addValue, err := ctx.Global().Get("add")
 	fatalIf(t, err)
@@ -54,7 +54,7 @@ func TestFunctionCallToGoFunc(t *testing.T) {
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 
-	val, err := ctx.CompileAndRun(`(a, b) => { print("foo"); }`, "")
+	val, err := ctx.RunScript(`(a, b) => { print("foo"); }`, "")
 	fatalIf(t, err)
 	fn, err := val.AsFunction()
 	fatalIf(t, err)
@@ -76,7 +76,7 @@ func TestFunctionCallWithObjectReceiver(t *testing.T) {
 	global := v8.NewObjectTemplate(iso)
 
 	ctx := v8.NewContext(iso, global)
-	val, err := ctx.CompileAndRun(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	fatalIf(t, err)
 	obj, err := val.AsObject()
 	fatalIf(t, err)
@@ -100,7 +100,7 @@ func TestFunctionCallError(t *testing.T) {
 	defer iso.Dispose()
 	defer ctx.Close()
 
-	_, err := ctx.CompileAndRun("function throws() { throw 'error'; }", "script.js")
+	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	fatalIf(t, err)
 	addValue, err := ctx.Global().Get("throws")
 	fatalIf(t, err)
@@ -123,7 +123,7 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	_, err := ctx.CompileAndRun("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
+	_, err := ctx.RunScript("function add(a, b) { return a + b; }; //# sourceMappingURL=main.js.map", "main.js")
 	fatalIf(t, err)
 	addValue, err := ctx.Global().Get("add")
 	fatalIf(t, err)
@@ -135,7 +135,7 @@ func TestFunctionSourceMapUrl(t *testing.T) {
 		t.Errorf("expected main.js.map, got %v", resultVal.String())
 	}
 
-	_, err = ctx.CompileAndRun("function sub(a, b) { return a - b; };", "")
+	_, err = ctx.RunScript("function sub(a, b) { return a - b; };", "")
 	fatalIf(t, err)
 	subValue, err := ctx.Global().Get("sub")
 	fatalIf(t, err)
@@ -184,7 +184,7 @@ func TestFunctionNewInstanceError(t *testing.T) {
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
 
-	_, err := ctx.CompileAndRun("function throws() { throw 'error'; }", "script.js")
+	_, err := ctx.RunScript("function throws() { throw 'error'; }", "script.js")
 	fatalIf(t, err)
 	throwsValue, err := ctx.Global().Get("throws")
 	fatalIf(t, err)

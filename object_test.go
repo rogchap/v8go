@@ -16,7 +16,7 @@ func TestObjectMethodCall(t *testing.T) {
 
 	ctx := v8.NewContext()
 	iso := ctx.Isolate()
-	val, _ := ctx.CompileAndRun(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
+	val, _ := ctx.RunScript(`class Obj { constructor(input) { this.input = input, this.prop = "" } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	obj, _ := val.AsObject()
 	val, err := obj.MethodCall("print")
 	fatalIf(t, err)
@@ -28,7 +28,7 @@ func TestObjectMethodCall(t *testing.T) {
 		t.Errorf("expected an error, got none")
 	}
 
-	val, err = ctx.CompileAndRun(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
+	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
 	fatalIf(t, err)
 	obj, _ = val.AsObject()
 	arg, _ := v8.NewValue(iso, "arg")
@@ -49,10 +49,10 @@ func TestObjectSet(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	val, _ := ctx.CompileAndRun("const foo = {}; foo", "")
+	val, _ := ctx.RunScript("const foo = {}; foo", "")
 	obj, _ := val.AsObject()
 	obj.Set("bar", "baz")
-	baz, _ := ctx.CompileAndRun("foo.bar", "")
+	baz, _ := ctx.RunScript("foo.bar", "")
 	if baz.String() != "baz" {
 		t.Errorf("unexpected value: %q", baz)
 	}
@@ -68,7 +68,7 @@ func TestObjectSet(t *testing.T) {
 	if err := obj.SetIdx(10, t); err == nil {
 		t.Error("expected error but got <nil>")
 	}
-	if ten, _ := ctx.CompileAndRun("foo[10]", ""); ten.String() != "ten" {
+	if ten, _ := ctx.RunScript("foo[10]", ""); ten.String() != "ten" {
 		t.Errorf("unexpected value: %q", ten)
 	}
 }
@@ -126,7 +126,7 @@ func TestObjectGet(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	val, _ := ctx.CompileAndRun("const foo = { bar: 'baz'}; foo", "")
+	val, _ := ctx.RunScript("const foo = { bar: 'baz'}; foo", "")
 	obj, _ := val.AsObject()
 	if bar, _ := obj.Get("bar"); bar.String() != "baz" {
 		t.Errorf("unexpected value: %q", bar)
@@ -134,7 +134,7 @@ func TestObjectGet(t *testing.T) {
 	if baz, _ := obj.Get("baz"); !baz.IsUndefined() {
 		t.Errorf("unexpected value: %q", baz)
 	}
-	ctx.CompileAndRun("foo[5] = 5", "")
+	ctx.RunScript("foo[5] = 5", "")
 	if five, _ := obj.GetIdx(5); five.Integer() != 5 {
 		t.Errorf("unexpected value: %q", five)
 	}
@@ -149,7 +149,7 @@ func TestObjectHas(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	val, _ := ctx.CompileAndRun("const foo = {a: 1, '2': 2}; foo", "")
+	val, _ := ctx.RunScript("const foo = {a: 1, '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("a") {
 		t.Error("expected true, got false")
@@ -171,7 +171,7 @@ func TestObjectDelete(t *testing.T) {
 	ctx := v8.NewContext()
 	defer ctx.Isolate().Dispose()
 	defer ctx.Close()
-	val, _ := ctx.CompileAndRun("const foo = { bar: 'baz', '2': 2}; foo", "")
+	val, _ := ctx.RunScript("const foo = { bar: 'baz', '2': 2}; foo", "")
 	obj, _ := val.AsObject()
 	if !obj.Has("bar") {
 		t.Error("expected property to exist")
@@ -204,7 +204,7 @@ func ExampleObject_global() {
 	consoleObj, _ := console.NewInstance(ctx)
 
 	global.Set("console", consoleObj)
-	ctx.CompileAndRun("console.log('foo')", "")
+	ctx.RunScript("console.log('foo')", "")
 	// Output:
 	// foo
 }

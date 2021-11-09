@@ -23,6 +23,7 @@ auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 struct m_ctx {
   Isolate* iso;
   std::vector<m_value*> vals;
+  std::vector<m_unboundScript*> unboundScripts;
   Persistent<Context> ptr;
 };
 
@@ -35,6 +36,10 @@ struct m_value {
 struct m_template {
   Isolate* iso;
   Persistent<Template> ptr;
+};
+
+struct m_unboundScript {
+  Persistent<UnboundScript> ptr;
 };
 
 const char* CopyString(std::string str) {
@@ -113,6 +118,12 @@ m_value* tracked_value(m_ctx* ctx, m_value* val) {
   ctx->vals.push_back(val);
 
   return val;
+}
+
+m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
+  ctx->unboundScripts.push_back(us);
+
+  return us;
 }
 
 extern "C" {
@@ -202,24 +213,30 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.number_of_detached_contexts()};
 }
 
-RtnCachedData CompileScript(IsolatePtr iso, const char* s, const char* o, int opt) {
+RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso, const char* s, const char* o, CompileOptions opts) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
-  RtnCachedData rtn = {nullptr};
+  RtnUnboundScript rtn = {nullptr, 0, nullptr};
 
   Local<String> src =
       String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
   Local<String> ogn =
       String::NewFromUtf8(iso, o, NewStringType::kNormal).ToLocalChecked();
 
+  ScriptCompiler::CompileOptions option = static_cast<ScriptCompiler::CompileOptions>(opts.compileOption);
+
+  ScriptCompiler::CachedData* cached_data = nullptr;
+
+  if (option == ScriptCompiler::kConsumeCodeCache) {
+    cached_data = new ScriptCompiler::CachedData(opts.cachedData.data, opts.cachedData.length);
+  }
+
   ScriptOrigin script_origin(ogn);
 
-  ScriptCompiler::Source source(src, script_origin);
-
-  ScriptCompiler::CompileOptions option = static_cast<ScriptCompiler::CompileOptions>(opt);
+  ScriptCompiler::Source source(src, script_origin, cached_data);
 
   Local<UnboundScript> unbound_script;
   if (!ScriptCompiler::CompileUnboundScript(iso, &source, option).ToLocal(&unbound_script)) {
@@ -227,10 +244,13 @@ RtnCachedData CompileScript(IsolatePtr iso, const char* s, const char* o, int op
     return rtn;
   };
 
-  ScriptCompiler::CachedData* cached_data = ScriptCompiler::CreateCodeCache(unbound_script);
+  if (cached_data) {
+    rtn.cachedDataRejected = cached_data->rejected;
+  }
 
-  rtn.data = cached_data->data;
-  rtn.length = cached_data->length;
+  m_unboundScript* us = new m_unboundScript;
+  us->ptr.Reset(iso, unbound_script);
+  rtn.ptr = tracked_unbound_script(ctx, us);
   return rtn;
 }
 
@@ -561,10 +581,15 @@ void ContextFree(ContextPtr ctx) {
     delete val;
   }
 
+  for (m_unboundScript* us : ctx->unboundScripts) {
+    us->ptr.Reset();
+    delete us;
+  }
+
   delete ctx;
 }
 
-RtnValue CompileAndRun(ContextPtr ctx, const char* source, const char* origin) {
+RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
   LOCAL_CONTEXT(ctx);
 
   RtnValue rtn = {nullptr, nullptr};
@@ -599,35 +624,37 @@ RtnValue CompileAndRun(ContextPtr ctx, const char* source, const char* origin) {
   return rtn;
 }
 
-RtnValue RunScript(ContextPtr ctx, const char* source, const uint8_t* cd, int cdLen, const char* origin) {
-  LOCAL_CONTEXT(ctx);
+/********** UnboundScript & ScriptCompilerCachedData **********/
+
+ScriptCompilerCachedData* UnboundScriptCreateCodeCache(IsolatePtr iso, UnboundScriptPtr us_ptr) {
+  ISOLATE_SCOPE(iso);
+
+  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
+
+  ScriptCompiler::CachedData* cached_data = ScriptCompiler::CreateCodeCache(unbound_script);
+
+  ScriptCompilerCachedData* cd = new ScriptCompilerCachedData;
+  cd->ptr = cached_data;
+  cd->data = cached_data->data;
+  cd->length = cached_data->length;
+  cd->rejected = cached_data->rejected;
+  return cd;
+}
+
+void ScriptCompilerCachedDataDelete(ScriptCompilerCachedDataPtr cached_data) {
+  delete cached_data;
+}
+
+// This can only run in contexts that belong to the same isolate
+// the script was compiled in
+RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
+  LOCAL_CONTEXT(ctx)
 
   RtnValue rtn = {nullptr, nullptr};
 
-  MaybeLocal<String> maybeSrc =
-      String::NewFromUtf8(iso, source, NewStringType::kNormal);
-  MaybeLocal<String> maybeOgn =
-      String::NewFromUtf8(iso, origin, NewStringType::kNormal);
-  Local<String> src, ogn;
-  if (!maybeSrc.ToLocal(&src) || !maybeOgn.ToLocal(&ogn)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
+  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
 
-  ScriptCompiler::CachedData* cached_data = new ScriptCompiler::CachedData(cd, cdLen);
-
-  ScriptOrigin script_origin(ogn);
-
-  ScriptCompiler::Source cached_source(src, script_origin, cached_data);
-
-  ScriptCompiler::CompileOptions option = ScriptCompiler::kConsumeCodeCache;
-
-  Local<UnboundScript> unboundScript;
-  if (!ScriptCompiler::CompileUnboundScript(iso, &cached_source, option).ToLocal(&unboundScript)) {
-    rtn.error = ExceptionError(try_catch, iso, local_ctx);
-    return rtn;
-  }
-  Local<Script> script = unboundScript->BindToCurrentContext();
+  Local<Script> script = unbound_script->BindToCurrentContext();
   Local<Value> result;
   if (!script->Run(local_ctx).ToLocal(&result)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
