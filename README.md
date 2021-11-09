@@ -241,6 +241,26 @@ standard output being fully buffered.
 A simple way to avoid this problem is to flush the standard output stream after printing with the `fflush(stdout);` statement.
 Not relying on the flushing at exit can also help ensure the output is printed before a crash.
 
+### Local leak checking
+
+Leak checking is automatically done in CI, but it can be useful to do locally to debug leaks.
+
+The leakcheck build tag must be used to opt-n to leak checking. For instance, on Linux, the tests can be used as follows
+
+```
+go test --tags leakcheck
+```
+
+On macOS, leak checking isn't available with the version of clang that comes with Xcode, so a separate compiler installation
+is needed.  For example, with homebrew, `brew install llvm` will install a version of clang with support for this, which then
+ must be used by go using the CC and CXX environment variables. The ASAN_OPTIONS environment variable will also be needed to
+run the code with leak checking enabled, since it isn't enabled by default on macOS. E.g. with the homebrew installation of
+llvm, the tests can be run with
+
+```
+ASAN_OPTIONS=detect_leaks=1 CXX=/usr/local/opt/llvm/bin/clang++ CC=/usr/local/opt/llvm/bin/clang go test --tags leakcheck
+```
+
 ### Formatting
 
 Go has `go fmt`, C has `clang-format`. Any changes to the `v8go.h|cc` should be formated with `clang-format` with the
