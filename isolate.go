@@ -106,9 +106,6 @@ func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOption
 			data:   (*C.uchar)(unsafe.Pointer(&opts.CachedData.Bytes[0])),
 			length: C.int(len(opts.CachedData.Bytes)),
 		}
-		if opts.CachedData.Rejected {
-			cOptions.cachedData.rejected = C.int(1)
-		}
 	}
 
 	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)
