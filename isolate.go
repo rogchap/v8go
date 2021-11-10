@@ -108,6 +108,9 @@ func (i *Isolate) Dispose() {
 // any JavaScript operation; the caller must return immediately and only after
 // the exception has been handled does it become legal to invoke JavaScript operations.
 func (i *Isolate) ThrowException(value *Value) *Value {
+	if i.ptr == nil {
+		panic("Isolate has been disposed")
+	}
 	return &Value{
 		ptr: C.IsolateThrowException(i.ptr, value.ptr),
 	}

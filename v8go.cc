@@ -201,13 +201,8 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
 /********** Exceptions & Errors **********/
 
 ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
-  if (iso == nullptr) {
-    return nullptr;
-  }
-
-  m_ctx* ctx = value->ctx;
-
   ISOLATE_SCOPE(iso);
+  m_ctx* ctx = value->ctx;
 
   Local<Value> throw_ret_val = iso->ThrowException(value->ptr.Get(iso));
 
