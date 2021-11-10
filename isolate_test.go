@@ -127,6 +127,23 @@ func TestIsolateCompileUnboundScript_CachedDataRejected(t *testing.T) {
 	}
 }
 
+func TestIsolateCompileUnboundScript_InvalidOptions(t *testing.T) {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	opts := v8.CompileOptions{
+		CachedData: &v8.CompilerCachedData{Bytes: []byte("unused")},
+		Mode: v8.CompileModeEager,
+	}
+	panicErr := recoverPanic(func() { iso.CompileUnboundScript("console.log(1)", "script.js", opts) })
+	if panicErr == nil {
+		t.Error("expected panic")
+	}
+	if panicErr != "On CompileOptions, Option and CachedData can't both be set" {
+		t.Errorf("unexpected panic: %v\n", panicErr)
+	}
+}
+
 func TestIsolateGetHeapStatistics(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()

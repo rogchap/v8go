@@ -94,18 +94,18 @@ func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOption
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
+	var cOptions C.CompileOptions
 	if opts.CachedData != nil {
-		opts.Option = scriptCompilerConsumeCodeCache
-	}
-
-	cOptions := C.CompileOptions{
-		compileOption: C.int(opts.Option),
-	}
-	if opts.CachedData != nil {
+		if opts.Option != 0 {
+			panic("On CompileOptions, Option and CachedData can't both be set")
+		}
+		cOptions.compileOption = C.int(scriptCompilerConsumeCodeCache)
 		cOptions.cachedData = C.ScriptCompilerCachedData{
 			data:   (*C.uchar)(unsafe.Pointer(&opts.CachedData.Bytes[0])),
 			length: C.int(len(opts.CachedData.Bytes)),
 		}
+	} else {
+		cOptions.compileOption = C.int(opts.Option)
 	}
 
 	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)
