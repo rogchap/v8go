@@ -31,6 +31,8 @@ jobs:
       run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
       shell: bash
     - name: Go Test
+      env:
+        CGO_CXXFLAGS: "-Werror"
       run: go test -v -coverprofile c.out ./...
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
