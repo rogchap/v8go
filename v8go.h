@@ -12,8 +12,8 @@ struct _EXCEPTION_POINTERS;
 #endif
 
 #include "libplatform/libplatform.h"
-#include "v8.h"
 #include "v8-profiler.h"
+#include "v8.h"
 
 typedef v8::Isolate* IsolatePtr;
 typedef v8::CpuProfiler* CpuProfilerPtr;
@@ -119,7 +119,8 @@ extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
 extern void CPUProfilerDispose(CPUProfiler* ptr);
 extern void CPUProfilerStartProfiling(CPUProfiler* ptr, const char* title);
-extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr, const char* title);
+extern CPUProfile* CPUProfilerStopProfiling(CPUProfiler* ptr,
+                                            const char* title);
 extern void CPUProfileDelete(CPUProfile* ptr);
 
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
@@ -145,7 +146,8 @@ extern void TemplateSetTemplate(TemplatePtr ptr,
 
 extern TemplatePtr NewObjectTemplate(IsolatePtr iso_ptr);
 extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
-extern void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, uint32_t field_count);
+extern void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr,
+                                                int field_count);
 extern int ObjectTemplateInternalFieldCount(TemplatePtr ptr);
 
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
@@ -233,11 +235,11 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
-extern int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+extern int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr);
 extern int ObjectInternalFieldCount(ValuePtr ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);
 extern RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx);
-extern ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx);
+extern ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx);
 int ObjectHas(ValuePtr ptr, const char* key);
 int ObjectHasIdx(ValuePtr ptr, uint32_t idx);
 int ObjectDelete(ValuePtr ptr, const char* key);

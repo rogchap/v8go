@@ -126,8 +126,9 @@ func TestIsolateGarbageCollection(t *testing.T) {
 
 	tmpl := v8.NewObjectTemplate(iso)
 	tmpl.Set("foo", "bar")
-	v8.NewContext(iso, tmpl)
+	ctx := v8.NewContext(iso, tmpl)
 
+	ctx.Close()
 	iso.Dispose()
 
 	runtime.GC()

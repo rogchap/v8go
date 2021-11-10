@@ -63,7 +63,7 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 // SetInternalFieldCount sets the number of internal fields that instances of this
 // template will have.
 func (o *ObjectTemplate) SetInternalFieldCount(fieldCount uint32) {
-	C.ObjectTemplateSetInternalFieldCount(o.ptr, C.uint32_t(fieldCount))
+	C.ObjectTemplateSetInternalFieldCount(o.ptr, C.int(fieldCount))
 }
 
 // InternalFieldCount returns the number of internal fields that instances of this
