@@ -4,12 +4,14 @@
 
 package v8go
 
-type ScriptCompilerCompileOption int
+// #include "v8go.h"
+import "C"
 
-const (
-	ScriptCompilerNoCompileOptions = iota
-	scriptCompilerConsumeCodeCache
-	ScriptCompilerEagerCompile
+type ScriptCompilerCompileOption C.int
+
+var (
+	ScriptCompilerNoCompileOptions = ScriptCompilerCompileOption(C.ScriptCompilerNoCompileOptions)
+	ScriptCompilerEagerCompile = ScriptCompilerCompileOption(C.ScriptCompilerEagerCompile)
 )
 
 type ScriptCompilerCachedData struct {

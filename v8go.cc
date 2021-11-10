@@ -20,6 +20,10 @@ using namespace v8;
 auto default_platform = platform::NewDefaultPlatform();
 auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
+const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
+const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
+const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
+
 struct m_ctx {
   Isolate* iso;
   std::vector<m_value*> vals;
@@ -230,7 +234,7 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso, const char* s, cons
 
   ScriptCompiler::CachedData* cached_data = nullptr;
 
-  if (option == ScriptCompiler::kConsumeCodeCache) {
+  if (opts.cachedData.data) {
     cached_data = new ScriptCompiler::CachedData(opts.cachedData.data, opts.cachedData.length);
   }
 
