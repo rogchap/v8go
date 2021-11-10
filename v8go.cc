@@ -258,6 +258,23 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso, const char* s, cons
   return rtn;
 }
 
+/********** Exceptions & Errors **********/
+
+ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
+  ISOLATE_SCOPE(iso);
+  m_ctx* ctx = value->ctx;
+
+  Local<Value> throw_ret_val = iso->ThrowException(value->ptr.Get(iso));
+
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, throw_ret_val);
+
+  return tracked_value(ctx, new_val);
+}
+
 /********** CpuProfiler **********/
 
 CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr) {

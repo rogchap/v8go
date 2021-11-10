@@ -143,6 +143,8 @@ extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
+extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
+
 extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                   const char* source,
                                   const char* origin,

@@ -149,6 +149,19 @@ func (i *Isolate) Dispose() {
 	i.ptr = nil
 }
 
+// ThrowException schedules an exception to be thrown when returning to
+// JavaScript. When an exception has been scheduled it is illegal to invoke
+// any JavaScript operation; the caller must return immediately and only after
+// the exception has been handled does it become legal to invoke JavaScript operations.
+func (i *Isolate) ThrowException(value *Value) *Value {
+	if i.ptr == nil {
+		panic("Isolate has been disposed")
+	}
+	return &Value{
+		ptr: C.IsolateThrowException(i.ptr, value.ptr),
+	}
+}
+
 // Deprecated: use `iso.Dispose()`.
 func (i *Isolate) Close() {
 	i.Dispose()
