@@ -93,7 +93,7 @@ func (o *Object) SetInternalField(idx uint32, val interface{}) error {
 		return err
 	}
 
-	inserted := C.ObjectSetInternalField(o.ptr, C.uint32_t(idx), value.ptr)
+	inserted := C.ObjectSetInternalField(o.ptr, C.int(idx), value.ptr)
 
 	if inserted == 0 {
 		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
@@ -121,7 +121,7 @@ func (o *Object) Get(key string) (*Value, error) {
 // or the JS undefined value if the index hadn't been set.
 // Panics if given an out of range index.
 func (o *Object) GetInternalField(idx uint32) *Value {
-	rtn := C.ObjectGetInternalField(o.ptr, C.uint32_t(idx))
+	rtn := C.ObjectGetInternalField(o.ptr, C.int(idx))
 	if rtn == nil {
 		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
 	}

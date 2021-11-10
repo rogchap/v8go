@@ -416,7 +416,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
   Local<Object> obj;
@@ -434,7 +434,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
 }
 
 void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr,
-                                         uint32_t field_count) {
+                                         int field_count) {
   LOCAL_TEMPLATE(ptr);
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
@@ -516,7 +516,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   Context::Scope context_scope(local_ctx);
 
   Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Function> fn;
   if (!fn_tmpl->GetFunction(local_ctx).ToLocal(&fn)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -592,7 +592,7 @@ void ContextFree(ContextPtr ctx) {
 RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
   LOCAL_CONTEXT(ctx);
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   MaybeLocal<String> maybeSrc =
       String::NewFromUtf8(iso, source, NewStringType::kNormal);
@@ -671,7 +671,7 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
 
 RtnValue JSONParse(ContextPtr ctx, const char* str) {
   LOCAL_CONTEXT(ctx);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<String> v8Str;
   if (!String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocal(&v8Str)) {
@@ -781,7 +781,7 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
 RtnValue NewValueString(IsolatePtr iso, const char* v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<String> str;
   if (!String::NewFromUtf8(iso, v).ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
@@ -862,7 +862,7 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
   TryCatch try_catch(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<BigInt> bigint;
   if (!BigInt::NewFromWords(local_ctx, sign_bit, word_count, words)
            .ToLocal(&bigint)) {
@@ -911,7 +911,7 @@ double ValueToNumber(ValuePtr ptr) {
 
 RtnString ValueToDetailString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  RtnString rtn = {nullptr, nullptr};
+  RtnString rtn = {0};
   Local<String> str;
   if (!value->ToDetailString(local_ctx).ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -954,7 +954,7 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 
 RtnValue ValueToObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Object> obj;
   if (!value->ToObject(local_ctx).ToLocal(&obj)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -1265,7 +1265,7 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
-int ObjectSetInternalField(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr) {
+int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr) {
   LOCAL_OBJECT(ptr);
   m_value* prop_val = static_cast<m_value*>(val_ptr);
 
@@ -1285,7 +1285,7 @@ int ObjectInternalFieldCount(ValuePtr ptr) {
 
 RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<String> key_val;
   if (!String::NewFromUtf8(iso, key, NewStringType::kNormal)
@@ -1308,7 +1308,7 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   return rtn;
 }
 
-ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx) {
+ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
   LOCAL_OBJECT(ptr);
 
   if (idx >= obj->InternalFieldCount()) {
@@ -1328,7 +1328,7 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, uint32_t idx) {
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<Value> result;
   if (!obj->Get(local_ctx, idx).ToLocal(&result)) {
@@ -1373,7 +1373,7 @@ int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
 
 RtnValue NewPromiseResolver(ContextPtr ctx) {
   LOCAL_CONTEXT(ctx);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise::Resolver> resolver;
   if (!Promise::Resolver::New(local_ctx).ToLocal(&resolver)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -1419,7 +1419,7 @@ int PromiseState(ValuePtr ptr) {
 
 RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
   Local<Function> func;
@@ -1444,7 +1444,7 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
 
 RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> onFulfilledData = Integer::New(iso, on_fulfilled_ref);
   Local<Function> onFulfilledFunc;
@@ -1477,7 +1477,7 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
 
 RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
   Local<Function> func;
@@ -1526,7 +1526,7 @@ static void buildCallArguments(Isolate* iso,
 RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
@@ -1548,7 +1548,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
 
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
@@ -1567,7 +1567,6 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
 
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
   m_value* rtnval = new m_value;
