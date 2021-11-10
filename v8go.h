@@ -19,6 +19,7 @@ typedef v8::Isolate* IsolatePtr;
 typedef v8::CpuProfiler* CpuProfilerPtr;
 typedef v8::CpuProfile* CpuProfilePtr;
 typedef const v8::CpuProfileNode* CpuProfileNodePtr;
+typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
 
 extern "C" {
 #else
@@ -34,18 +35,52 @@ typedef v8CpuProfile* CpuProfilePtr;
 
 typedef struct v8CpuProfileNode v8CpuProfileNode;
 typedef const v8CpuProfileNode* CpuProfileNodePtr;
+
+typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
+typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #endif
 
 #include <stddef.h>
 #include <stdint.h>
 
+// ScriptCompiler::CompileOptions values
+extern const int ScriptCompilerNoCompileOptions;
+extern const int ScriptCompilerConsumeCodeCache;
+extern const int ScriptCompilerEagerCompile;
+
 typedef struct m_ctx m_ctx;
 typedef struct m_value m_value;
 typedef struct m_template m_template;
+typedef struct m_unboundScript m_unboundScript;
 
 typedef m_ctx* ContextPtr;
 typedef m_value* ValuePtr;
 typedef m_template* TemplatePtr;
+typedef m_unboundScript* UnboundScriptPtr;
+
+typedef struct {
+  const char* msg;
+  const char* location;
+  const char* stack;
+} RtnError;
+
+typedef struct {
+  UnboundScriptPtr ptr;
+  int cachedDataRejected;
+  RtnError error;
+} RtnUnboundScript;
+
+typedef struct {
+  ScriptCompilerCachedDataPtr ptr;
+  const uint8_t* data;
+  int length;
+  int rejected;
+} ScriptCompilerCachedData;
+
+typedef struct {
+  ScriptCompilerCachedData cachedData;
+  int compileOption;
+} CompileOptions;
 
 typedef struct {
   CpuProfilerPtr ptr;
@@ -69,12 +104,6 @@ typedef struct {
   int64_t startTime;
   int64_t endTime;
 } CPUProfile;
-
-typedef struct {
-  const char* msg;
-  const char* location;
-  const char* stack;
-} RtnError;
 
 typedef struct {
   ValuePtr value;
@@ -115,6 +144,16 @@ extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
 
 extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
+
+extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
+                                  const char* source,
+                                  const char* origin,
+                                  CompileOptions options);
+extern ScriptCompilerCachedData* UnboundScriptCreateCodeCache(IsolatePtr iso_ptr,
+                                                UnboundScriptPtr us_ptr);
+extern void ScriptCompilerCachedDataDelete(ScriptCompilerCachedData* cached_data);
+extern RtnValue UnboundScriptRun(ContextPtr ctx_ptr,
+                                 UnboundScriptPtr us_ptr);
 
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
 extern void CPUProfilerDispose(CPUProfiler* ptr);

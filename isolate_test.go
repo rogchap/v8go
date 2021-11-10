@@ -57,7 +57,94 @@ func TestIsolateTermination(t *testing.T) {
 	}
 }
 
-func TestGetHeapStatistics(t *testing.T) {
+func TestIsolateCompileUnboundScript(t *testing.T) {
+	s := "function foo() { return 'bar'; }; foo()"
+
+	i1 := v8.NewIsolate()
+	defer i1.Dispose()
+	c1 := v8.NewContext(i1)
+	defer c1.Close()
+
+	_, err := i1.CompileUnboundScript("invalid js", "filename", v8.CompileOptions{})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+
+	us, err := i1.CompileUnboundScript(s, "script.js", v8.CompileOptions{Mode: v8.CompileModeEager})
+	fatalIf(t, err)
+
+	val, err := us.Run(c1)
+	fatalIf(t, err)
+	if val.String() != "bar" {
+		t.Fatalf("invalid value returned, expected bar got %v", val)
+	}
+
+	cachedData := us.CreateCodeCache()
+
+	i2 := v8.NewIsolate()
+	defer i2.Dispose()
+	c2 := v8.NewContext(i2)
+	defer c2.Close()
+
+	opts := v8.CompileOptions{CachedData: cachedData}
+	usWithCachedData, err := i2.CompileUnboundScript(s, "script.js", opts)
+	fatalIf(t, err)
+	if usWithCachedData == nil {
+		t.Fatal("expected unbound script from cached data not to be nil")
+	}
+	if opts.CachedData.Rejected {
+		t.Fatal("expected cached data to be used, not rejected")
+	}
+
+	val, err = usWithCachedData.Run(c2)
+	fatalIf(t, err)
+	if val.String() != "bar" {
+		t.Fatalf("invalid value returned, expected bar got %v", val)
+	}
+}
+
+func TestIsolateCompileUnboundScript_CachedDataRejected(t *testing.T) {
+	s := "function foo() { return 'bar'; }; foo()"
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	// Try to compile an unbound script using cached data that does not match this source
+	opts := v8.CompileOptions{CachedData: &v8.CompilerCachedData{Bytes: []byte("Math.sqrt(4)")}}
+	us, err := iso.CompileUnboundScript(s, "script.js", opts)
+	fatalIf(t, err)
+	if !opts.CachedData.Rejected {
+		t.Error("expected cached data to be rejected")
+	}
+
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	// Verify that unbound script is still compiled and able to be used
+	val, err := us.Run(ctx)
+	fatalIf(t, err)
+	if val.String() != "bar" {
+		t.Errorf("invalid value returned, expected bar got %v", val)
+	}
+}
+
+func TestIsolateCompileUnboundScript_InvalidOptions(t *testing.T) {
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	opts := v8.CompileOptions{
+		CachedData: &v8.CompilerCachedData{Bytes: []byte("unused")},
+		Mode: v8.CompileModeEager,
+	}
+	panicErr := recoverPanic(func() { iso.CompileUnboundScript("console.log(1)", "script.js", opts) })
+	if panicErr == nil {
+		t.Error("expected panic")
+	}
+	if panicErr != "On CompileOptions, Mode and CachedData can't both be set" {
+		t.Errorf("unexpected panic: %v\n", panicErr)
+	}
+}
+
+func TestIsolateGetHeapStatistics(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
 	defer iso.Dispose()

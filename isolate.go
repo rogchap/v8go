@@ -4,11 +4,13 @@
 
 package v8go
 
+// #include <stdlib.h>
 // #include "v8go.h"
 import "C"
 
 import (
 	"sync"
+	"unsafe"
 )
 
 var v8once sync.Once
@@ -73,6 +75,50 @@ func (i *Isolate) TerminateExecution() {
 // on the stack and the termination exception is still active.
 func (i *Isolate) IsExecutionTerminating() bool {
 	return C.IsolateIsExecutionTerminating(i.ptr) == 1
+}
+
+type CompileOptions struct {
+	CachedData *CompilerCachedData
+
+	Mode CompileMode
+}
+
+// CompileUnboundScript will create an UnboundScript (i.e. context-indepdent)
+// using the provided source JavaScript, origin (a.k.a. filename), and options.
+// If options contain a non-null CachedData, compilation of the script will use
+// that code cache.
+// error will be of type `JSError` if not nil.
+func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOptions) (*UnboundScript, error) {
+	cSource := C.CString(source)
+	cOrigin := C.CString(origin)
+	defer C.free(unsafe.Pointer(cSource))
+	defer C.free(unsafe.Pointer(cOrigin))
+
+	var cOptions C.CompileOptions
+	if opts.CachedData != nil {
+		if opts.Mode != 0 {
+			panic("On CompileOptions, Mode and CachedData can't both be set")
+		}
+		cOptions.compileOption = C.ScriptCompilerConsumeCodeCache
+		cOptions.cachedData = C.ScriptCompilerCachedData{
+			data:   (*C.uchar)(unsafe.Pointer(&opts.CachedData.Bytes[0])),
+			length: C.int(len(opts.CachedData.Bytes)),
+		}
+	} else {
+		cOptions.compileOption = C.int(opts.Mode)
+	}
+
+	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)
+	if rtn.ptr == nil {
+		return nil, newJSError(rtn.error)
+	}
+	if opts.CachedData != nil {
+		opts.CachedData.Rejected = int(rtn.cachedDataRejected) == 1
+	}
+	return &UnboundScript{
+		ptr: rtn.ptr,
+		iso: i,
+	}, nil
 }
 
 // GetHeapStatistics returns heap statistics for an isolate.
