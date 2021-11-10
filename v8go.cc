@@ -219,7 +219,7 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso, const char* s, cons
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
-  RtnUnboundScript rtn = {nullptr, 0, nullptr};
+  RtnUnboundScript rtn = {};
 
   Local<String> src =
       String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
@@ -650,7 +650,7 @@ void ScriptCompilerCachedDataDelete(ScriptCompilerCachedDataPtr cached_data) {
 RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
   LOCAL_CONTEXT(ctx)
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
 
