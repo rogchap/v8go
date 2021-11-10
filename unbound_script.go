@@ -34,6 +34,6 @@ func (u *UnboundScript) CreateCodeCache() *ScriptCompilerCachedData {
 		Bytes:    []byte(C.GoBytes(unsafe.Pointer(rtn.data), rtn.length)),
 		Rejected: int(rtn.rejected) == 1,
 	}
-	C.ScriptCompilerCachedDataDelete(rtn.ptr)
+	C.ScriptCompilerCachedDataDelete(rtn)
 	return cachedData
 }

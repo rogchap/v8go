@@ -641,7 +641,8 @@ ScriptCompilerCachedData* UnboundScriptCreateCodeCache(IsolatePtr iso, UnboundSc
   return cd;
 }
 
-void ScriptCompilerCachedDataDelete(ScriptCompilerCachedDataPtr cached_data) {
+void ScriptCompilerCachedDataDelete(ScriptCompilerCachedData* cached_data) {
+  delete cached_data->ptr;
   delete cached_data;
 }
 

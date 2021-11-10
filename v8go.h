@@ -144,7 +144,7 @@ extern RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso_ptr,
                                   CompileOptions options);
 extern ScriptCompilerCachedData* UnboundScriptCreateCodeCache(IsolatePtr iso_ptr,
                                                 UnboundScriptPtr us_ptr);
-extern void ScriptCompilerCachedDataDelete(ScriptCompilerCachedDataPtr cached_data);
+extern void ScriptCompilerCachedDataDelete(ScriptCompilerCachedData* cached_data);
 extern RtnValue UnboundScriptRun(ContextPtr ctx_ptr,
                                  UnboundScriptPtr us_ptr);
 
