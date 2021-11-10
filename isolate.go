@@ -78,9 +78,9 @@ func (i *Isolate) IsExecutionTerminating() bool {
 }
 
 type CompileOptions struct {
-	CachedData *ScriptCompilerCachedData
+	CachedData *CompilerCachedData
 
-	Option ScriptCompilerCompileOption
+	Mode CompileMode
 }
 
 // CompileUnboundScript will create an UnboundScript (i.e. context-indepdent)
@@ -94,18 +94,18 @@ func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOption
 	defer C.free(unsafe.Pointer(cSource))
 	defer C.free(unsafe.Pointer(cOrigin))
 
+	var cOptions C.CompileOptions
 	if opts.CachedData != nil {
-		opts.Option = scriptCompilerConsumeCodeCache
-	}
-
-	cOptions := C.CompileOptions{
-		compileOption: C.int(opts.Option),
-	}
-	if opts.CachedData != nil {
+		if opts.Mode != 0 {
+			panic("On CompileOptions, Mode and CachedData can't both be set")
+		}
+		cOptions.compileOption = C.ScriptCompilerConsumeCodeCache
 		cOptions.cachedData = C.ScriptCompilerCachedData{
 			data:   (*C.uchar)(unsafe.Pointer(&opts.CachedData.Bytes[0])),
 			length: C.int(len(opts.CachedData.Bytes)),
 		}
+	} else {
+		cOptions.compileOption = C.int(opts.Mode)
 	}
 
 	rtn := C.IsolateCompileUnboundScript(i.ptr, cSource, cOrigin, cOptions)

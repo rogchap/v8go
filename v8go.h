@@ -43,6 +43,11 @@ typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #include <stddef.h>
 #include <stdint.h>
 
+// ScriptCompiler::CompileOptions values
+extern const int ScriptCompilerNoCompileOptions;
+extern const int ScriptCompilerConsumeCodeCache;
+extern const int ScriptCompilerEagerCompile;
+
 typedef struct m_ctx m_ctx;
 typedef struct m_value m_value;
 typedef struct m_template m_template;

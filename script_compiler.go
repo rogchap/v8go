@@ -4,15 +4,17 @@
 
 package v8go
 
-type ScriptCompilerCompileOption int
+// #include "v8go.h"
+import "C"
 
-const (
-	ScriptCompilerNoCompileOptions = iota
-	scriptCompilerConsumeCodeCache
-	ScriptCompilerEagerCompile
+type CompileMode C.int
+
+var (
+	CompileModeDefault = CompileMode(C.ScriptCompilerNoCompileOptions)
+	CompileModeEager = CompileMode(C.ScriptCompilerEagerCompile)
 )
 
-type ScriptCompilerCachedData struct {
+type CompilerCachedData struct {
 	Bytes    []byte
 	Rejected bool
 }
