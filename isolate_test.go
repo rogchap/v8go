@@ -70,7 +70,7 @@ func TestIsolateCompileUnboundScript(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	us, err := i1.CompileUnboundScript(s, "script.js", v8.CompileOptions{Option: v8.ScriptCompilerEagerCompile})
+	us, err := i1.CompileUnboundScript(s, "script.js", v8.CompileOptions{Mode: v8.CompileModeEager})
 	fatalIf(t, err)
 
 	val, err := us.Run(c1)
@@ -139,7 +139,7 @@ func TestIsolateCompileUnboundScript_InvalidOptions(t *testing.T) {
 	if panicErr == nil {
 		t.Error("expected panic")
 	}
-	if panicErr != "On CompileOptions, Option and CachedData can't both be set" {
+	if panicErr != "On CompileOptions, Mode and CachedData can't both be set" {
 		t.Errorf("unexpected panic: %v\n", panicErr)
 	}
 }

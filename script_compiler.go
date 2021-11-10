@@ -7,11 +7,11 @@ package v8go
 // #include "v8go.h"
 import "C"
 
-type ScriptCompilerCompileOption C.int
+type CompileMode C.int
 
 var (
-	ScriptCompilerNoCompileOptions = ScriptCompilerCompileOption(C.ScriptCompilerNoCompileOptions)
-	ScriptCompilerEagerCompile = ScriptCompilerCompileOption(C.ScriptCompilerEagerCompile)
+	CompileModeDefault = CompileMode(C.ScriptCompilerNoCompileOptions)
+	CompileModeEager = CompileMode(C.ScriptCompilerEagerCompile)
 )
 
 type ScriptCompilerCachedData struct {
