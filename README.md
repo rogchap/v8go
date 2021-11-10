@@ -84,6 +84,28 @@ if err != nil {
 }
 ```
 
+### Pre-compile context-independent scripts to speed-up execution times
+
+For scripts that are large or are repeatedly run in different contexts,
+it is beneficial to compile the script once and used the cached data from that
+compilation to avoid recompiling every time you want to run it.
+
+```go
+source := "const multiply = (a, b) => a * b"
+iso1 := v8.NewIsolate() // creates a new JavaScript VM
+ctx1 := v8.NewContext() // new context within the VM
+script1, _ := iso1.CompileUnboundScript(source, "math.js", v8.CompileOptions{}) // compile script to get cached data
+val, _ := script1.Run(ctx1)
+
+cachedData := script1.CreateCodeCache()
+
+iso2 := v8.NewIsolate() // create a new JavaScript VM
+ctx2 := v8.NewContext(iso2) // new context within the VM
+
+script2, _ := iso2.CompileUnboundScript(source, "math.js", v8.CompileOptions{CachedData: cachedData}) // compile script in new isolate with cached data
+val, _ = script2.Run(ctx2)
+```
+
 ### Terminate long running scripts
 
 ```go

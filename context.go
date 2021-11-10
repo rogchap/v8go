@@ -82,9 +82,9 @@ func (c *Context) Isolate() *Isolate {
 	return c.iso
 }
 
-// RunScript executes the source JavaScript; origin or filename provides a
+// RunScript executes the source JavaScript; origin (a.k.a. filename) provides a
 // reference for the script and used in the stack trace if there is an error.
-// error will be of type `JSError` of not nil.
+// error will be of type `JSError` if not nil.
 func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	cSource := C.CString(source)
 	cOrigin := C.CString(origin)
@@ -92,7 +92,6 @@ func (c *Context) RunScript(source string, origin string) (*Value, error) {
 	defer C.free(unsafe.Pointer(cOrigin))
 
 	rtn := C.RunScript(c.ptr, cSource, cOrigin)
-
 	return valueResult(c, rtn)
 }
 
