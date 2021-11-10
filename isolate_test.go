@@ -226,7 +226,6 @@ func TestIsolateGarbageCollection(t *testing.T) {
 func TestIsolateThrowException(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
-	defer iso.Dispose()
 
 	strErr, _ := v8.NewValue(iso, "some type error")
 
@@ -260,7 +259,6 @@ func TestIsolateThrowException(t *testing.T) {
 	global.Set("foo2", fn2)
 
 	ctx := v8.NewContext(iso, global)
-	defer ctx.Close()
 
 	_, e := ctx.RunScript("foo()", "foo.js")
 
@@ -272,6 +270,12 @@ func TestIsolateThrowException(t *testing.T) {
 
 	if e.Error() != "TypeError: this is a test" {
 		t.Errorf("expected \"TypeError: this is a test\" error but got: %v", e)
+	}
+
+	ctx.Close()
+	iso.Dispose()
+	if recoverPanic(func() { iso.ThrowException(strErr) }) == nil {
+		t.Error("expected panic")
 	}
 }
 
