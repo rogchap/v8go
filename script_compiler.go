@@ -14,7 +14,7 @@ var (
 	CompileModeEager = CompileMode(C.ScriptCompilerEagerCompile)
 )
 
-type ScriptCompilerCachedData struct {
+type CompilerCachedData struct {
 	Bytes    []byte
 	Rejected bool
 }

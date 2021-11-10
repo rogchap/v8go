@@ -109,7 +109,7 @@ func TestIsolateCompileUnboundScript_CachedDataRejected(t *testing.T) {
 	defer iso.Dispose()
 
 	// Try to compile an unbound script using cached data that does not match this source
-	opts := v8.CompileOptions{CachedData: &v8.ScriptCompilerCachedData{Bytes: []byte("Math.sqrt(4)")}}
+	opts := v8.CompileOptions{CachedData: &v8.CompilerCachedData{Bytes: []byte("Math.sqrt(4)")}}
 	us, err := iso.CompileUnboundScript(s, "script.js", opts)
 	fatalIf(t, err)
 	if !opts.CachedData.Rejected {

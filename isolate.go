@@ -78,7 +78,7 @@ func (i *Isolate) IsExecutionTerminating() bool {
 }
 
 type CompileOptions struct {
-	CachedData *ScriptCompilerCachedData
+	CachedData *CompilerCachedData
 
 	Mode CompileMode
 }

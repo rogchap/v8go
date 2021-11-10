@@ -27,10 +27,10 @@ func (u *UnboundScript) Run(ctx *Context) (*Value, error) {
 }
 
 // Create a code cache from the unbound script.
-func (u *UnboundScript) CreateCodeCache() *ScriptCompilerCachedData {
+func (u *UnboundScript) CreateCodeCache() *CompilerCachedData {
 	rtn := C.UnboundScriptCreateCodeCache(u.iso.ptr, u.ptr)
 
-	cachedData := &ScriptCompilerCachedData{
+	cachedData := &CompilerCachedData{
 		Bytes:    []byte(C.GoBytes(unsafe.Pointer(rtn.data), rtn.length)),
 		Rejected: int(rtn.rejected) == 1,
 	}
