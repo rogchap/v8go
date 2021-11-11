@@ -105,9 +105,8 @@ def apply_patch(patch_name, working_dir):
     subprocess.check_call(["git", "apply", "-v", patch_path], cwd=working_dir)
 
 def update_last_change():
-    import v8.build.util.lastchange as lastchange
     out_path = os.path.join(v8_path, "build", "util", "LASTCHANGE")
-    lastchange.main(["lastchange", "-o", out_path])
+    subprocess.check_call(["python", "build/util/lastchange.py", "-o", out_path], cwd=v8_path)
 
 def main():
     v8deps()
