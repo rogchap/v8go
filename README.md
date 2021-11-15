@@ -106,6 +106,64 @@ script2, _ := iso2.CompileUnboundScript(source, "math.js", v8.CompileOptions{Cac
 val, _ = script2.Run(ctx2)
 ```
 
+
+### Free memory on long-lived isolates and contexts
+
+It is beneficial to create an isolate and a context only once and use them several times instead
+of recreating them each time. Creating an isolate and a context can take 3ms.
+Reusing the same isolate and context several times can lead to memory leaks due to the way the memory
+is managed to wrap v8. Therefore, it is necessary to free the memory from time to time to avoid leaks.
+Long-lived contexts only works if scripts executed are stateless: no global variables used between executions. 
+
+```go
+// Create an isolate to compile scripts
+source := "console.log(getMsg());"                                              // This script is stateless
+iso1 := v8.NewIsolate()                                                         // Create a new JavaScript VM
+script1, _ := iso1.CompileUnboundScript(source, "test.js", v8.CompileOptions{}) // Compile script to get cached data
+cachedData := script1.CreateCodeCache()
+
+// Create an isolate to execute scripts
+iso2 := v8.NewIsolate()
+
+// Create a context with Go callbacks
+global := v8.NewObjectTemplate(iso2)
+_ = global.Set("getMsg", v8.NewFunctionTemplate(iso2, func(info *v8.FunctionCallbackInfo) *v8.Value {
+  res, _ := v8.NewValue(iso2, "Hello World!\n")
+  return res
+}))
+ctx2 := v8.NewContext(iso2, global)
+
+// Create a global object to output logs (console.log)
+console := v8.NewObjectTemplate(iso2)
+logfn := v8.NewFunctionTemplate(iso2, func(info *v8.FunctionCallbackInfo) *v8.Value {
+  for i, v := range info.Args() {
+    fmt.Printf(sb.String())
+  }
+  return nil
+})
+_ = console.Set("log", logfn)
+_ = console.Set("error", logfn)
+
+for {
+  // Reset the objects that have been freed 
+  consoleObj, _ := console.NewInstance(ctx2)
+  _ = ctx2.Global().Set("console", consoleObj)
+
+  // Compile script in new isolate with cached data
+  compiledScript, _ := iso2.CompileUnboundScript(source, "test.js", v8.CompileOptions{CachedData: cachedData})
+  _, err = compiledScript.Run(ctx2)
+  if err != nil {
+    panic(err)
+  }
+
+  // Cleanup context and isolate to free memory as the script is stateless (no global variables)
+  ctx2.Cleanup()
+  iso2.Cleanup()
+}
+
+```
+
+
 ### Terminate long running scripts
 
 ```go

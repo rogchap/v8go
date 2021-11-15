@@ -139,6 +139,7 @@ extern void Init();
 extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
+extern void IsolateCleanup(IsolatePtr iso);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
@@ -166,6 +167,7 @@ extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
 extern void ContextFree(ContextPtr ptr);
+extern void ContextCleanup(ContextPtr ctx);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
                           const char* origin);

@@ -189,6 +189,13 @@ void IsolateDispose(IsolatePtr iso) {
   iso->Dispose();
 }
 
+void IsolateCleanup(IsolatePtr iso) {
+  if (iso == nullptr) {
+    return;
+  }
+  ContextCleanup(isolateInternalContext(iso));
+}
+
 void IsolateTerminateExecution(IsolatePtr iso) {
   iso->TerminateExecution();
 }
@@ -597,17 +604,23 @@ void ContextFree(ContextPtr ctx) {
   }
   ctx->ptr.Reset();
 
+  ContextCleanup(ctx);
+
+  delete ctx;
+}
+
+void ContextCleanup(ContextPtr ctx) {
   for (m_value* val : ctx->vals) {
     val->ptr.Reset();
     delete val;
   }
+  ctx->vals.clear();
 
   for (m_unboundScript* us : ctx->unboundScripts) {
     us->ptr.Reset();
     delete us;
   }
-
-  delete ctx;
+  ctx->unboundScripts.clear();
 }
 
 RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {

@@ -114,6 +114,12 @@ func (c *Context) PerformMicrotaskCheckpoint() {
 	C.IsolatePerformMicrotaskCheckpoint(c.iso.ptr)
 }
 
+// Cleanup will free the memory of tracked vals and unbound scripts.
+// It avoids leaking memory if the Context is long-lived and all scripts are stateless.
+func (c *Context) Cleanup() {
+	C.ContextCleanup(c.ptr)
+}
+
 // Close will dispose the context and free the memory.
 // Access to any values associated with the context after calling Close may panic.
 func (c *Context) Close() {

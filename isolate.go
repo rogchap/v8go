@@ -149,6 +149,18 @@ func (i *Isolate) Dispose() {
 	i.ptr = nil
 }
 
+
+// Cleanup will free the memory of tracked values in the Isolate default context.
+// It avoids leaking memory if the Isolate is long-lived and all scripts are stateless.
+func (i *Isolate) Cleanup() {
+	if i.ptr == nil {
+		return
+	}
+	C.IsolateCleanup(i.ptr)
+	i.null = newValueNull(i)
+	i.undefined = newValueUndefined(i)
+}
+
 // ThrowException schedules an exception to be thrown when returning to
 // JavaScript. When an exception has been scheduled it is illegal to invoke
 // any JavaScript operation; the caller must return immediately and only after
