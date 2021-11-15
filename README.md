@@ -93,7 +93,7 @@ compilation to avoid recompiling every time you want to run it.
 ```go
 source := "const multiply = (a, b) => a * b"
 iso1 := v8.NewIsolate() // creates a new JavaScript VM
-ctx1 := v8.NewContext() // new context within the VM
+ctx1 := v8.NewContext(iso1) // new context within the VM
 script1, _ := iso1.CompileUnboundScript(source, "math.js", v8.CompileOptions{}) // compile script to get cached data
 val, _ := script1.Run(ctx1)
 
