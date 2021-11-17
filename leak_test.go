@@ -8,8 +8,8 @@
 package v8go_test
 
 import (
-	"testing"
 	"os"
+	"testing"
 
 	"rogchap.com/v8go"
 )

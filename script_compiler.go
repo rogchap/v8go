@@ -11,7 +11,7 @@ type CompileMode C.int
 
 var (
 	CompileModeDefault = CompileMode(C.ScriptCompilerNoCompileOptions)
-	CompileModeEager = CompileMode(C.ScriptCompilerEagerCompile)
+	CompileModeEager   = CompileMode(C.ScriptCompilerEagerCompile)
 )
 
 type CompilerCachedData struct {
