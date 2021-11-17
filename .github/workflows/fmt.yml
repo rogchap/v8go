@@ -1,0 +1,15 @@
+name: Format Code
+
+on: [pull_request, workflow_dispatch]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - run: go fmt
+            - name: go generate (clang-format)
+              run: go generate
+            - name: Display missing format changes
+              run: git diff --exit-code
