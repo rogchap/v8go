@@ -1,0 +1,26 @@
+name: Format Code
+
+on: pull_request
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - name: go fmt
+              run: go fmt
+            - name: clang-format
+              run: clang-format -i --verbose -style=Chromium v8go.h v8go.cc
+            - name: Push any format changes
+              env:
+                GIT_AUTHOR_NAME: Github Actions
+                GIT_AUTHOR_EMAIL: noreply@github.com
+                GIT_COMMITTER_NAME: Github Actions
+                GIT_COMMITTER_EMAIL: noreply@github.com
+                HEAD_REPO_URL: ${{ github.event.pull_request.head.repo.ssh_url }}
+              run: |
+                if ! git diff --no-patch --exit-code; then
+                  git commit -a -m "Format code"
+                  git push --force-with-lease "$HEAD_REPO_URL" "HEAD:${{ github.head_ref || github.ref }}"
+                fi
