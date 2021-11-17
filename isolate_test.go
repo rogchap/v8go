@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -202,25 +201,6 @@ func TestIsolateDispose(t *testing.T) {
 	if iso.GetHeapStatistics().TotalHeapSize != 0 {
 		t.Error("Isolate not disposed correctly")
 	}
-}
-
-func TestIsolateGarbageCollection(t *testing.T) {
-	t.Parallel()
-
-	iso := v8.NewIsolate()
-	val, _ := v8.NewValue(iso, "some string")
-	val.String()
-
-	tmpl := v8.NewObjectTemplate(iso)
-	tmpl.Set("foo", "bar")
-	ctx := v8.NewContext(iso, tmpl)
-
-	ctx.Close()
-	iso.Dispose()
-
-	runtime.GC()
-
-	time.Sleep(time.Second)
 }
 
 func TestIsolateThrowException(t *testing.T) {
