@@ -27,6 +27,7 @@ to run a pre-compiled script in new contexts.
 - Removed error return value from Context.Isolate() which never fails
 - Removed error return value from NewObjectTemplate and NewFunctionTemplate. Panic if given a nil argument.
 - Function Call accepts receiver as first argument.
+- Removed Windows support till it's build issues are addressed.
 
 ### Fixed
 - Add some missing error propagation

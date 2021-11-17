@@ -190,23 +190,12 @@ Go Reference & more examples: https://pkg.go.dev/rogchap.com/v8go
 If you would like to ask questions about this library or want to keep up-to-date with the latest changes and releases,
 please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on Gophers Slack. [Click here to join the Gophers Slack community!](https://invite.slack.golangbridge.org/)
 
-### Windows
-
-In order to build a project using v8go on Windows, Go requires a gcc compiler to be installed.
-
-To set this up:
-1. Install MSYS2 (https://www.msys2.org/)
-2. Add the Mingw-w64 bin to your PATH environment variable (`C:\msys64\mingw64\bin` by default)
-3. Open MSYS2 MSYS and execute `pacman -S mingw-w64-x86_64-toolchain`
-
-V8 requires 64-bit on Windows, therefore it will not work on 32-bit systems.
-
 ## V8 dependency
 
 V8 version: **9.0.257.18** (April 2021)
 
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
-are included for Linux, macOS and Windows ie. you *should not* require to build V8 yourself.
+are included for Linux and macOS. you *should not* require to build V8 yourself.
 
 Due to security concerns of binary blobs hiding malicious code, the V8 binary is built via CI *ONLY*.
 
@@ -247,7 +236,7 @@ The next steps are:
 1) The build is not yet triggered automatically. To trigger it manually, go to the [V8
 Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) Github Action, Select "Run workflow",
 and select your pushed branch eg. `v8_upgrade/<v8-version>`.
-1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux, macOS and Windows; merge
+1) Once built, this should open 2 PRs against your branch to add the `libv8.a` for Linux and macOS; merge
 these PRs into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
 
 ### Flushing after C/C++ standard library printing for debugging

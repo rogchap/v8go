@@ -14,12 +14,10 @@ jobs:
                 #
                 # We need xcode 12.4 or newer to cross compile between arm64/amd64
                 # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
-                platform: [ubuntu-18.04, macos-11, windows-latest]
+                platform: [ubuntu-18.04, macos-11]
                 arch: [x86_64, arm64]
                 exclude:
                 - platform: ubuntu-18.04
-                  arch: arm64
-                - platform: windows-latest
                   arch: arm64
         runs-on: ${{ matrix.platform }}
         steps:
@@ -37,16 +35,6 @@ jobs:
             - name: Build V8 macOS
               if: matrix.platform == 'macos-11'
               run: cd deps && ./build.py --arch ${{ matrix.arch }}
-            - name: Add MSYS2 to PATH
-              if: matrix.platform == 'windows-latest'
-              run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
-              shell: bash
-            - name: Build V8 windows
-              if: matrix.platform == 'windows-latest'
-              run: cd deps; python build.py --no-clang --arch ${{ matrix.arch }}
-              env:
-                MSYSTEM: MINGW64
-                DEPOT_TOOLS_WIN_TOOLCHAIN: 0
             - name: Create PR
               uses: peter-evans/create-pull-request@v3
               with:

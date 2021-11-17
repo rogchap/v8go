@@ -16,7 +16,7 @@ jobs:
         # We use macos-11 over macos-latest because macos-latest defaults to Catalina(10.15) and not Big Sur(11.0)
         # We can switch to macos-latest whenever Big Sur becomes the default
         # See https://github.com/actions/virtual-environments#available-environments
-        platform: [ubuntu-latest, macos-11, windows-latest]
+        platform: [ubuntu-latest, macos-11]
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -26,10 +26,6 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Add MINGW to PATH
-      if: matrix.platform == 'windows-latest'
-      run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
-      shell: bash
     - name: Go Test
       env:
         CGO_CXXFLAGS: "-Werror"
@@ -45,14 +41,14 @@ jobs:
     - name: Add GOPATH to GITHUB_ENV
       run: echo "GOPATH=$(go env GOPATH)" >>"$GITHUB_ENV"
     - name: Scan and upload FOSSA data (Linux/Mac)
-      if: env.FOSSA_API_KEY != '' && github.ref == 'refs/heads/master' && matrix.platform != 'windows-latest'
+      if: env.FOSSA_API_KEY != '' && github.ref == 'refs/heads/master'
       run: |
         curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install.sh | sudo bash
         fossa analyze
       env:
         FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
     - name: Scan and upload FOSSA data (Windows)
-      if: env.FOSSA_API_KEY != '' && github.ref == 'refs/heads/master' && matrix.platform == 'windows-latest'
+      if: env.FOSSA_API_KEY != '' && github.ref == 'refs/heads/master'
       run: |
         Set-ExecutionPolicy Bypass -Scope Process -Force; iex  ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/fossas/fossa-cli/master/install.ps1'))
         C:\ProgramData\fossa-cli\fossa.exe analyze
