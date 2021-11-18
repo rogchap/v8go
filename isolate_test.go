@@ -132,7 +132,7 @@ func TestIsolateCompileUnboundScript_InvalidOptions(t *testing.T) {
 
 	opts := v8.CompileOptions{
 		CachedData: &v8.CompilerCachedData{Bytes: []byte("unused")},
-		Mode: v8.CompileModeEager,
+		Mode:       v8.CompileModeEager,
 	}
 	panicErr := recoverPanic(func() { iso.CompileUnboundScript("console.log(1)", "script.js", opts) })
 	if panicErr == nil {

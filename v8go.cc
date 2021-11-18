@@ -217,7 +217,10 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.number_of_detached_contexts()};
 }
 
-RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso, const char* s, const char* o, CompileOptions opts) {
+RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
+                                             const char* s,
+                                             const char* o,
+                                             CompileOptions opts) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
@@ -230,12 +233,14 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso, const char* s, cons
   Local<String> ogn =
       String::NewFromUtf8(iso, o, NewStringType::kNormal).ToLocalChecked();
 
-  ScriptCompiler::CompileOptions option = static_cast<ScriptCompiler::CompileOptions>(opts.compileOption);
+  ScriptCompiler::CompileOptions option =
+      static_cast<ScriptCompiler::CompileOptions>(opts.compileOption);
 
   ScriptCompiler::CachedData* cached_data = nullptr;
 
   if (opts.cachedData.data) {
-    cached_data = new ScriptCompiler::CachedData(opts.cachedData.data, opts.cachedData.length);
+    cached_data = new ScriptCompiler::CachedData(opts.cachedData.data,
+                                                 opts.cachedData.length);
   }
 
   ScriptOrigin script_origin(ogn);
@@ -243,7 +248,8 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso, const char* s, cons
   ScriptCompiler::Source source(src, script_origin, cached_data);
 
   Local<UnboundScript> unbound_script;
-  if (!ScriptCompiler::CompileUnboundScript(iso, &source, option).ToLocal(&unbound_script)) {
+  if (!ScriptCompiler::CompileUnboundScript(iso, &source, option)
+           .ToLocal(&unbound_script)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   };
@@ -269,8 +275,8 @@ ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
   m_value* new_val = new m_value;
   new_val->iso = iso;
   new_val->ctx = ctx;
-  new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, throw_ret_val);
+  new_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, throw_ret_val);
 
   return tracked_value(ctx, new_val);
 }
@@ -454,8 +460,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   return rtn;
 }
 
-void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr,
-                                         int field_count) {
+void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, int field_count) {
   LOCAL_TEMPLATE(ptr);
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
@@ -647,12 +652,15 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
 
 /********** UnboundScript & ScriptCompilerCachedData **********/
 
-ScriptCompilerCachedData* UnboundScriptCreateCodeCache(IsolatePtr iso, UnboundScriptPtr us_ptr) {
+ScriptCompilerCachedData* UnboundScriptCreateCodeCache(
+    IsolatePtr iso,
+    UnboundScriptPtr us_ptr) {
   ISOLATE_SCOPE(iso);
 
   Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
 
-  ScriptCompiler::CachedData* cached_data = ScriptCompiler::CreateCodeCache(unbound_script);
+  ScriptCompiler::CachedData* cached_data =
+      ScriptCompiler::CreateCodeCache(unbound_script);
 
   ScriptCompilerCachedData* cd = new ScriptCompilerCachedData;
   cd->ptr = cached_data;
