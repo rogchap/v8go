@@ -192,7 +192,7 @@ please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on 
 
 ### Windows
 
-There used to be Windows binary support. For further information see, [this PR](UPDATE).
+There used to be Windows binary support. For further information see, [PR #234](https://github.com/rogchap/v8go/pull/234).
 
 The v8go library would welcome contributions from anyone able to get an external windows
 build of the V8 library linking with v8go, using the version of V8 checked out in the
