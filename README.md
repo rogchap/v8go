@@ -190,6 +190,16 @@ Go Reference & more examples: https://pkg.go.dev/rogchap.com/v8go
 If you would like to ask questions about this library or want to keep up-to-date with the latest changes and releases,
 please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on Gophers Slack. [Click here to join the Gophers Slack community!](https://invite.slack.golangbridge.org/)
 
+### Windows
+
+There used to be Windows binary support. For further information see, [this PR](UPDATE).
+
+The v8go library would welcome contributions from anyone able to get an external windows
+build of the V8 library linking with v8go, using the version of V8 checked out in the
+`deps/v8` git submodule, and documentation of the process involved. This process will likely
+involve passing a linker flag when building v8go (e.g. using the `CGO_LDFLAGS` environment
+variable.
+
 ## V8 dependency
 
 V8 version: **9.0.257.18** (April 2021)
