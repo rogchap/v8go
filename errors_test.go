@@ -11,7 +11,7 @@ import (
 	v8 "rogchap.com/v8go"
 )
 
-func TestErrorFormatting(t *testing.T) {
+func TestJSErrorFormat(t *testing.T) {
 	t.Parallel()
 	tests := [...]struct {
 		name            string
@@ -88,5 +88,32 @@ func TestJSErrorOutput(t *testing.T) {
 
 	if e.StackTrace != expectedStack {
 		t.Errorf("unexpected error stack trace: %q", e.StackTrace)
+	}
+}
+
+func TestJSErrorFormat_forSyntaxError(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	script := `
+		let x = 1;
+		let y = x + ;
+		let z = x + z;
+	`
+	_, err := ctx.RunScript(script, "xyz.js")
+	jsErr := err.(*v8.JSError)
+	if jsErr.StackTrace != jsErr.Message {
+		t.Errorf("unexpected StackTrace %q not equal to Message %q", jsErr.StackTrace, jsErr.Message)
+	}
+	if jsErr.Location == "" {
+		t.Errorf("missing Location")
+	}
+
+	msg := fmt.Sprintf("%+v", err)
+	if msg != "SyntaxError: Unexpected token ';' (at xyz.js:3:15)" {
+		t.Errorf("unexpected verbose error message: %q", msg)
 	}
 }
