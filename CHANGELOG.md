@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for compiling a context-dependent UnboundScript which can be run in any context of the isolate it was compiled in.
 - Support for creating a code cache from an UnboundScript which can be used to create an UnboundScript in other isolates
 to run a pre-compiled script in new contexts.
+- Included compile error location in `%+v` formatting of JSError
 
 ### Changed
 - Removed error return value from NewIsolate which never fails
