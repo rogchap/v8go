@@ -10,12 +10,11 @@ import (
 	"math/rand"
 	"strings"
 	"testing"
-	"time"
 
 	v8 "rogchap.com/v8go"
 )
 
-func TestIsolateTermination(t *testing.T) {
+func TestIsolateTerminateExecution(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
@@ -27,6 +26,9 @@ func TestIsolateTermination(t *testing.T) {
 	var terminating bool
 	fooFn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		loop, _ := info.Args()[0].AsFunction()
+		go func() {
+			iso.TerminateExecution()
+		}()
 		loop.Call(v8.Undefined(iso))
 
 		terminating = iso.IsExecutionTerminating()
@@ -38,12 +40,6 @@ func TestIsolateTermination(t *testing.T) {
 
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
-
-	go func() {
-		// [RC] find a better way to know when a script has started execution
-		time.Sleep(time.Millisecond)
-		iso.TerminateExecution()
-	}()
 
 	script := `function loop() { while (true) { } }; foo(loop);`
 	_, e := ctx.RunScript(script, "forever.js")
