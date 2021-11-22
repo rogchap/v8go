@@ -192,21 +192,20 @@ please join the [**#v8go**](https://gophers.slack.com/channels/v8go) channel on 
 
 ### Windows
 
-In order to build a project using v8go on Windows, Go requires a gcc compiler to be installed.
+There used to be Windows binary support. For further information see, [PR #234](https://github.com/rogchap/v8go/pull/234).
 
-To set this up:
-1. Install MSYS2 (https://www.msys2.org/)
-2. Add the Mingw-w64 bin to your PATH environment variable (`C:\msys64\mingw64\bin` by default)
-3. Open MSYS2 MSYS and execute `pacman -S mingw-w64-x86_64-toolchain`
-
-V8 requires 64-bit on Windows, therefore it will not work on 32-bit systems.
+The v8go library would welcome contributions from anyone able to get an external windows
+build of the V8 library linking with v8go, using the version of V8 checked out in the
+`deps/v8` git submodule, and documentation of the process involved. This process will likely
+involve passing a linker flag when building v8go (e.g. using the `CGO_LDFLAGS` environment
+variable.
 
 ## V8 dependency
 
 V8 version: **9.0.257.18** (April 2021)
 
 In order to make `v8go` usable as a standard Go package, prebuilt static libraries of V8
-are included for Linux, macOS and Windows ie. you *should not* require to build V8 yourself.
+are included for Linux and macOS. you *should not* require to build V8 yourself.
 
 Due to security concerns of binary blobs hiding malicious code, the V8 binary is built via CI *ONLY*.
 
@@ -247,7 +246,7 @@ The next steps are:
 1) The build is not yet triggered automatically. To trigger it manually, go to the [V8
 Build](https://github.com/rogchap/v8go/actions?query=workflow%3A%22V8+Build%22) Github Action, Select "Run workflow",
 and select your pushed branch eg. `v8_upgrade/<v8-version>`.
-1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux, macOS and Windows; merge
+1) Once built, this should open 3 PRs against your branch to add the `libv8.a` for Linux (for x86_64) and macOS for x86_64 and arm64; merge
 these PRs into your branch. You are now ready to raise the PR against `master` with the latest version of V8.
 
 ### Flushing after C/C++ standard library printing for debugging

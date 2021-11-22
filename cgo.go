@@ -11,7 +11,6 @@ package v8go
 // #cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/deps/darwin_x86_64
 // #cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/deps/darwin_arm64
 // #cgo linux LDFLAGS: -L${SRCDIR}/deps/linux_x86_64
-// #cgo windows LDFLAGS: -L${SRCDIR}/deps/windows_x86_64 -static -ldbghelp -lssp -lwinmm -lz
 import "C"
 
 // These imports forces `go mod vendor` to pull in all the folders that
@@ -22,5 +21,4 @@ import (
 	_ "rogchap.com/v8go/deps/darwin_x86_64"
 	_ "rogchap.com/v8go/deps/include"
 	_ "rogchap.com/v8go/deps/linux_x86_64"
-	_ "rogchap.com/v8go/deps/windows_x86_64"
 )
