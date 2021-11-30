@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for creating a code cache from an UnboundScript which can be used to create an UnboundScript in other isolates
 to run a pre-compiled script in new contexts.
 - Included compile error location in `%+v` formatting of JSError
+- Enable i18n support
 
 ### Changed
 - Removed error return value from NewIsolate which never fails
