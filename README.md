@@ -20,7 +20,7 @@ import v8 "rogchap.com/v8go"
 ### Running a script
 
 ```go
-ctx := v8.NewContext() // creates a new V8 context with a new Isolate aka VM
+ctx, _ := v8.NewContext() // creates a new V8 context with a new Isolate aka VM
 ctx.RunScript("const add = (a, b) => a + b", "math.js") // executes a script on the global context
 ctx.RunScript("const result = add(3, 4)", "main.js") // any functions previously added to the context can be called
 val, _ := ctx.RunScript("result", "value.js") // return a value in JavaScript back to Go
@@ -30,11 +30,11 @@ fmt.Printf("addition result: %s", val)
 ### One VM, many contexts
 
 ```go
-iso := v8.NewIsolate() // creates a new JavaScript VM
-ctx1 := v8.NewContext(iso) // new context within the VM
+iso, _ := v8.NewIsolate() // creates a new JavaScript VM
+ctx1, _ := v8.NewContext(iso) // new context within the VM
 ctx1.RunScript("const multiply = (a, b) => a * b", "math.js")
 
-ctx2 := v8.NewContext(iso) // another context on the same VM
+ctx2, _ := v8.NewContext(iso) // another context on the same VM
 if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
   // this will error as multiply is not defined in this context
 }
@@ -43,22 +43,22 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 ### JavaScript function with Go callback
 
 ```go
-iso := v8.NewIsolate() // create a new VM
+iso, _ := v8.NewIsolate() // create a new VM
 // a template that represents a JS function
-printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+printfn, _ := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
     fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
     return nil // you can return a value back to the JS caller if required
 })
-global := v8.NewObjectTemplate(iso) // a template that represents a JS Object
+global, _ := v8.NewObjectTemplate(iso) // a template that represents a JS Object
 global.Set("print", printfn) // sets the "print" property of the Object to our function
-ctx := v8.NewContext(iso, global) // new Context with the global Object set to our object template
+ctx, _ := v8.NewContext(iso, global) // new Context with the global Object set to our object template
 ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
 ```
 
 ### Update a JavaScript object from Go
 
 ```go
-ctx := v8.NewContext() // new context with a default VM
+ctx, _ := v8.NewContext() // new context with a default VM
 obj := ctx.Global() // get the global object from the context
 obj.Set("version", "v1.0.0") // set the property "version" on the object
 val, _ := ctx.RunScript("version", "version.js") // global object will have the property set within the JS VM
@@ -92,15 +92,15 @@ compilation to avoid recompiling every time you want to run it.
 
 ```go
 source := "const multiply = (a, b) => a * b"
-iso1 := v8.NewIsolate() // creates a new JavaScript VM
-ctx1 := v8.NewContext(iso1) // new context within the VM
+iso1, _ := v8.NewIsolate() // creates a new JavaScript VM
+ctx1, _ := v8.NewContext(iso1) // new context within the VM
 script1, _ := iso1.CompileUnboundScript(source, "math.js", v8.CompileOptions{}) // compile script to get cached data
 val, _ := script1.Run(ctx1)
 
 cachedData := script1.CreateCodeCache()
 
-iso2 := v8.NewIsolate() // create a new JavaScript VM
-ctx2 := v8.NewContext(iso2) // new context within the VM
+iso2, _ := v8.NewIsolate() // create a new JavaScript VM
+ctx2, _ := v8.NewContext(iso2) // new context within the VM
 
 script2, _ := iso2.CompileUnboundScript(source, "math.js", v8.CompileOptions{CachedData: cachedData}) // compile script in new isolate with cached data
 val, _ = script2.Run(ctx2)
@@ -137,20 +137,20 @@ case <- time.After(200 * time.Milliseconds):
 
 ```go
 func createProfile() {
-	iso := v8.NewIsolate()
-	ctx := v8.NewContext(iso)
+	iso, _ := v8.NewIsolate()
+	ctx, _ := v8.NewContext(iso)
 	cpuProfiler := v8.NewCPUProfiler(iso)
 
 	cpuProfiler.StartProfiling("my-profile")
 
-	ctx.RunScript(profileScript, "script.js") # this script is defined in cpuprofiler_test.go
+	ctx.RunScript(profileScript, "script.js") // this script is defined in cpuprofiler_test.go
 	val, _ := ctx.Global().Get("start")
 	fn, _ := val.AsFunction()
 	fn.Call(ctx.Global())
 
 	cpuProfile := cpuProfiler.StopProfiling("my-profile")
 
-	printTree("", cpuProfile.GetTopDownRoot()) # helper function to print the profile
+	printTree("", cpuProfile.GetTopDownRoot()) // helper function to print the profile
 }
 
 func printTree(nest string, node *v8.CPUProfileNode) {
