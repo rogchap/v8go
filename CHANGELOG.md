@@ -30,6 +30,7 @@ to run a pre-compiled script in new contexts.
 - Removed error return value from NewObjectTemplate and NewFunctionTemplate. Panic if given a nil argument.
 - Function Call accepts receiver as first argument.
 - Removed Windows support until its build issues are addressed.
+- Upgrade to V8 9.6.180.12
 
 ### Fixed
 - Add some missing error propagation
