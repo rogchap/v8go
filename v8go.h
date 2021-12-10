@@ -15,12 +15,16 @@ typedef v8::CpuProfiler* CpuProfilerPtr;
 typedef v8::CpuProfile* CpuProfilePtr;
 typedef const v8::CpuProfileNode* CpuProfileNodePtr;
 typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
+typedef v8::SnapshotCreator* SnapshotCreatorPtr;
 
 extern "C" {
 #else
 // Opaque to cgo, but useful to treat it as a pointer to a distinct type
 typedef struct v8Isolate v8Isolate;
 typedef v8Isolate* IsolatePtr;
+
+typedef struct v8SnapshotCreator v8SnapshotCreator;
+typedef v8SnapshotCreator* SnapshotCreatorPtr;
 
 typedef struct v8CpuProfiler v8CpuProfiler;
 typedef v8CpuProfiler* CpuProfilerPtr;
@@ -73,9 +77,24 @@ typedef struct {
 } ScriptCompilerCachedData;
 
 typedef struct {
+  const char* data;
+  int raw_size;
+} RtnSnapshotBlob;
+
+typedef struct {
+  SnapshotCreatorPtr creator;
+  IsolatePtr iso;
+} RtnSnapshotCreator;
+
+typedef struct {
   ScriptCompilerCachedData cachedData;
   int compileOption;
 } CompileOptions;
+
+typedef struct {
+  char* snapshot_blob_data;
+  int snapshot_blob_raw_size;
+} IsolateOptions;
 
 typedef struct {
   CpuProfilerPtr ptr;
@@ -132,12 +151,21 @@ typedef struct {
 } ValueBigInt;
 
 extern void Init();
-extern IsolatePtr NewIsolate();
+extern IsolatePtr NewIsolate(IsolateOptions opts);
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
+
+extern void SnapshotBlobDelete(RtnSnapshotBlob* ptr);
+extern RtnSnapshotCreator NewSnapshotCreator();
+extern void DeleteSnapshotCreator(SnapshotCreatorPtr snapshotCreator);
+extern void SetDefaultContext(SnapshotCreatorPtr snapshotCreator,
+                              ContextPtr ctx);
+extern size_t AddContext(SnapshotCreatorPtr snapshotCreator, ContextPtr ctx);
+extern RtnSnapshotBlob* CreateBlob(SnapshotCreatorPtr snapshotCreator,
+                                   int function_code_handling);
 
 extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
 
@@ -162,6 +190,9 @@ extern void CPUProfileDelete(CPUProfile* ptr);
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
+extern ContextPtr NewContextFromSnapshot(IsolatePtr iso,
+                                         size_t snapshot_blob_index,
+                                         int ref);
 extern void ContextFree(ContextPtr ptr);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,

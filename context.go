@@ -8,6 +8,7 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
+	"errors"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -74,6 +75,27 @@ func NewContext(opt ...ContextOption) *Context {
 	ctx.register()
 	runtime.KeepAlive(opts.gTmpl)
 	return ctx
+}
+
+func NewContextFromSnapshot(iso *Isolate, snapshot_index int) (*Context, error) {
+	ctxMutex.Lock()
+	ctxSeq++
+	ref := ctxSeq
+	ctxMutex.Unlock()
+
+	createParams := iso.createParams
+	if createParams == nil || createParams.startupData == nil {
+		return nil, errors.New("Must create an isolate from a snapshot blob")
+	}
+
+	ctx := &Context{
+		ref: ref,
+		ptr: C.NewContextFromSnapshot(iso.ptr, C.size_t(snapshot_index), C.int(ref)),
+		iso: iso,
+	}
+
+	ctx.register()
+	return ctx, nil
 }
 
 // Isolate gets the current context's parent isolate.An  error is returned

@@ -39,6 +39,22 @@ func TestContextExec(t *testing.T) {
 	}
 }
 
+func TestNewContextFromSnapshotErrorWhenIsolateHasNoStartupData(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	ctx, err := v8.NewContextFromSnapshot(iso, 1)
+
+	if ctx != nil {
+		t.Errorf("error expected nil context got: %+v", ctx)
+	}
+	if err == nil {
+		t.Error("error expected but was <nil>")
+	}
+}
+
 func TestJSExceptions(t *testing.T) {
 	t.Parallel()
 
