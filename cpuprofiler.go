@@ -83,8 +83,9 @@ func newCPUProfileNode(node *C.CPUProfileNode, parent *CPUProfileNode) *CPUProfi
 	}
 
 	if node.childrenCount > 0 {
-		for _, child := range (*[1 << 28]*C.CPUProfileNode)(unsafe.Pointer(node.children))[:node.childrenCount:node.childrenCount] {
-			n.children = append(n.children, newCPUProfileNode(child, n))
+		n.children = make([]*CPUProfileNode, node.childrenCount)
+		for i, child := range (*[1 << 28]*C.CPUProfileNode)(unsafe.Pointer(node.children))[:node.childrenCount:node.childrenCount] {
+			n.children[i] = newCPUProfileNode(child, n)
 		}
 	}
 
