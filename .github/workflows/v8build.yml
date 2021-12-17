@@ -16,9 +16,6 @@ jobs:
                 # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
                 platform: [ubuntu-18.04, macos-11]
                 arch: [x86_64, arm64]
-                exclude:
-                - platform: ubuntu-18.04
-                  arch: arm64
         runs-on: ${{ matrix.platform }}
         steps:
             - name: Checkout
@@ -29,6 +26,9 @@ jobs:
             - name: Update depot_tools fetch config
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
+            - name: Install g++-aarch64-linux-gnu
+              if: matrix.platform == 'ubuntu-18.04' && matrix.arch == 'arm64'
+              run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
             - name: Build V8 linux
               if: matrix.platform == 'ubuntu-18.04'
               run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }}
