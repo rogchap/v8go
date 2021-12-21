@@ -190,6 +190,23 @@ func TestObjectDelete(t *testing.T) {
 
 }
 
+func TestObjectGetPropertyNames(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+	val, _ := ctx.RunScript("const foo = {}; foo", "")
+	obj, _ := val.AsObject()
+	obj.Set("bar2", "baz2")
+	obj.Set("foo", "foobar")
+	obj.Set("hello", "world")
+
+	values := obj.GetPropertyNames()
+
+	fmt.Println(values)
+}
+
 func ExampleObject_global() {
 	iso := v8.NewIsolate()
 	defer iso.Dispose()

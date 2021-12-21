@@ -84,6 +84,13 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 	return nil
 }
 
+// Returns an array containing the names of the enumerable properties of this object,
+// including properties from prototype objects
+func (o *Object) GetPropertyNames() []*Value {
+	rtn := C.ObjectGetPropertyNames(o.ptr)
+	return valueResults(o.ctx, rtn)
+}
+
 // SetInternalField sets the value of an internal field for an ObjectTemplate instance.
 // Panics if the index isn't in the range set by (*ObjectTemplate).SetInternalFieldCount.
 func (o *Object) SetInternalField(idx uint32, val interface{}) error {

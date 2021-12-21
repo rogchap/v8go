@@ -169,6 +169,16 @@ func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	return &Value{rtn.value, ctx}, nil
 }
 
+func valueResults(ctx *Context, rtn C.RtnValues) []*Value {
+	length := rtn.length
+	slice := (*[1 << 28]C.ValuePtr)(unsafe.Pointer(rtn.values))[:length:length]
+	var values []*Value
+	for i := 0; i < len(slice); i++ {
+		values = append(values, &Value{slice[i], ctx})
+	}
+	return values
+}
+
 func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
 	if rtn.value == nil {
 		return nil, newJSError(rtn.error)

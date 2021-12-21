@@ -11,6 +11,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <array>
 #include <vector>
 
 #include "_cgo_export.h"
@@ -1288,6 +1289,31 @@ void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   Local<String> key_val =
       String::NewFromUtf8(iso, key, NewStringType::kNormal).ToLocalChecked();
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
+}
+
+RtnValues ObjectGetPropertyNames(ValuePtr ptr) {
+  LOCAL_OBJECT(ptr);
+  RtnValues rtn = {};
+
+  MaybeLocal<Array> maybe_names = obj->GetPropertyNames(local_ctx);
+  Local<Array> names = maybe_names.ToLocalChecked();
+
+  uint32_t length = names->Length();
+  m_value* array[length];
+
+  for (int i = 0; i < length; i++) {
+    Local<Value> name_from_array = names->Get(local_ctx, i).ToLocalChecked();
+    m_value* new_val = new m_value;
+    new_val->iso = iso;
+    new_val->ctx = ctx;
+    new_val->ptr =
+        Persistent<Value, CopyablePersistentTraits<Value>>(iso, name_from_array);
+    array[i] = new_val;
+  }
+
+  rtn.values = array;
+  rtn.length = length;
+  return rtn;
 }
 
 void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
