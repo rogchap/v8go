@@ -1298,7 +1298,7 @@ RtnStrings ObjectGetPropertyNames(ValuePtr ptr) {
   Local<Array> names = maybe_names.ToLocalChecked();
 
   uint32_t length = names->Length();
-  const char **strings = new const char*[length];
+  const char** strings = new const char*[length];
 
   for (uint32_t i = 0; i < length; i++) {
     Local<Value> name_from_array = names->Get(local_ctx, i).ToLocalChecked();
