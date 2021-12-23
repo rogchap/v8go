@@ -1300,7 +1300,7 @@ RtnStrings ObjectGetPropertyNames(ValuePtr ptr) {
   uint32_t length = names->Length();
   const char **strings = new const char*[length];
 
-  for (int i = 0; i < length; i++) {
+  for (uint32_t i = 0; i < length; i++) {
     Local<Value> name_from_array = names->Get(local_ctx, i).ToLocalChecked();
     String::Utf8Value ds(iso, name_from_array);
     strings[i] = CopyString(ds);
