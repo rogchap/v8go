@@ -6,6 +6,7 @@ package v8go_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	v8 "rogchap.com/v8go"
@@ -202,9 +203,12 @@ func TestObjectGetPropertyNames(t *testing.T) {
 	obj.Set("foo", "foobar")
 	obj.Set("hello", "world")
 
-	values := obj.GetPropertyNames()
+	expectedProperties := []string{"bar2", "foo", "hello"}
+	properties := obj.GetPropertyNames()
 
-	fmt.Println(values)
+	if !reflect.DeepEqual(properties, expectedProperties) {
+		t.Error("properteis are not the same")
+	}
 }
 
 func ExampleObject_global() {

@@ -169,14 +169,15 @@ func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	return &Value{rtn.value, ctx}, nil
 }
 
-func valueResults(ctx *Context, rtn C.RtnValues) []*Value {
+func valueStrings(ctx *Context, rtn C.RtnStrings) []string {
 	length := rtn.length
-	slice := (*[1 << 28]C.ValuePtr)(unsafe.Pointer(rtn.values))[:length:length]
-	var values []*Value
+	slice := (*[1 << 28]*C.char)(unsafe.Pointer(rtn.strings))[:length:length]
+	var result []string
 	for i := 0; i < len(slice); i++ {
-		values = append(values, &Value{slice[i], ctx})
+		s := slice[i]
+		result = append(result, C.GoString(s))
 	}
-	return values
+	return result
 }
 
 func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {

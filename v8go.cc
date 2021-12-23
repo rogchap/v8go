@@ -1291,27 +1291,23 @@ void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
 
-RtnValues ObjectGetPropertyNames(ValuePtr ptr) {
+RtnStrings ObjectGetPropertyNames(ValuePtr ptr) {
   LOCAL_OBJECT(ptr);
-  RtnValues rtn = {};
+  RtnStrings rtn = {};
 
   MaybeLocal<Array> maybe_names = obj->GetPropertyNames(local_ctx);
   Local<Array> names = maybe_names.ToLocalChecked();
 
   uint32_t length = names->Length();
-  m_value* array[length];
+  const char *strings[length];
 
   for (int i = 0; i < length; i++) {
     Local<Value> name_from_array = names->Get(local_ctx, i).ToLocalChecked();
-    m_value* new_val = new m_value;
-    new_val->iso = iso;
-    new_val->ctx = ctx;
-    new_val->ptr =
-        Persistent<Value, CopyablePersistentTraits<Value>>(iso, name_from_array);
-    array[i] = new_val;
+    String::Utf8Value ds(iso, name_from_array);
+    strings[i] = CopyString(ds);
   }
 
-  rtn.values = array;
+  rtn.strings = strings;
   rtn.length = length;
   return rtn;
 }
