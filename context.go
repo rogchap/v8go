@@ -175,8 +175,10 @@ func valueStrings(ctx *Context, rtn C.RtnStrings) []string {
 	var result []string
 	for i := 0; i < len(slice); i++ {
 		s := slice[i]
+		defer C.free(unsafe.Pointer(s))
 		result = append(result, C.GoString(s))
 	}
+	defer C.free(unsafe.Pointer(rtn.strings))
 	return result
 }
 
