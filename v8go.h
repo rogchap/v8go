@@ -111,7 +111,7 @@ typedef struct {
 } RtnString;
 
 typedef struct {
-  const char **strings;
+  const char** strings;
   int length;
   RtnError error;
 } RtnStrings;
