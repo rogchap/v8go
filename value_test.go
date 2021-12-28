@@ -34,16 +34,10 @@ func TestValueNewBaseCases(t *testing.T) {
 
 func TestValueNewUint8Array(t *testing.T) {
 	t.Parallel()
-	ctx, err := v8go.NewContext()
-	if err != nil {
-		t.Fatalf("NewContext() error: %v", err)
-	}
-	iso, err := ctx.Isolate()
-	if err != nil {
-		t.Fatalf("ctx.Isolate() error: %v", err)
-	}
+	ctx := v8.NewContext()
+	iso := ctx.Isolate()
 	in := []uint8{1, 2, 3, 4, 5}
-	if val, err := v8go.NewValue(iso, in); err != nil {
+	if val, err := v8.NewValue(iso, in); err != nil {
 		t.Fatalf("Error %v", err)
 	} else if !val.IsUint8Array() {
 		t.Errorf("Val is not []uint")

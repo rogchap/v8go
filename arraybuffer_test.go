@@ -1,23 +1,23 @@
-package v8go
+package v8go_test
 
 import (
 	"errors"
 	"fmt"
-	"log"
 	"testing"
+
+	v8 "rogchap.com/v8go"
 )
 
-func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
-	iso, err := info.Context().Isolate()
-	if err != nil {
-		log.Fatalf("Could not get isolate from context: %v\n", err)
-	}
+func reverseArrayBufferFunctionCallback(info *v8.FunctionCallbackInfo) *v8.Value {
+	iso := info.Context().Isolate()
 	args := info.Args()
 	if len(args) != 1 {
-		return iso.ThrowException("Function ReverseArrayBuffer expects 1 parameter")
+		e, _ := v8.NewValue(iso, "Function ReverseArrayBuffer expects 1 parameter")
+		return iso.ThrowException(e)
 	}
 	if !args[0].IsArrayBuffer() {
-		return iso.ThrowException("Function ReverseArrayBuffer expects ArrayBuffer parameter")
+		e, _ := v8.NewValue(iso, "Function ReverseArrayBuffer expects ArrayBuffer parameter")
+		return iso.ThrowException(e)
 	}
 	ab := args[0].ArrayBuffer() // "cast" to ArrayBuffer
 	length := int(ab.ByteLength())
@@ -30,20 +30,19 @@ func reverseArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
 	return nil
 }
 
-func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
-	iso, err := info.Context().Isolate()
-	if err != nil {
-		log.Fatalf("Could not get isolate from context: %v\n", err)
-	}
+func createArrayBufferFunctionCallback(info *v8.FunctionCallbackInfo) *v8.Value {
+	iso := info.Context().Isolate()
 	args := info.Args()
 	if len(args) != 1 {
-		return iso.ThrowException("Function CreateArrayBuffer expects 1 parameter")
+		e, _ := v8.NewValue(iso, "Function CreateArrayBuffer expects 1 parameter")
+		return iso.ThrowException(e)
 	}
 	if !args[0].IsInt32() {
-		return iso.ThrowException("Function CreateArrayBuffer expects Int32 parameter")
+		e, _ := v8.NewValue(iso, "Function CreateArrayBuffer expects Int32 parameter")
+		return iso.ThrowException(e)
 	}
 	length := args[0].Int32()
-	ab := NewArrayBuffer(info.Context(), int64(length)) // create ArrayBuffer object of given length
+	ab := v8.NewArrayBuffer(info.Context(), int64(length)) // create ArrayBuffer object of given length
 	bytes := make([]uint8, length)
 	for i := uint8(0); i < uint8(length); i++ {
 		bytes[i] = i
@@ -52,27 +51,17 @@ func createArrayBufferFunctionCallback(info *FunctionCallbackInfo) *Value {
 	return ab.Value    // return the ArrayBuffer to javascript
 }
 
-func injectArrayBufferTester(ctx *Context, funcName string, funcCb FunctionCallback) error {
+func injectArrayBufferTester(ctx *v8.Context, funcName string, funcCb v8.FunctionCallback) error {
 	if ctx == nil {
 		return errors.New("injectArrayBufferTester: ctx is required")
 	}
 
-	iso, err := ctx.Isolate()
-	if err != nil {
-		return fmt.Errorf("injectArrayBufferTester: %v", err)
-	}
+	iso := ctx.Isolate()
 
-	con, err := NewObjectTemplate(iso)
-	if err != nil {
-		return fmt.Errorf("injectArrayBufferTester: %v", err)
-	}
+	con := v8.NewObjectTemplate(iso)
+	funcTempl := v8.NewFunctionTemplate(iso, funcCb)
 
-	funcTempl, err := NewFunctionTemplate(iso, funcCb)
-	if err != nil {
-		return fmt.Errorf("injectArrayBufferTester: %v", err)
-	}
-
-	if err := con.Set(funcName, funcTempl, ReadOnly); err != nil {
+	if err := con.Set(funcName, funcTempl, v8.ReadOnly); err != nil {
 		return fmt.Errorf("injectArrayBufferTester: %v", err)
 	}
 
@@ -95,8 +84,8 @@ func injectArrayBufferTester(ctx *Context, funcName string, funcCb FunctionCallb
 func TestModifyArrayBuffer(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	iso := v8.NewIsolate()
+	ctx := v8.NewContext(iso)
 	if err := injectArrayBufferTester(ctx, "reverseArrayBuffer", reverseArrayBufferFunctionCallback); err != nil {
 		t.Error(err)
 	}
@@ -132,8 +121,8 @@ func TestModifyArrayBuffer(t *testing.T) {
 func TestCreateArrayBuffer(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	iso := v8.NewIsolate()
+	ctx := v8.NewContext(iso)
 	if err := injectArrayBufferTester(ctx, "createArrayBuffer", createArrayBufferFunctionCallback); err != nil {
 		t.Error(err)
 	}

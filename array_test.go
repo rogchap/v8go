@@ -1,23 +1,24 @@
-package v8go
+package v8go_test
 
 import (
 	"errors"
 	"fmt"
-	"log"
 	"testing"
+
+	v8 "rogchap.com/v8go"
 )
 
-func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) *Value {
-	iso, err := info.Context().Isolate()
-	if err != nil {
-		log.Fatalf("Could not get isolate from context: %v\n", err)
-	}
+func reverseUint8ArrayFunctionCallback(info *v8.FunctionCallbackInfo) *v8.Value {
+	iso := info.Context().Isolate()
 	args := info.Args()
+
 	if len(args) != 1 {
-		return iso.ThrowException("Function ReverseUint8Array expects 1 parameter")
+		e, _ := v8.NewValue(iso, "Function ReverseUint8Array expects 1 parameter")
+		return iso.ThrowException(e)
 	}
 	if !args[0].IsUint8Array() {
-		return iso.ThrowException("Function ReverseUint8Array expects Uint8Array parameter")
+		e, _ := v8.NewValue(iso, "Function ReverseUint8Array expects Uint8Array parameter")
+		return iso.ThrowException(e)
 	}
 	array := args[0].Uint8Array()
 	length := len(array)
@@ -25,34 +26,26 @@ func reverseUint8ArrayFunctionCallback(info *FunctionCallbackInfo) *Value {
 	for i := 0; i < length; i++ {
 		reversed[i] = array[length-i-1]
 	}
-	val, err := NewValue(iso, reversed)
+	val, err := v8.NewValue(iso, reversed)
 	if err != nil {
-		return iso.ThrowException(fmt.Sprintf("Could not get value for array: %v\n", err))
+		e, _ := v8.NewValue(iso, fmt.Sprintf("Could not get value for array: %v\n", err))
+		return iso.ThrowException(e)
 	}
 	return val
 }
 
-func injectUint8ArrayTester(ctx *Context) error {
+func injectUint8ArrayTester(ctx *v8.Context) error {
 	if ctx == nil {
 		return errors.New("injectUint8ArrayTester: ctx is required")
 	}
 
-	iso, err := ctx.Isolate()
-	if err != nil {
-		return fmt.Errorf("injectUint8ArrayTester: %v", err)
-	}
+	iso := ctx.Isolate()
 
-	con, err := NewObjectTemplate(iso)
-	if err != nil {
-		return fmt.Errorf("injectUint8ArrayTester: %v", err)
-	}
+	con := v8.NewObjectTemplate(iso)
 
-	reverseFn, err := NewFunctionTemplate(iso, reverseUint8ArrayFunctionCallback)
-	if err != nil {
-		return fmt.Errorf("injectUint8ArrayTester: %v", err)
-	}
+	reverseFn := v8.NewFunctionTemplate(iso, reverseUint8ArrayFunctionCallback)
 
-	if err := con.Set("reverseUint8Array", reverseFn, ReadOnly); err != nil {
+	if err := con.Set("reverseUint8Array", reverseFn, v8.ReadOnly); err != nil {
 		return fmt.Errorf("injectUint8ArrayTester: %v", err)
 	}
 
@@ -74,8 +67,8 @@ func injectUint8ArrayTester(ctx *Context) error {
 func TestUint8Array(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	iso := v8.NewIsolate()
+	ctx := v8.NewContext(iso)
 
 	if err := injectUint8ArrayTester(ctx); err != nil {
 		t.Error(err)
@@ -104,8 +97,8 @@ func TestUint8Array(t *testing.T) {
 func TestUint8ArrayException(t *testing.T) {
 	t.Parallel()
 
-	iso, _ := NewIsolate()
-	ctx, _ := NewContext(iso)
+	iso := v8.NewIsolate()
+	ctx := v8.NewContext(iso)
 
 	if err := injectUint8ArrayTester(ctx); err != nil {
 		t.Error(err)

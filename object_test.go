@@ -7,9 +7,9 @@ package v8go_test
 import (
 	"errors"
 	"fmt"
-	"log"
 	"testing"
 
+	"rogchap.com/v8go"
 	v8 "rogchap.com/v8go"
 )
 
@@ -226,16 +226,15 @@ func ExampleObject_global() {
 }
 
 func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) *v8go.Value {
-	iso, err := info.Context().Isolate()
-	if err != nil {
-		log.Fatalf("Could not get isolate from context: %v\n", err)
-	}
+	iso := info.Context().Isolate()
 	args := info.Args()
 	if len(args) != 2 {
-		return iso.ThrowException("Function createObject expects 2 parameters")
+		e, _ := v8.NewValue(iso, "Function createObject expects 2 parameters")
+		return iso.ThrowException(e)
 	}
 	if !args[0].IsInt32() || !args[1].IsInt32() {
-		return iso.ThrowException("Function createObject expects 2 Int32 parameters")
+		e, _ := v8.NewValue(iso, "Function createObject expects 2 Int32 parameters")
+		return iso.ThrowException(e)
 	}
 	read := args[0].Int32()
 	written := args[1].Int32()
@@ -250,20 +249,11 @@ func injectObjectTester(ctx *v8go.Context, funcName string, funcCb v8go.Function
 		return errors.New("ctx is required")
 	}
 
-	iso, err := ctx.Isolate()
-	if err != nil {
-		return fmt.Errorf("ctx.Isolate: %v", err)
-	}
+	iso := ctx.Isolate()
 
-	con, err := v8go.NewObjectTemplate(iso)
-	if err != nil {
-		return fmt.Errorf("NewObjectTemplate: %v", err)
-	}
+	con := v8go.NewObjectTemplate(iso)
 
-	funcTempl, err := v8go.NewFunctionTemplate(iso, funcCb)
-	if err != nil {
-		return fmt.Errorf("NewFunctionTemplate: %v", err)
-	}
+	funcTempl := v8go.NewFunctionTemplate(iso, funcCb)
 
 	if err := con.Set(funcName, funcTempl, v8go.ReadOnly); err != nil {
 		return fmt.Errorf("ObjectTemplate.Set: %v", err)
@@ -286,8 +276,8 @@ func injectObjectTester(ctx *v8go.Context, funcName string, funcCb v8go.Function
 // Test that golang can create an object with "read", "written" int32 properties and pass that back to JS.
 func TestObjectCreate(t *testing.T) {
 	t.Parallel()
-	iso, _ := v8go.NewIsolate()
-	ctx, _ := v8go.NewContext(iso)
+	iso := v8go.NewIsolate()
+	ctx := v8go.NewContext(iso)
 
 	if err := injectObjectTester(ctx, "createObject", createObjectFunctionCallback); err != nil {
 		t.Error(err)

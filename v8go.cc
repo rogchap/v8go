@@ -853,7 +853,7 @@ ValuePtr NewValueUndefined(IsolatePtr iso) {
 // The function takes ownership over the incoming array's memory.
 ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
-  Local<Context> c = ctx->ptr.Get(iso);
+  Local<Context> c = ctx->ptr.Get(iso_ptr);
 
   // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
   // otherwise ArrayBuffer::New() trips over missing context.
@@ -866,13 +866,13 @@ ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t *v, int len) {
       free(data);
       }, nullptr);
 
-  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso_ptr, std::move(bs));
 
   m_value* val = new m_value;
-  val->iso = iso;
+  val->iso = iso_ptr;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
-      iso, Uint8Array::New(arbuf, 0, len));
+      iso_ptr, Uint8Array::New(arbuf, 0, len));
 
   c->Exit(); // see comment above
 
@@ -1344,13 +1344,12 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr) {
 
 ValuePtr NewObject(IsolatePtr iso_ptr) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
-  Local<Context> c = ctx->ptr.Get(iso);
-  Local<Object> obj = Object::New(iso);
+  Local<Object> obj = Object::New(iso_ptr);
 
   m_value* val = new m_value;
-  val->iso = iso;
+  val->iso = iso_ptr;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso_ptr, obj);
 
   return tracked_value(ctx, val);
 }
@@ -1681,8 +1680,8 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
 
 void ThrowException(IsolatePtr iso_ptr, const char* message) {
   ISOLATE_SCOPE(iso_ptr);
-  Local<String> msg = String::NewFromUtf8(iso, message).ToLocalChecked();
-  iso->ThrowException(msg);
+  Local<String> msg = String::NewFromUtf8(iso_ptr, message).ToLocalChecked();
+  iso_ptr->ThrowException(msg);
 }
 /********** v8::V8 **********/
 
@@ -1699,20 +1698,20 @@ void SetFlags(const char* flags) {
 // Create a new ArrayBuffer value of the requested size
 ValuePtr NewArrayBuffer(IsolatePtr iso_ptr, size_t byte_length) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso_ptr);
-  Local<Context> c = ctx->ptr.Get(iso);
+  Local<Context> c = ctx->ptr.Get(iso_ptr);
 
   // The Context::Enter/Exit is only needed when calling this code from low-level unit tests,
   // otherwise ArrayBuffer::New() trips over missing context.
   // They are not needed when this code gets called through an executing script.
   c->Enter();
 
-  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(iso, byte_length);
-  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(iso_ptr, byte_length);
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso_ptr, std::move(bs));
 
   m_value* val = new m_value;
-  val->iso = iso;
+  val->iso = iso_ptr;
   val->ctx = ctx;
-  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, arbuf);
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso_ptr, arbuf);
 
   c->Exit(); // see comment above
 
