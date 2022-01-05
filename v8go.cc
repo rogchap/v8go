@@ -185,8 +185,8 @@ void IsolateDispose(IsolatePtr iso) {
     return;
   }
   ContextFree(isolateInternalContext(iso));
-
   iso->Dispose();
+  delete iso->GetArrayBufferAllocator();
 }
 
 void IsolateTerminateExecution(IsolatePtr iso) {
