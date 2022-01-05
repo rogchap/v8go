@@ -808,6 +808,25 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
   return tracked_value(ctx, val);
 }
 
+RtnValue NewValueStringFromByteArray(IsolatePtr iso, const uint8_t* v, int len){
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  TryCatch try_catch(iso);
+  RtnValue rtn = {};
+  Local<String> str;
+  if (!String::NewFromOneByte(iso, v).ToLocal(&str)) {
+    rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
+    return rtn;
+  }
+  // printf("\n");
+  // printf("str %d \n", str->Length());
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, str);
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
+}
+
 RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
