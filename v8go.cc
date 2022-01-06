@@ -952,14 +952,16 @@ RtnString ValueToDetailString(ValuePtr ptr) {
   return rtn;
 }
 
-const char* ValueToString(ValuePtr ptr) {
+FullString ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   // String::Utf8Value will result in an empty string if conversion to a string
   // fails
   // TODO: Consider propagating the JS error. A fallback value could be returned
   // in Value.String()
-  String::Utf8Value utf8(iso, value);
-  return CopyString(utf8);
+  String::Utf8Value src(iso, value);
+  char* data = static_cast<char*>(malloc(src.length()));
+  memcpy(data, *src, src.length());
+  return (FullString){data, src.length()};
 }
 
 uint32_t ValueToUint32(ValuePtr ptr) {

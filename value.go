@@ -242,8 +242,8 @@ func (v *Value) Object() *Object {
 // print their definition.
 func (v *Value) String() string {
 	s := C.ValueToString(v.ptr)
-	defer C.free(unsafe.Pointer(s))
-	return C.GoString(s)
+	defer C.free(unsafe.Pointer(s.data))
+	return C.GoStringN(s.data, C.int(s.length))
 }
 
 // Uint32 perform the equivalent of `Number(value)` in JS and convert the result to an
