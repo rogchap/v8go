@@ -81,6 +81,7 @@ func TestValueString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
+		{"String with null", "String.fromCharCode(115) + String.fromCharCode(0) + String.fromCharCode(115)", "ss"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}
