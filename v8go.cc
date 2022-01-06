@@ -813,18 +813,16 @@ RtnValue NewValueStringFromByteArray(IsolatePtr iso, const uint8_t* v, int len){
   TryCatch try_catch(iso);
   RtnValue rtn = {};
   Local<String> str;
-  if (!String::NewFromOneByte(iso, v).ToLocal(&str)) {
+  if (!String::NewFromOneByte(iso, v, NewStringType::kNormal, len).ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
     return rtn;
   }
-  // printf("\n");
-  // printf("str %d \n", str->Length());
   m_value* val = new m_value;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, str);
   rtn.value = tracked_value(ctx, val);
-  return rtn;
+  return rtn; 
 }
 
 RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
