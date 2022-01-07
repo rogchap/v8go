@@ -948,12 +948,13 @@ RtnString ValueToDetailString(ValuePtr ptr) {
     return rtn;
   }
   String::Utf8Value ds(iso, str);
-  rtn.string = CopyString(ds);
+  rtn.data = CopyString(ds);
   return rtn;
 }
 
-FullString ValueToString(ValuePtr ptr) {
+RtnString ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
+  RtnString rtn = {0};
   // String::Utf8Value will result in an empty string if conversion to a string
   // fails
   // TODO: Consider propagating the JS error. A fallback value could be returned
@@ -961,7 +962,9 @@ FullString ValueToString(ValuePtr ptr) {
   String::Utf8Value src(iso, value);
   char* data = static_cast<char*>(malloc(src.length()));
   memcpy(data, *src, src.length());
-  return (FullString){data, src.length()};
+  rtn.data = data;
+  rtn.length = src.length();
+  return rtn;
 }
 
 uint32_t ValueToUint32(ValuePtr ptr) {

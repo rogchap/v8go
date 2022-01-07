@@ -106,14 +106,10 @@ typedef struct {
 } RtnValue;
 
 typedef struct {
-  const char* string;
-  RtnError error;
-} RtnString;
-
-typedef struct {
   const char* data;
   int length;
-} FullString;
+  RtnError error;
+} RtnString;
 
 typedef struct {
   size_t total_heap_size;
@@ -207,7 +203,7 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
-extern FullString ValueToString(ValuePtr ptr);
+extern RtnString ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);
