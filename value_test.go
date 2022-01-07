@@ -98,6 +98,44 @@ func TestValueString(t *testing.T) {
 	}
 }
 
+func TestValueString_GoToJSAndBack(t *testing.T) {
+	t.Parallel()
+	ctx := v8.NewContext(nil)
+	iso := ctx.Isolate()
+	defer iso.Dispose()
+	defer ctx.Close()
+
+	str := "s\x00s\x00"
+	jsStr, err := v8.NewValue(iso, str)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Test whether the go->js keeps the null chars
+	val, err := ctx.RunScript("(str) => { return str === String.fromCharCode(115, 0, 115, 0)}", "test.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fn, err := val.AsFunction()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := fn.Call(ctx.Global(), jsStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Boolean() {
+		t.Fatal("unexpected result: expected true, got false")
+	}
+
+	// Test whether the js->go keeps the null chars
+	goStr := jsStr.String()
+	if goStr != str {
+		t.Errorf("unexpected result: expected %q, got %q", str, goStr)
+	}
+}
+
 func TestValueDetailString(t *testing.T) {
 	t.Parallel()
 	ctx := v8.NewContext(nil)

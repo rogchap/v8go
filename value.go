@@ -73,7 +73,7 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
-		rtn := C.NewValueString(iso.ptr, cstr)
+		rtn := C.NewValueString(iso.ptr, cstr, C.int(len(v)))
 		return valueResult(nil, rtn)
 	case int32:
 		rtnVal = &Value{

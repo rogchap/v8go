@@ -808,12 +808,12 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
   return tracked_value(ctx, val);
 }
 
-RtnValue NewValueString(IsolatePtr iso, const char* v) {
+RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   RtnValue rtn = {};
   Local<String> str;
-  if (!String::NewFromUtf8(iso, v).ToLocal(&str)) {
+  if (!String::NewFromUtf8(iso, v, NewStringType::kNormal, v_length).ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
     return rtn;
   }
