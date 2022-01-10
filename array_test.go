@@ -80,7 +80,6 @@ func TestUint8Array(t *testing.T) {
 		if !val.IsUint8Array() {
 			t.Errorf("Expected uint8 array return value")
 		}
-		fmt.Printf("Reversed array: %v\n", val.Uint8Array())
 		arr := val.Uint8Array()
 		if len(arr) != 10 {
 			t.Errorf("Got wrong array length %d, expected 10", len(arr))
