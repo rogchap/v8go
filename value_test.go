@@ -6,6 +6,7 @@ package v8go_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"math"
 	"math/big"
@@ -523,13 +524,20 @@ func TestNewStringFromByteArray(t *testing.T) {
 	t.Parallel()
 	ctx := v8.NewContext()
 	iso := ctx.Isolate()
-	input := []byte{8, 222, 242, 75, 21, 163, 141, 99, 105, 109, 131, 193, 214, 127, 211, 5, 31, 26, 190, 232, 217, 75, 103, 7, 117, 116, 81, 229, 147, 59, 22, 46, 144, 6, 57, 85, 204, 26, 143, 187, 64, 136, 246, 148, 23, 113, 111, 95, 189, 179, 23, 118, 165, 62, 231, 181, 216, 253, 7, 70, 163, 50, 83, 215, 223, 160, 109, 0, 204, 209, 148, 21, 206, 60, 42, 182, 156, 139, 162, 183, 15, 30, 51, 42, 186, 111, 187, 116, 112, 250, 92, 94, 92, 94, 141, 205, 102, 82, 134, 179, 23, 39, 189, 37, 114, 10, 80, 67, 83, 147, 53, 117, 64, 158, 241, 176, 125, 201, 93, 48, 84, 206, 160, 123, 237, 22, 2, 100, 215, 216, 102, 27, 157, 200, 165, 78, 48, 240, 209, 180, 137, 35, 86, 126, 239, 83, 83, 241, 68, 2, 126, 104, 166, 42, 21, 113, 38, 34, 171, 158, 70, 147, 173, 60, 54, 49, 175, 245, 35, 108, 56, 14, 124, 183, 113, 25, 69, 180, 43, 104, 111, 215, 47, 52, 231, 158, 34, 111, 7, 181, 10, 34, 255, 177, 215, 160, 77, 46, 22, 189, 66, 223, 211, 139, 218, 16, 130, 213, 50, 108, 197, 127, 120, 118, 59, 77, 22, 167, 125, 105, 67, 143, 98, 188, 19, 251, 49, 43, 74, 137, 18, 189, 179, 88, 75, 149, 169, 18, 49, 41, 68, 156, 222, 247, 228, 194, 87, 211, 75, 154, 160, 167, 1, 18, 184, 7}
-	val, err := v8.NewStringFromByteArray(iso, input)
+
+	inputString := "CN7ySxWjjWNpbYPB1n/TBR8avujZS2cHdXRR5ZM7Fi6QBjlVzBqPu0CI9pQXcW9fvbMXdqU+57XY/QdGozJT19+gbQDM0ZQVzjwqtpyLorcPHjMqum+7dHD6XF5cXo3NZlKGsxcnvSVyClBDU5M1dUCe8bB9yV0wVM6ge+0WAmTX2GYbncilTjDw0bSJI1Z+71NT8UQCfmimKhVxJiKrnkaTrTw2Ma/1I2w4Dny3cRlFtCtob9cvNOeeIm8HtQoi/7HXoE0uFr1C39OL2hCC1TJsxX94djtNFqd9aUOPYrwT+zErSokSvbNYS5WpEjEpRJze9+TCV9NLmqCnARK4Bw"
+	byts, _ := base64.RawStdEncoding.DecodeString(inputString)
+
+	expected := "ÞòK£cimÁÖÓ¾èÙKgutQå;.9UÌ»@öqo_½³v¥>çµØýF£2S×ß m"
+	val, err := v8.NewStringFromByteArray(iso, byts)
 	if err != nil {
-		t.Errorf("expeced nil but got error %#v", err)
+		t.Errorf("expected nil but got error %#v", err)
 	}
 	if !val.IsString() {
-		t.Errorf("expeced string but got %s", reflect.TypeOf(val))
+		t.Errorf("expected string but got %s", reflect.TypeOf(val))
+	}
+	if val.String() != expected {
+		t.Errorf("expected not same as actual")
 	}
 }
 
