@@ -950,6 +950,7 @@ RtnString ValueToDetailString(ValuePtr ptr) {
   }
   String::Utf8Value ds(iso, str);
   rtn.data = CopyString(ds);
+  rtn.length = ds.length();
   return rtn;
 }
 

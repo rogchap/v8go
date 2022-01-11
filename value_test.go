@@ -98,41 +98,48 @@ func TestValueString(t *testing.T) {
 	}
 }
 
-func TestValueString_GoToJSAndBack(t *testing.T) {
+func TestNewValue(t *testing.T) {
 	t.Parallel()
 	ctx := v8.NewContext(nil)
 	iso := ctx.Isolate()
 	defer iso.Dispose()
 	defer ctx.Close()
 
-	str := "s\x00s\x00"
-	jsStr, err := v8.NewValue(iso, str)
-	if err != nil {
-		t.Fatal(err)
+	tests := []struct {
+		name      string
+		input     interface{}
+		predicate string
+	}{
+		{"string", "s\x00s\x00", `str => str === "s\x00s\x00"`},
+		{"int32", int32(36), `int => int === 36`},
+		{"bool", true, `b => b === true`},
 	}
 
-	// Test whether the go->js keeps the null chars
-	val, err := ctx.RunScript("(str) => { return str === String.fromCharCode(115, 0, 115, 0)}", "test.js")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fn, err := val.AsFunction()
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			val, err := ctx.RunScript(tt.predicate, "test.js")
+			if err != nil {
+				t.Fatal(err)
+			}
+			fn, err := val.AsFunction()
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	result, err := fn.Call(ctx.Global(), jsStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !result.Boolean() {
-		t.Fatal("unexpected result: expected true, got false")
-	}
+			jsVal, err := v8.NewValue(iso, tt.input)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-	// Test whether the js->go keeps the null chars
-	goStr := jsStr.String()
-	if goStr != str {
-		t.Errorf("unexpected result: expected %q, got %q", str, goStr)
+			result, err := fn.Call(ctx.Global(), jsVal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !result.Boolean() {
+				t.Fatal("unexpected result: expected true, got false")
+			}
+		})
 	}
 }
 

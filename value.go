@@ -57,7 +57,6 @@ func Null(iso *Isolate) *Value {
 //   string -> V8::String
 //   int32 -> V8::Integer
 //   uint32 -> V8::Integer
-//   bool -> V8::Boolean
 //   int64 -> V8::BigInt
 //   uint64 -> V8::BigInt
 //   bool -> V8::Boolean
@@ -203,9 +202,8 @@ func (v *Value) DetailString() string {
 		err := newJSError(rtn.error)
 		panic(err) // TODO: Return a fallback value
 	}
-	s := rtn.data
-	defer C.free(unsafe.Pointer(s))
-	return C.GoString(s)
+	defer C.free(unsafe.Pointer(rtn.data))
+	return C.GoStringN(rtn.data, rtn.length)
 }
 
 // Int32 perform the equivalent of `Number(value)` in JS and convert the result to a
