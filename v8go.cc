@@ -61,7 +61,9 @@ const char* CopyString(String::Utf8Value& value) {
   return CopyString(*value);
 }
 
-RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
+static RtnError ExceptionError(TryCatch& try_catch,
+                               Isolate* iso,
+                               Local<Context> ctx) {
   HandleScope handle_scope(iso);
 
   RtnError rtn = {nullptr, nullptr, nullptr};
