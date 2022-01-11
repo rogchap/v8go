@@ -62,8 +62,6 @@ const char* CopyString(String::Utf8Value& value) {
 }
 
 RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
 
   RtnError rtn = {nullptr, nullptr, nullptr};
