@@ -191,7 +191,7 @@ func TestObjectDelete(t *testing.T) {
 
 }
 
-func TestObjectGetPropertyNames(t *testing.T) {
+func TestGetEnumerablePropertyNames(t *testing.T) {
 	t.Parallel()
 
 	ctx := v8.NewContext()
@@ -204,7 +204,7 @@ func TestObjectGetPropertyNames(t *testing.T) {
 	obj.Set("hello", "world")
 
 	expectedProperties := []string{"bar2", "foo", "hello"}
-	properties := obj.GetPropertyNames()
+	properties := obj.GetEnumerablePropertyNames()
 
 	if !reflect.DeepEqual(properties, expectedProperties) {
 		t.Error("properteis are not the same")
