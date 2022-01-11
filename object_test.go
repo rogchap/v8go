@@ -204,7 +204,8 @@ func TestGetEnumerablePropertyNames(t *testing.T) {
 	obj.Set("hello", "world")
 
 	expectedProperties := []string{"bar2", "foo", "hello"}
-	properties := obj.GetEnumerablePropertyNames()
+	properties, err := obj.GetEnumerablePropertyNames()
+	fatalIf(t, err)
 
 	if !reflect.DeepEqual(properties, expectedProperties) {
 		t.Error("properteis are not the same")

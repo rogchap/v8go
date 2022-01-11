@@ -86,7 +86,7 @@ func (o *Object) SetIdx(idx uint32, val interface{}) error {
 
 // Returns an array containing the names of the enumerable properties of this object,
 // including properties from prototype objects
-func (o *Object) GetEnumerablePropertyNames() []string {
+func (o *Object) GetEnumerablePropertyNames() ([]string, error) {
 	rtn := C.ObjectGetPropertyNames(o.ptr)
 	return valueStrings(o.ctx, rtn)
 }

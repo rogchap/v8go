@@ -169,7 +169,10 @@ func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	return &Value{rtn.value, ctx}, nil
 }
 
-func valueStrings(ctx *Context, rtn C.RtnStrings) []string {
+func valueStrings(ctx *Context, rtn C.RtnStrings) ([]string, error) {
+	if rtn.strings == nil {
+		return []string{}, newJSError(rtn.error)
+	}
 	length := rtn.length
 	slice := (*[1 << 28]*C.char)(unsafe.Pointer(rtn.strings))[:length:length]
 	var result []string
@@ -179,7 +182,7 @@ func valueStrings(ctx *Context, rtn C.RtnStrings) []string {
 		result = append(result, C.GoString(s))
 	}
 	defer C.free(unsafe.Pointer(rtn.strings))
-	return result
+	return result, nil
 }
 
 func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {

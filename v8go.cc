@@ -1294,14 +1294,21 @@ RtnStrings ObjectGetPropertyNames(ValuePtr ptr) {
   LOCAL_OBJECT(ptr);
   RtnStrings rtn = {};
 
-  MaybeLocal<Array> maybe_names = obj->GetPropertyNames(local_ctx);
-  Local<Array> names = maybe_names.ToLocalChecked();
+  Local<Array> names;
+  if (!obj->GetPropertyNames(local_ctx).ToLocal(&names)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
 
   uint32_t length = names->Length();
   const char** strings = new const char*[length];
 
   for (uint32_t i = 0; i < length; i++) {
-    Local<Value> name_from_array = names->Get(local_ctx, i).ToLocalChecked();
+    Local<Value> name_from_array;
+    if (!names->Get(local_ctx, i).ToLocal(&name_from_array)) {
+      rtn.error = ExceptionError(try_catch, iso, local_ctx);
+      return rtn;
+    }
     String::Utf8Value ds(iso, name_from_array);
     strings[i] = CopyString(ds);
   }
