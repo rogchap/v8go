@@ -81,7 +81,7 @@ func TestValueString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
-		{"String with null terminators and Unicode", "String.fromCharCode(0, 55358, 56614, 8205, 9794, 65039, 0, 1040, 1041, 1042, 0, 97, 98, 99, 100)", "\x00\U0001f926\u200d\u2642\ufe0f\x00АБВ\x00abcd"},
+		{"String with null character and non-latin unicode", `"a\x00Ω"`, "a\x00Ω"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}
