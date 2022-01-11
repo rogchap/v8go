@@ -813,7 +813,8 @@ RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   TryCatch try_catch(iso);
   RtnValue rtn = {};
   Local<String> str;
-  if (!String::NewFromUtf8(iso, v, NewStringType::kNormal, v_length).ToLocal(&str)) {
+  if (!String::NewFromUtf8(iso, v, NewStringType::kNormal, v_length)
+           .ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
     return rtn;
   }
