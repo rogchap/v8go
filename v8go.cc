@@ -1301,11 +1301,15 @@ RtnStrings ObjectGetPropertyNames(ValuePtr ptr) {
   }
 
   uint32_t length = names->Length();
-  const char** strings = new const char*[length];
+  const char** strings = (const char**)malloc(length * sizeof(const char*));
 
   for (uint32_t i = 0; i < length; i++) {
     Local<Value> name_from_array;
     if (!names->Get(local_ctx, i).ToLocal(&name_from_array)) {
+      for (i = i - 1; i > 0; i--) {
+        free(&strings[i]);
+      }
+      free(strings);
       rtn.error = ExceptionError(try_catch, iso, local_ctx);
       return rtn;
     }
