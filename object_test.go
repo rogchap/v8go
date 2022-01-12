@@ -53,12 +53,24 @@ func TestObjectSet(t *testing.T) {
 	defer ctx.Close()
 	val, _ := ctx.RunScript("const foo = {}; foo", "")
 	obj, _ := val.AsObject()
-	obj.Set("bar", "baz")
+	if err := obj.Set("bar", "baz"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
 	baz, _ := ctx.RunScript("foo.bar", "")
 	if baz.String() != "baz" {
 		t.Errorf("unexpected value: %q", baz)
 	}
-	if err := obj.Set("", nil); err == nil {
+
+	if err := obj.Set("", "zero"); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	val, err := ctx.RunScript("foo['']", "")
+	fatalIf(t, err)
+	if val.String() != "zero" {
+		t.Errorf("unexpected value: %q", val)
+	}
+
+	if err := obj.Set("a", nil); err == nil {
 		t.Error("expected error but got <nil>")
 	}
 	if err := obj.Set("a", 0); err == nil {
