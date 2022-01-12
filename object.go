@@ -8,7 +8,6 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"unsafe"
@@ -54,10 +53,6 @@ func coerceValue(iso *Isolate, val interface{}) (*Value, error) {
 // If the value passed is a Go supported primitive (string, int32, uint32, int64, uint64, float64, big.Int)
 // then a *Value will be created and set as the value property.
 func (o *Object) Set(key string, val interface{}) error {
-	if len(key) == 0 {
-		return errors.New("v8go: You must provide a valid property key")
-	}
-
 	value, err := coerceValue(o.ctx.iso, val)
 	if err != nil {
 		return err
