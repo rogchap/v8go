@@ -58,7 +58,7 @@ const char* CopyString(String::Utf8Value& value) {
   if (value.length() == 0) {
     return nullptr;
   }
-  return CopyString(*value);
+  return CopyString(std::string(*value, value.length()));
 }
 
 static RtnError ExceptionError(TryCatch& try_catch,
