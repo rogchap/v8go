@@ -53,9 +53,10 @@ func Null(iso *Isolate) *Value {
 	return iso.null
 }
 
+// NewStringFromByteArray returns V8::string from byte array. Converts each byte into equivalent character.
 func NewStringFromByteArray(iso *Isolate, val []byte) (*Value, error) {
 	if iso == nil {
-		return nil, errors.New("v8go: failed to create new Value: Isolate cannot be <nil>")
+		panic(errors.New("v8go: failed to create new Value: Isolate cannot be <nil>"))
 	}
 	cUint := (*C.uchar)(unsafe.Pointer(&val[0]))
 	rtnVal := C.NewValueStringFromByteArray(iso.ptr, cUint, C.int(len(val)))

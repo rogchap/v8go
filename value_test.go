@@ -6,7 +6,6 @@ package v8go_test
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"math"
 	"math/big"
@@ -522,23 +521,55 @@ func TestValueFunction(t *testing.T) {
 
 func TestNewStringFromByteArray(t *testing.T) {
 	t.Parallel()
-	ctx := v8.NewContext()
-	iso := ctx.Isolate()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	global := v8.NewObjectTemplate(iso)
 
-	inputString := "CN7ySxWjjWNpbYPB1n/TBR8avujZS2cHdXRR5ZM7Fi6QBjlVzBqPu0CI9pQXcW9fvbMXdqU+57XY/QdGozJT19+gbQDM0ZQVzjwqtpyLorcPHjMqum+7dHD6XF5cXo3NZlKGsxcnvSVyClBDU5M1dUCe8bB9yV0wVM6ge+0WAmTX2GYbncilTjDw0bSJI1Z+71NT8UQCfmimKhVxJiKrnkaTrTw2Ma/1I2w4Dny3cRlFtCtob9cvNOeeIm8HtQoi/7HXoE0uFr1C39OL2hCC1TJsxX94djtNFqd9aUOPYrwT+zErSokSvbNYS5WpEjEpRJze9+TCV9NLmqCnARK4Bw"
-	byts, _ := base64.RawStdEncoding.DecodeString(inputString)
+	testFn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		args := info.Args()
+		input := args[0].String()
+		if len(input) == 0 {
+			//String() terminates input at null character. hence hardcoding for 3rd input
+			input = "a\x00\xffe"
+		}
+		val, _ := v8.NewStringFromByteArray(iso, []byte(input))
+		return val
+	})
+	global.Set("foo", testFn, v8.ReadOnly)
 
-	expected := "ÞòK£cimÁÖÓ¾èÙKgutQå;.9UÌ»@öqo_½³v¥>çµØýF£2S×ß m"
-	val, err := v8.NewStringFromByteArray(iso, byts)
-	if err != nil {
-		t.Errorf("expected nil but got error %#v", err)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+	tests := [...]struct {
+		name   string
+		script string
+	}{
+		{"normal string",
+			` 	let res = foo("str"); 
+				if(res.length != 3){
+					throw Error("expected length 3")
+				}
+			`},
+		{"multi-byte sequence",
+			` 	res = foo("Ò"); 
+				if(res.length != 2 ){
+					throw Error("expected length 2")
+				}
+			`},
+		{"null terminated sequence",
+			` 	res = foo("");
+				if(res.length != 4){
+					throw Error("expected length 4")
+				}
+			`},
 	}
-	if !val.IsString() {
-		t.Errorf("expected string but got %s", reflect.TypeOf(val))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := ctx.RunScript(tt.script, ""); err != nil {
+				t.Errorf("expected <nil> error, but got error: %v", err)
+			}
+		})
 	}
-	if val.String() != expected {
-		t.Errorf("expected not same as actual")
-	}
+
 }
 
 func TestValueSameValue(t *testing.T) {
