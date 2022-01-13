@@ -203,7 +203,7 @@ func TestIsolateThrowException(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
 
-	strErr, _ := v8.NewValue(iso, "some type error")
+	strErr := v8.MustNewString(iso, "some type error").Value
 
 	throwError := func(val *v8.Value) {
 		v := iso.ThrowException(val)

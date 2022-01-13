@@ -60,8 +60,8 @@ func TestFunctionTemplateGetFunction(t *testing.T) {
 	var args *v8.FunctionCallbackInfo
 	tmpl := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		args = info
-		reply, _ := v8.NewValue(iso, "hello")
-		return reply
+		reply := v8.MustNewString(iso, "hello")
+		return reply.Value
 	})
 	fn := tmpl.GetFunction(ctx)
 	ten, err := v8.NewValue(iso, int32(10))

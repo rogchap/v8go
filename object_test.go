@@ -33,7 +33,7 @@ func TestObjectMethodCall(t *testing.T) {
 	val, err = ctx.RunScript(`class Obj2 { print(str) { return str.toString() }; get fails() { throw "error" } }; new Obj2()`, "")
 	fatalIf(t, err)
 	obj, _ = val.AsObject()
-	arg, _ := v8.NewValue(iso, "arg")
+	arg := v8.MustNewString(iso, "arg")
 	val, err = obj.MethodCall("print", arg)
 	fatalIf(t, err)
 	if val.String() != "arg" {
