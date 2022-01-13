@@ -70,10 +70,8 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 
 	switch v := val.(type) {
 	case string:
-		cstr := C.CString(v)
-		defer C.free(unsafe.Pointer(cstr))
-		rtn := C.NewValueString(iso.ptr, cstr, C.int(len(v)))
-		return valueResult(nil, rtn)
+		str, err := NewString(iso, v)
+		return str.Value, err
 	case int32:
 		rtnVal = &Value{
 			ptr: C.NewValueInteger(iso.ptr, C.int(v)),
@@ -565,6 +563,13 @@ func (v *Value) AsFunction() (*Function, error) {
 		return nil, errors.New("v8go: value is not a Function")
 	}
 	return &Function{v}, nil
+}
+
+func (v *Value) AsString() (*String, error) {
+	if !v.IsFunction() {
+		return nil, errors.New("v8go: value is not a String")
+	}
+	return &String{v}, nil
 }
 
 // MarshalJSON implements the json.Marshaler interface.
