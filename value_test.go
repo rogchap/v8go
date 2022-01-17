@@ -525,6 +525,10 @@ func TestNewStringFromBytes(t *testing.T) {
 	defer iso.Dispose()
 	global := v8.NewObjectTemplate(iso)
 
+	if recoverPanic(func() { v8.NewStringFromBytes(nil, []byte{}) }) == nil {
+		t.Error("expected panic")
+	}
+
 	testFn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
 		args := info.Args()
 		input := args[0].String()
