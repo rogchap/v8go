@@ -53,13 +53,13 @@ func Null(iso *Isolate) *Value {
 	return iso.null
 }
 
-// NewStringFromByteArray returns V8::string from byte array. Converts each byte into equivalent character.
-func NewStringFromByteArray(iso *Isolate, val []byte) (*Value, error) {
+// NewStringFromBytes returns V8::string from byte array. Creates binary string from bytes.
+func NewStringFromBytes(iso *Isolate, bytes []byte) (*Value, error) {
 	if iso == nil {
 		panic(errors.New("v8go: failed to create new Value: Isolate cannot be <nil>"))
 	}
-	cUint := (*C.uchar)(unsafe.Pointer(&val[0]))
-	rtnVal := C.NewValueStringFromByteArray(iso.ptr, cUint, C.int(len(val)))
+	cUint := (*C.uchar)(unsafe.Pointer(&bytes[0]))
+	rtnVal := C.NewStringFromBytes(iso.ptr, cUint, C.int(len(bytes)))
 	return valueResult(nil, rtnVal)
 }
 

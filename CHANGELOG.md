@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Support for [binary strings](https://developer.mozilla.org/en-US/docs/Web/API/DOMString/Binary). `NewStringFromByteArray` takes bytes array as input and uses `String::NewFromOneByte` to convert each byte to an equivalent character.
+- NewStringFromBytes to support the creation of [binary strings](https://developer.mozilla.org/en-US/docs/Web/API/DOMString/Binary) from Go byte array.
 
 ### Fixed
 - Use string length to ensure null character-containing strings in Go/JS are not terminated early.

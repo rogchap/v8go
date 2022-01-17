@@ -519,7 +519,7 @@ func TestValueFunction(t *testing.T) {
 
 }
 
-func TestNewStringFromByteArray(t *testing.T) {
+func TestNewStringFromBytes(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
@@ -532,7 +532,7 @@ func TestNewStringFromByteArray(t *testing.T) {
 			//String() terminates input at null character. hence hardcoding for 3rd input
 			input = "a\x00\xffe"
 		}
-		val, _ := v8.NewStringFromByteArray(iso, []byte(input))
+		val, _ := v8.NewStringFromBytes(iso, []byte(input))
 		return val
 	})
 	global.Set("foo", testFn, v8.ReadOnly)
