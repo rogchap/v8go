@@ -85,7 +85,7 @@ func NewContextFromSnapshot(iso *Isolate, snapshot_index int) (*Context, error) 
 
 	createParams := iso.createParams
 	if createParams == nil || createParams.startupData == nil {
-		return nil, errors.New("Must create an isolate from a snapshot blob")
+		return nil, errors.New("v8go: The isolate must have startupData associated with it")
 	}
 
 	ctx := &Context{
