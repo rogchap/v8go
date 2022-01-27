@@ -33,18 +33,14 @@ func TestCreateSnapshot(t *testing.T) {
 	defer ctx.Close()
 
 	runVal, err := ctx.Global().Get("run")
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
 
 	fn, err := runVal.AsFunction()
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
+
 	val, err := fn.Call(v8.Undefined(iso))
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
+
 	if val.String() != "7" {
 		t.Fatal("invalid val")
 	}
@@ -90,39 +86,32 @@ func TestCreateSnapshotAndAddExtraContext(t *testing.T) {
 	defer ctx.Close()
 
 	runVal, err := ctx.Global().Get("run")
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
 
 	fn, err := runVal.AsFunction()
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
+
 	val, err := fn.Call(v8.Undefined(iso))
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
+
 	if val.String() != "12" {
 		t.Fatal("invalid val")
 	}
 
 	ctx, err = v8.NewContextFromSnapshot(iso, index2)
 	fatalIf(t, err)
+
 	defer ctx.Close()
 
 	runVal, err = ctx.Global().Get("run")
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
 
 	fn, err = runVal.AsFunction()
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
+
 	val, err = fn.Call(v8.Undefined(iso))
-	if err != nil {
-		panic(err)
-	}
+	fatalIf(t, err)
+
 	if val.String() != "3" {
 		t.Fatal("invalid val")
 	}
@@ -144,7 +133,7 @@ func TestCreateSnapshotErrorAfterAddingMultipleDefaultContext(t *testing.T) {
 	defer snapshotCreatorCtx.Close()
 
 	if err == nil {
-		t.Error("Adding an extra default cointext show have fail")
+		t.Error("setting another default context should have failed, got <nil>")
 	}
 }
 
@@ -157,25 +146,25 @@ func TestCreateSnapshotErrorAfterSuccessfullCreate(t *testing.T) {
 
 	snapshotCreatorCtx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	snapshotCreatorCtx.RunScript(`function run() { return add(3, 4); }`, "main.js")
-	err = snapshotCreator.SetDeafultContext(snapshotCreatorCtx)
+	err = snapshotCreator.SetDefaultContext(snapshotCreatorCtx)
 	fatalIf(t, err)
 
-	_, err = snapshotCreator.Create(v8.FunctionCodeHandlingKlear)
+	_, err = snapshotCreator.Create(v8.FunctionCodeHandlingClear)
 	fatalIf(t, err)
 
 	_, err = snapshotCreator.GetIsolate()
 	if err == nil {
-		t.Error("Getting Isolate should have fail")
+		t.Error("getting Isolate should have fail")
 	}
 
 	_, err = snapshotCreator.AddContext(snapshotCreatorCtx)
 	if err == nil {
-		t.Error("Adding context should have fail")
+		t.Error("adding context should have fail")
 	}
 
-	_, err = snapshotCreator.Create(v8.FunctionCodeHandlingKlear)
+	_, err = snapshotCreator.Create(v8.FunctionCodeHandlingClear)
 	if err == nil {
-		t.Error("Creating snapshot should have fail")
+		t.Error("creating snapshot should have fail")
 	}
 }
 
@@ -186,6 +175,6 @@ func TestCreateSnapshotErrorIfNodefaultContextIsAdded(t *testing.T) {
 	_, err := snapshotCreator.Create(v8.FunctionCodeHandlingClear)
 
 	if err == nil {
-		t.Error("Creating a snapshop should have fail")
+		t.Error("creating a snapshop should have fail")
 	}
 }
