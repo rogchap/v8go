@@ -62,6 +62,9 @@ type CreateParams struct {
 // different isolates simultaneously.
 // When an isolate is no longer used its resources should be freed
 // by calling iso.Dispose().
+// If StartupData is passed as part of createOptions it will be use as part
+// of the createParams. The StartupData will be use when creating new context
+// from the Isolate.
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
 func NewIsolate(opts ...createOptions) *Isolate {

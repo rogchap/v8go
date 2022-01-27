@@ -20,10 +20,10 @@ func TestCreateSnapshot(t *testing.T) {
 
 	snapshotCreatorCtx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	snapshotCreatorCtx.RunScript(`function run() { return add(3, 4); }`, "main.js")
-	err = snapshotCreator.SetDeafultContext(snapshotCreatorCtx)
+	err = snapshotCreator.SetDefaultContext(snapshotCreatorCtx)
 	fatalIf(t, err)
 
-	data, err := snapshotCreator.Create(v8.FunctionCodeHandlingKlear)
+	data, err := snapshotCreator.Create(v8.FunctionCodeHandlingClear)
 	fatalIf(t, err)
 
 	iso := v8.NewIsolate(v8.WithStartupData(data))
@@ -60,7 +60,7 @@ func TestCreateSnapshotAndAddExtraContext(t *testing.T) {
 
 	snapshotCreatorCtx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	snapshotCreatorCtx.RunScript(`function run() { return add(3, 4); }`, "main.js")
-	err = snapshotCreator.SetDeafultContext(snapshotCreatorCtx)
+	err = snapshotCreator.SetDefaultContext(snapshotCreatorCtx)
 	fatalIf(t, err)
 
 	snapshotCreatorCtx2 := v8.NewContext(snapshotCreatorIso)
@@ -79,7 +79,7 @@ func TestCreateSnapshotAndAddExtraContext(t *testing.T) {
 	index2, err := snapshotCreator.AddContext(snapshotCreatorCtx3)
 	fatalIf(t, err)
 
-	data, err := snapshotCreator.Create(v8.FunctionCodeHandlingKlear)
+	data, err := snapshotCreator.Create(v8.FunctionCodeHandlingClear)
 	fatalIf(t, err)
 
 	iso := v8.NewIsolate(v8.WithStartupData(data))
@@ -137,10 +137,10 @@ func TestCreateSnapshotErrorAfterAddingMultipleDefaultContext(t *testing.T) {
 
 	snapshotCreatorCtx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	snapshotCreatorCtx.RunScript(`function run() { return add(3, 4); }`, "main.js")
-	err = snapshotCreator.SetDeafultContext(snapshotCreatorCtx)
+	err = snapshotCreator.SetDefaultContext(snapshotCreatorCtx)
 	fatalIf(t, err)
 
-	err = snapshotCreator.SetDeafultContext(snapshotCreatorCtx)
+	err = snapshotCreator.SetDefaultContext(snapshotCreatorCtx)
 	defer snapshotCreatorCtx.Close()
 
 	if err == nil {
@@ -183,7 +183,7 @@ func TestCreateSnapshotErrorIfNodefaultContextIsAdded(t *testing.T) {
 	snapshotCreator := v8.NewSnapshotCreator()
 	defer snapshotCreator.Dispose()
 
-	_, err := snapshotCreator.Create(v8.FunctionCodeHandlingKlear)
+	_, err := snapshotCreator.Create(v8.FunctionCodeHandlingClear)
 
 	if err == nil {
 		t.Error("Creating a snapshop should have fail")

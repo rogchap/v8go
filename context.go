@@ -77,6 +77,8 @@ func NewContext(opt ...ContextOption) *Context {
 	return ctx
 }
 
+// NewContextFromSnapshot creates a new JavaScript context from the Isolate startup data;
+// If the Isolate has no startup data associated returns an error.
 func NewContextFromSnapshot(iso *Isolate, snapshot_index int) (*Context, error) {
 	ctxMutex.Lock()
 	ctxSeq++

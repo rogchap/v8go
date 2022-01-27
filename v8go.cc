@@ -320,8 +320,6 @@ size_t AddContext(SnapshotCreatorPtr snapshotCreator, ContextPtr ctx) {
 
 RtnSnapshotBlob* CreateBlob(SnapshotCreatorPtr snapshotCreator,
                             int function_code_handling) {
-  //  kKeep - keeps any compiled functions
-  //  kClear - does not keep any compiled functions
   StartupData startup_data = snapshotCreator->CreateBlob(
       SnapshotCreator::FunctionCodeHandling(function_code_handling));
 

@@ -14,22 +14,27 @@ import (
 
 type FunctionCodeHandling int
 
+//  Clear - does not keeps any compiled data prior to serialization/deserialization/verify pass
+//  Keep - keeps any compiled data prior to serialization/deserialization/verify pass
 const (
-	FunctionCodeHandlingKlear FunctionCodeHandling = iota
+	FunctionCodeHandlingClear FunctionCodeHandling = iota
 	FunctionCodeHandlingKeep
 )
 
+// StartupData stores the snapshot blob data
 type StartupData struct {
 	data     []byte
 	raw_size C.int
 }
 
+// SnapshotCreator allows creating snapshot.
 type SnapshotCreator struct {
 	ptr                 C.SnapshotCreatorPtr
 	iso                 *Isolate
 	defaultContextAdded bool
 }
 
+// NewSnapshotCreator creates a new snapshot creator.
 func NewSnapshotCreator() *SnapshotCreator {
 	v8once.Do(func() {
 		C.Init()
@@ -44,6 +49,8 @@ func NewSnapshotCreator() *SnapshotCreator {
 	}
 }
 
+// GetIsolate returns the Isolate associated with the SnapshotCreator.
+// This Isolate must be use to create the contexts that later will be use to create the snapshot blob.
 func (s *SnapshotCreator) GetIsolate() (*Isolate, error) {
 	if s.ptr == nil {
 		return nil, errors.New("v8go: Cannot get Isolate after creating the blob")
@@ -52,7 +59,8 @@ func (s *SnapshotCreator) GetIsolate() (*Isolate, error) {
 	return s.iso, nil
 }
 
-func (s *SnapshotCreator) SetDeafultContext(ctx *Context) error {
+// SetDefaultContext set the default context to be included in the snapshot blob.
+func (s *SnapshotCreator) SetDefaultContext(ctx *Context) error {
 	if s.defaultContextAdded {
 		return errors.New("v8go: Cannot set multiple default context for snapshot creator")
 	}
@@ -64,6 +72,8 @@ func (s *SnapshotCreator) SetDeafultContext(ctx *Context) error {
 	return nil
 }
 
+// AddContext add additional context to be included in the snapshot blob.
+// Returns the index of the context in the snapshot blob, that later can be use to call v8go.NewContextFromSnapshot.
 func (s *SnapshotCreator) AddContext(ctx *Context) (int, error) {
 	if s.ptr == nil {
 		return 0, errors.New("v8go: Cannot add context to snapshot creator after creating the blob")
@@ -75,6 +85,7 @@ func (s *SnapshotCreator) AddContext(ctx *Context) (int, error) {
 	return int(index), nil
 }
 
+// Create creates a snapshot data blob.
 func (s *SnapshotCreator) Create(functionCode FunctionCodeHandling) (*StartupData, error) {
 	if s.ptr == nil {
 		return nil, errors.New("v8go: Cannot use snapshot creator after creating the blob")
@@ -97,6 +108,7 @@ func (s *SnapshotCreator) Create(functionCode FunctionCodeHandling) (*StartupDat
 	return &StartupData{data: data, raw_size: raw_size}, nil
 }
 
+// Dispose deletes the reference to the SnapshotCreator.
 func (s *SnapshotCreator) Dispose() {
 	if s.ptr != nil {
 		C.DeleteSnapshotCreator(s.ptr)
