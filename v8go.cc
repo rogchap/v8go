@@ -158,7 +158,7 @@ IsolatePtr NewIsolate(IsolateOptions options) {
   params.array_buffer_allocator = default_allocator;
 
   StartupData* startup_data;
-  if (options.snapshot_blob_data != nullptr) {
+  if (options.snapshot_blob_data) {
     startup_data = new StartupData{options.snapshot_blob_data,
                                    options.snapshot_blob_raw_size};
     params.snapshot_blob = startup_data;
