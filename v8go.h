@@ -125,6 +125,11 @@ typedef struct {
 } RtnValue;
 
 typedef struct {
+  ContextPtr context;
+  RtnError error;
+} RtnContext;
+
+typedef struct {
   const char* data;
   int length;
   RtnError error;
@@ -190,7 +195,7 @@ extern void CPUProfileDelete(CPUProfile* ptr);
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
-extern ContextPtr NewContextFromSnapshot(IsolatePtr iso,
+extern RtnContext NewContextFromSnapshot(IsolatePtr iso,
                                          size_t snapshot_blob_index,
                                          int ref);
 extern void ContextFree(ContextPtr ptr);

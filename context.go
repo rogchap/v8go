@@ -8,7 +8,6 @@ package v8go
 // #include "v8go.h"
 import "C"
 import (
-	"errors"
 	"runtime"
 	"sync"
 	"unsafe"
@@ -78,21 +77,22 @@ func NewContext(opt ...ContextOption) *Context {
 }
 
 // NewContextFromSnapshot creates a new JavaScript context from the Isolate startup data;
-// If the Isolate has no startup data associated returns an error.
+// error will be of type `JSError` if not nil.
 func NewContextFromSnapshot(iso *Isolate, snapshot_index int) (*Context, error) {
 	ctxMutex.Lock()
 	ctxSeq++
 	ref := ctxSeq
 	ctxMutex.Unlock()
 
-	createParams := iso.createParams
-	if createParams == nil || createParams.startupData == nil {
-		return nil, errors.New("v8go: The isolate must have startupData associated with it")
+	rtn := C.NewContextFromSnapshot(iso.ptr, C.size_t(snapshot_index), C.int(ref))
+
+	if rtn.context == nil {
+		return nil, newJSError(rtn.error)
 	}
 
 	ctx := &Context{
 		ref: ref,
-		ptr: C.NewContextFromSnapshot(iso.ptr, C.size_t(snapshot_index), C.int(ref)),
+		ptr: rtn.context,
 		iso: iso,
 	}
 

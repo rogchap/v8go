@@ -668,12 +668,14 @@ ContextPtr NewContext(IsolatePtr iso,
   return ctx;
 }
 
-ContextPtr NewContextFromSnapshot(IsolatePtr iso,
+RtnContext NewContextFromSnapshot(IsolatePtr iso,
                                   size_t snapshot_blob_index,
                                   int ref) {
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
   HandleScope handle_scope(iso);
+
+  RtnContext rtn = {};
 
   // For function callbacks we need a reference to the context, but because of
   // the complexities of C -> Go function pointers, we store a reference to the
@@ -681,15 +683,26 @@ ContextPtr NewContextFromSnapshot(IsolatePtr iso,
   // side to lookup the context in the context registry. We use slot 1 as slot 0
   // has special meaning for the Chrome debugger.
 
-  Local<Context> local_ctx =
-      Context::FromSnapshot(iso, snapshot_blob_index).ToLocalChecked();
+  Local<Context> local_ctx;
+  MaybeLocal<Context> maybe_local_ctx =
+      Context::FromSnapshot(iso, snapshot_blob_index);
+
+  if (!maybe_local_ctx.ToLocal(&local_ctx)) {
+    RtnError error = {nullptr, nullptr, nullptr};
+    error.msg = CopyString("Failed to create context from snapshot index: " +
+                           std::to_string(snapshot_blob_index));
+    rtn.error = error;
+    return rtn;
+  }
+
   local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
 
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
   ctx->startup_data = nullptr;
-  return ctx;
+  rtn.context = ctx;
+  return rtn;
 }
 
 void ContextFree(ContextPtr ctx) {
