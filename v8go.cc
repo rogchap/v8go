@@ -13,13 +13,6 @@
 #include <string>
 #include <vector>
 
-#if defined(__MINGW32__) || defined(__MINGW64__)
-// MinGW header files do not implicitly include windows.h
-struct _EXCEPTION_POINTERS;
-#endif
-
-#include "libplatform/libplatform.h"
-#include "v8.h"
 #include "_cgo_export.h"
 
 using namespace v8;
@@ -27,9 +20,14 @@ using namespace v8;
 auto default_platform = platform::NewDefaultPlatform();
 auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
 
+const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
+const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
+const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
+
 struct m_ctx {
   Isolate* iso;
   std::vector<m_value*> vals;
+  std::vector<m_unboundScript*> unboundScripts;
   Persistent<Context> ptr;
 };
 
@@ -44,6 +42,10 @@ struct m_template {
   Persistent<Template> ptr;
 };
 
+struct m_unboundScript {
+  Persistent<UnboundScript> ptr;
+};
+
 const char* CopyString(std::string str) {
   int len = str.length();
   char* mem = (char*)malloc(len + 1);
@@ -56,12 +58,12 @@ const char* CopyString(String::Utf8Value& value) {
   if (value.length() == 0) {
     return nullptr;
   }
-  return CopyString(*value);
+  return CopyString(std::string(*value, value.length()));
 }
 
-RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
+static RtnError ExceptionError(TryCatch& try_catch,
+                               Isolate* iso,
+                               Local<Context> ctx) {
   HandleScope handle_scope(iso);
 
   RtnError rtn = {nullptr, nullptr, nullptr};
@@ -122,6 +124,12 @@ m_value* tracked_value(m_ctx* ctx, m_value* val) {
   return val;
 }
 
+m_unboundScript* tracked_unbound_script(m_ctx* ctx, m_unboundScript* us) {
+  ctx->unboundScripts.push_back(us);
+
+  return us;
+}
+
 extern "C" {
 
 /********** Isolate **********/
@@ -130,6 +138,10 @@ extern "C" {
   Locker locker(iso);                \
   Isolate::Scope isolate_scope(iso); \
   HandleScope handle_scope(iso);
+
+#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
+  ISOLATE_SCOPE(iso);                       \
+  m_ctx* ctx = isolateInternalContext(iso);
 
 void Init() {
 #ifdef _WIN32
@@ -205,6 +217,177 @@ IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
                             hs.number_of_detached_contexts()};
 }
 
+RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
+                                             const char* s,
+                                             const char* o,
+                                             CompileOptions opts) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  TryCatch try_catch(iso);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  RtnUnboundScript rtn = {};
+
+  Local<String> src =
+      String::NewFromUtf8(iso, s, NewStringType::kNormal).ToLocalChecked();
+  Local<String> ogn =
+      String::NewFromUtf8(iso, o, NewStringType::kNormal).ToLocalChecked();
+
+  ScriptCompiler::CompileOptions option =
+      static_cast<ScriptCompiler::CompileOptions>(opts.compileOption);
+
+  ScriptCompiler::CachedData* cached_data = nullptr;
+
+  if (opts.cachedData.data) {
+    cached_data = new ScriptCompiler::CachedData(opts.cachedData.data,
+                                                 opts.cachedData.length);
+  }
+
+  ScriptOrigin script_origin(ogn);
+
+  ScriptCompiler::Source source(src, script_origin, cached_data);
+
+  Local<UnboundScript> unbound_script;
+  if (!ScriptCompiler::CompileUnboundScript(iso, &source, option)
+           .ToLocal(&unbound_script)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  };
+
+  if (cached_data) {
+    rtn.cachedDataRejected = cached_data->rejected;
+  }
+
+  m_unboundScript* us = new m_unboundScript;
+  us->ptr.Reset(iso, unbound_script);
+  rtn.ptr = tracked_unbound_script(ctx, us);
+  return rtn;
+}
+
+/********** Exceptions & Errors **********/
+
+ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
+  ISOLATE_SCOPE(iso);
+  m_ctx* ctx = value->ctx;
+
+  Local<Value> throw_ret_val = iso->ThrowException(value->ptr.Get(iso));
+
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, throw_ret_val);
+
+  return tracked_value(ctx, new_val);
+}
+
+/********** CpuProfiler **********/
+
+CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  CPUProfiler* c = new CPUProfiler;
+  c->iso = iso;
+  c->ptr = CpuProfiler::New(iso);
+  return c;
+}
+
+void CPUProfilerDispose(CPUProfiler* profiler) {
+  if (profiler->ptr == nullptr) {
+    return;
+  }
+  profiler->ptr->Dispose();
+
+  delete profiler;
+}
+
+void CPUProfilerStartProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
+    return;
+  }
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str =
+      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal)
+          .ToLocalChecked();
+  profiler->ptr->StartProfiling(title_str);
+}
+
+CPUProfileNode* NewCPUProfileNode(const CpuProfileNode* ptr_) {
+  int count = ptr_->GetChildrenCount();
+  CPUProfileNode** children = new CPUProfileNode*[count];
+  for (int i = 0; i < count; ++i) {
+    children[i] = NewCPUProfileNode(ptr_->GetChild(i));
+  }
+
+  CPUProfileNode* root = new CPUProfileNode{
+      ptr_,
+      ptr_->GetScriptResourceNameStr(),
+      ptr_->GetFunctionNameStr(),
+      ptr_->GetLineNumber(),
+      ptr_->GetColumnNumber(),
+      count,
+      children,
+  };
+  return root;
+}
+
+CPUProfile* CPUProfilerStopProfiling(CPUProfiler* profiler, const char* title) {
+  if (profiler->iso == nullptr) {
+    return nullptr;
+  }
+
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+
+  Local<String> title_str =
+      String::NewFromUtf8(profiler->iso, title, NewStringType::kNormal)
+          .ToLocalChecked();
+
+  CPUProfile* profile = new CPUProfile;
+  profile->ptr = profiler->ptr->StopProfiling(title_str);
+
+  Local<String> str = profile->ptr->GetTitle();
+  String::Utf8Value t(profiler->iso, str);
+  profile->title = CopyString(t);
+
+  CPUProfileNode* root = NewCPUProfileNode(profile->ptr->GetTopDownRoot());
+  profile->root = root;
+
+  profile->startTime = profile->ptr->GetStartTime();
+  profile->endTime = profile->ptr->GetEndTime();
+
+  return profile;
+}
+
+void CPUProfileNodeDelete(CPUProfileNode* node) {
+  for (int i = 0; i < node->childrenCount; ++i) {
+    CPUProfileNodeDelete(node->children[i]);
+  }
+
+  delete[] node->children;
+  delete node;
+}
+
+void CPUProfileDelete(CPUProfile* profile) {
+  if (profile->ptr == nullptr) {
+    return;
+  }
+  profile->ptr->Delete();
+  free((void*)profile->title);
+
+  CPUProfileNodeDelete(profile->root);
+
+  delete profile;
+}
+
 /********** Template **********/
 
 #define LOCAL_TEMPLATE(tmpl_ptr)     \
@@ -260,7 +443,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
   Local<Object> obj;
@@ -275,6 +458,20 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
   rtn.value = tracked_value(ctx, val);
   return rtn;
+}
+
+void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr, int field_count) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  obj_tmpl->SetInternalFieldCount(field_count);
+}
+
+int ObjectTemplateInternalFieldCount(TemplatePtr ptr) {
+  LOCAL_TEMPLATE(ptr);
+
+  Local<ObjectTemplate> obj_tmpl = tmpl.As<ObjectTemplate>();
+  return obj_tmpl->InternalFieldCount();
 }
 
 /********** FunctionTemplate **********/
@@ -347,7 +544,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   Context::Scope context_scope(local_ctx);
 
   Local<FunctionTemplate> fn_tmpl = tmpl.As<FunctionTemplate>();
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Function> fn;
   if (!fn_tmpl->GetFunction(local_ctx).ToLocal(&fn)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -412,13 +609,18 @@ void ContextFree(ContextPtr ctx) {
     delete val;
   }
 
+  for (m_unboundScript* us : ctx->unboundScripts) {
+    us->ptr.Reset();
+    delete us;
+  }
+
   delete ctx;
 }
 
 RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
   LOCAL_CONTEXT(ctx);
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   MaybeLocal<String> maybeSrc =
       String::NewFromUtf8(iso, source, NewStringType::kNormal);
@@ -450,9 +652,58 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
   return rtn;
 }
 
+/********** UnboundScript & ScriptCompilerCachedData **********/
+
+ScriptCompilerCachedData* UnboundScriptCreateCodeCache(
+    IsolatePtr iso,
+    UnboundScriptPtr us_ptr) {
+  ISOLATE_SCOPE(iso);
+
+  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
+
+  ScriptCompiler::CachedData* cached_data =
+      ScriptCompiler::CreateCodeCache(unbound_script);
+
+  ScriptCompilerCachedData* cd = new ScriptCompilerCachedData;
+  cd->ptr = cached_data;
+  cd->data = cached_data->data;
+  cd->length = cached_data->length;
+  cd->rejected = cached_data->rejected;
+  return cd;
+}
+
+void ScriptCompilerCachedDataDelete(ScriptCompilerCachedData* cached_data) {
+  delete cached_data->ptr;
+  delete cached_data;
+}
+
+// This can only run in contexts that belong to the same isolate
+// the script was compiled in
+RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
+  LOCAL_CONTEXT(ctx)
+
+  RtnValue rtn = {};
+
+  Local<UnboundScript> unbound_script = us_ptr->ptr.Get(iso);
+
+  Local<Script> script = unbound_script->BindToCurrentContext();
+  Local<Value> result;
+  if (!script->Run(local_ctx).ToLocal(&result)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+
+  rtn.value = tracked_value(ctx, val);
+  return rtn;
+}
+
 RtnValue JSONParse(ContextPtr ctx, const char* str) {
   LOCAL_CONTEXT(ctx);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<String> v8Str;
   if (!String::NewFromUtf8(iso, str, NewStringType::kNormal).ToLocal(&v8Str)) {
@@ -539,10 +790,6 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
   Context::Scope context_scope(local_ctx); \
   Local<Value> value = val->ptr.Get(iso);
 
-#define ISOLATE_SCOPE_INTERNAL_CONTEXT(iso) \
-  ISOLATE_SCOPE(iso);                       \
-  m_ctx* ctx = isolateInternalContext(iso);
-
 ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
@@ -563,12 +810,13 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
   return tracked_value(ctx, val);
 }
 
-RtnValue NewValueString(IsolatePtr iso, const char* v) {
+RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<String> str;
-  if (!String::NewFromUtf8(iso, v).ToLocal(&str)) {
+  if (!String::NewFromUtf8(iso, v, NewStringType::kNormal, v_length)
+           .ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
     return rtn;
   }
@@ -647,7 +895,7 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
   TryCatch try_catch(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<BigInt> bigint;
   if (!BigInt::NewFromWords(local_ctx, sign_bit, word_count, words)
            .ToLocal(&bigint)) {
@@ -711,7 +959,7 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
     return nullptr;
   }
 
-  uint32_t* idx = new uint32_t;
+  uint32_t* idx = (uint32_t*)malloc(sizeof(uint32_t));
   *idx = array_index->Value();
   return idx;
 }
@@ -738,25 +986,31 @@ double ValueToNumber(ValuePtr ptr) {
 
 RtnString ValueToDetailString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  RtnString rtn = {nullptr, nullptr};
+  RtnString rtn = {0};
   Local<String> str;
   if (!value->ToDetailString(local_ctx).ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
     return rtn;
   }
   String::Utf8Value ds(iso, str);
-  rtn.string = CopyString(ds);
+  rtn.data = CopyString(ds);
+  rtn.length = ds.length();
   return rtn;
 }
 
-const char* ValueToString(ValuePtr ptr) {
+RtnString ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
+  RtnString rtn = {0};
   // String::Utf8Value will result in an empty string if conversion to a string
   // fails
   // TODO: Consider propagating the JS error. A fallback value could be returned
   // in Value.String()
-  String::Utf8Value utf8(iso, value);
-  return CopyString(utf8);
+  String::Utf8Value src(iso, value);
+  char* data = static_cast<char*>(malloc(src.length()));
+  memcpy(data, *src, src.length());
+  rtn.data = data;
+  rtn.length = src.length();
+  return rtn;
 }
 
 uint32_t ValueToUint32(ValuePtr ptr) {
@@ -773,7 +1027,7 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 
   int word_count = bint->WordCount();
   int sign_bit = 0;
-  uint64_t* words = new uint64_t[word_count];
+  uint64_t* words = (uint64_t*)malloc(sizeof(uint64_t) * word_count);
   bint->ToWordsArray(&sign_bit, &word_count, words);
   ValueBigInt rtn = {words, word_count, sign_bit};
   return rtn;
@@ -781,7 +1035,7 @@ ValueBigInt ValueToBigInt(ValuePtr ptr) {
 
 RtnValue ValueToObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Object> obj;
   if (!value->ToObject(local_ctx).ToLocal(&obj)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -1103,9 +1357,27 @@ void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();
 }
 
+int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr) {
+  LOCAL_OBJECT(ptr);
+  m_value* prop_val = static_cast<m_value*>(val_ptr);
+
+  if (idx >= obj->InternalFieldCount()) {
+    return 0;
+  }
+
+  obj->SetInternalField(idx, prop_val->ptr.Get(iso));
+
+  return 1;
+}
+
+int ObjectInternalFieldCount(ValuePtr ptr) {
+  LOCAL_OBJECT(ptr);
+  return obj->InternalFieldCount();
+}
+
 RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   LOCAL_OBJECT(ptr);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<String> key_val;
   if (!String::NewFromUtf8(iso, key, NewStringType::kNormal)
@@ -1128,9 +1400,27 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   return rtn;
 }
 
+ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
+  LOCAL_OBJECT(ptr);
+
+  if (idx >= obj->InternalFieldCount()) {
+    return nullptr;
+  }
+
+  Local<Value> result = obj->GetInternalField(idx);
+
+  m_value* new_val = new m_value;
+  new_val->iso = iso;
+  new_val->ctx = ctx;
+  new_val->ptr =
+      Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
+
+  return tracked_value(ctx, new_val);
+}
+
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
 
   Local<Value> result;
   if (!obj->Get(local_ctx, idx).ToLocal(&result)) {
@@ -1175,7 +1465,7 @@ int ObjectDeleteIdx(ValuePtr ptr, uint32_t idx) {
 
 RtnValue NewPromiseResolver(ContextPtr ctx) {
   LOCAL_CONTEXT(ctx);
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise::Resolver> resolver;
   if (!Promise::Resolver::New(local_ctx).ToLocal(&resolver)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -1221,7 +1511,7 @@ int PromiseState(ValuePtr ptr) {
 
 RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
   Local<Function> func;
@@ -1246,7 +1536,7 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
 
 RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> onFulfilledData = Integer::New(iso, on_fulfilled_ref);
   Local<Function> onFulfilledFunc;
@@ -1279,7 +1569,7 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
 
 RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Promise> promise = value.As<Promise>();
   Local<Integer> cbData = Integer::New(iso, callback_ref);
   Local<Function> func;
@@ -1328,7 +1618,7 @@ static void buildCallArguments(Isolate* iso,
 RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
 
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
@@ -1350,7 +1640,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
 
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
+  RtnValue rtn = {};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> argv[argc];
   buildCallArguments(iso, argv, argc, args);
@@ -1369,7 +1659,6 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
 
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   LOCAL_VALUE(ptr)
-  RtnValue rtn = {nullptr, nullptr};
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
   m_value* rtnval = new m_value;

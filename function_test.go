@@ -14,14 +14,14 @@ func TestFunctionCall(t *testing.T) {
 	t.Parallel()
 
 	ctx := v8.NewContext()
-	defer ctx.Isolate().Dispose()
+	iso := ctx.Isolate()
+	defer iso.Dispose()
 	defer ctx.Close()
 
 	_, err := ctx.RunScript("function add(a, b) { return a + b; }", "")
 	fatalIf(t, err)
 	addValue, err := ctx.Global().Get("add")
 	fatalIf(t, err)
-	iso := ctx.Isolate()
 
 	arg1, err := v8.NewValue(iso, int32(1))
 	fatalIf(t, err)
@@ -73,9 +73,11 @@ func TestFunctionCallWithObjectReceiver(t *testing.T) {
 	t.Parallel()
 
 	iso := v8.NewIsolate()
+	defer iso.Dispose()
 	global := v8.NewObjectTemplate(iso)
 
 	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
 	val, err := ctx.RunScript(`class Obj { constructor(input) { this.input = input } print() { return this.input.toString() } }; new Obj("some val")`, "")
 	fatalIf(t, err)
 	obj, err := val.AsObject()

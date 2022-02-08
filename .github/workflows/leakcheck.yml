@@ -1,0 +1,27 @@
+name: Leak Check
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17.2
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Go Test
+      env:
+        CC: clang
+        CXX: clang++
+      run: |
+        go test -c --tags leakcheck
+        ./v8go.test

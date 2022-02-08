@@ -57,7 +57,6 @@ func Null(iso *Isolate) *Value {
 //   string -> V8::String
 //   int32 -> V8::Integer
 //   uint32 -> V8::Integer
-//   bool -> V8::Boolean
 //   int64 -> V8::BigInt
 //   uint64 -> V8::BigInt
 //   bool -> V8::Boolean
@@ -73,7 +72,7 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 	case string:
 		cstr := C.CString(v)
 		defer C.free(unsafe.Pointer(cstr))
-		rtn := C.NewValueString(iso.ptr, cstr)
+		rtn := C.NewValueString(iso.ptr, cstr, C.int(len(v)))
 		return valueResult(nil, rtn)
 	case int32:
 		rtnVal = &Value{
@@ -199,13 +198,12 @@ func (v *Value) Boolean() bool {
 // DetailString provide a string representation of this value usable for debugging.
 func (v *Value) DetailString() string {
 	rtn := C.ValueToDetailString(v.ptr)
-	if rtn.string == nil {
+	if rtn.data == nil {
 		err := newJSError(rtn.error)
 		panic(err) // TODO: Return a fallback value
 	}
-	s := rtn.string
-	defer C.free(unsafe.Pointer(s))
-	return C.GoString(s)
+	defer C.free(unsafe.Pointer(rtn.data))
+	return C.GoStringN(rtn.data, rtn.length)
 }
 
 // Int32 perform the equivalent of `Number(value)` in JS and convert the result to a
@@ -242,8 +240,8 @@ func (v *Value) Object() *Object {
 // print their definition.
 func (v *Value) String() string {
 	s := C.ValueToString(v.ptr)
-	defer C.free(unsafe.Pointer(s))
-	return C.GoString(s)
+	defer C.free(unsafe.Pointer(s.data))
+	return C.GoStringN(s.data, C.int(s.length))
 }
 
 // Uint32 perform the equivalent of `Number(value)` in JS and convert the result to an

@@ -6,6 +6,7 @@ package v8go_test
 
 import (
 	"math/big"
+	"runtime"
 	"testing"
 
 	v8 "rogchap.com/v8go"
@@ -139,5 +140,19 @@ func TestObjectTemplateNewInstance(t *testing.T) {
 	if foo, _ := obj.Get("foo"); foo.String() != "bar" {
 		t.Errorf("unexpected value for object property: %v", foo)
 	}
+}
 
+func TestObjectTemplate_garbageCollection(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+
+	tmpl := v8.NewObjectTemplate(iso)
+	tmpl.Set("foo", "bar")
+	ctx := v8.NewContext(iso, tmpl)
+
+	ctx.Close()
+	iso.Dispose()
+
+	runtime.GC()
 }

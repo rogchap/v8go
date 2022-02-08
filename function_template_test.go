@@ -6,8 +6,6 @@ package v8go_test
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -139,6 +137,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	t.Parallel()
 
 	iso := v8.NewIsolate()
+	defer iso.Dispose()
 
 	foo := v8.NewObjectTemplate(iso)
 	foo.Set("name", "foobar")
@@ -154,6 +153,7 @@ func TestFunctionCallbackInfoThis(t *testing.T) {
 	global.Set("foo", foo)
 
 	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
 	ctx.RunScript("foo.bar()", "")
 
 	v, _ := this.Get("name")
@@ -176,39 +176,4 @@ func ExampleFunctionTemplate() {
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
 	// Output:
 	// [foo bar 0 1]
-}
-
-func ExampleFunctionTemplate_fetch() {
-	iso := v8.NewIsolate()
-	defer iso.Dispose()
-	global := v8.NewObjectTemplate(iso)
-
-	fetchfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		args := info.Args()
-		url := args[0].String()
-
-		resolver, _ := v8.NewPromiseResolver(info.Context())
-
-		go func() {
-			res, _ := http.Get(url)
-			body, _ := ioutil.ReadAll(res.Body)
-			val, _ := v8.NewValue(iso, string(body))
-			resolver.Resolve(val)
-		}()
-		return resolver.GetPromise().Value
-	})
-	global.Set("fetch", fetchfn, v8.ReadOnly)
-
-	ctx := v8.NewContext(iso, global)
-	defer ctx.Close()
-	val, _ := ctx.RunScript("fetch('https://rogchap.com/v8go')", "")
-	prom, _ := val.AsPromise()
-
-	// wait for the promise to resolve
-	for prom.State() == v8.Pending {
-		continue
-	}
-	fmt.Printf("%s\n", strings.Split(prom.Result().String(), "\n")[0])
-	// Output:
-	// <!DOCTYPE html>
 }

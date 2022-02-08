@@ -1,0 +1,42 @@
+name: V8 Upgrade
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # Run every day
+
+jobs:
+    upgrade:
+        name: Upgrade V8
+        runs-on: ubuntu-18.04
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  submodules: true
+                  fetch-depth: 0
+            - uses: actions/setup-python@v2
+              with:
+                python-version: '3.8'
+            - name: Update depot_tools fetch config
+              run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+              shell: bash
+            - name: Add depot_tools to PATH
+              run: echo "$PWD/deps/depot_tools" >> $GITHUB_PATH
+              shell: bash
+            - name: Run upgrade script
+              run: cd deps && python upgrade_v8.py
+            - name: Create PR metadata
+              id: pr_metadata
+              run: |
+                echo ::set-output name=pr_branch::"v8_$(cat deps/v8_version)_upgrade"
+                echo ::set-output name=pr_commit_message::"Upgrade V8 binaries for $(cat deps/v8_version) version"
+                echo ::set-output name=pr_body::"Auto-generated pull request to upgrade V8 binary for $(cat deps/v8_version) version"
+            - name: Create PR
+              uses: peter-evans/create-pull-request@v3
+              with:
+                commit-message: ${{steps.pr_metadata.outputs.pr_commit_message}}
+                branch: ${{steps.pr_metadata.outputs.pr_branch}}
+                delete-branch: true
+                title: ${{steps.pr_metadata.outputs.pr_commit_message}}
+                body: ${{steps.pr_metadata.outputs.pr_body}}

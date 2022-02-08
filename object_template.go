@@ -60,6 +60,18 @@ func (o *ObjectTemplate) NewInstance(ctx *Context) (*Object, error) {
 	return objectResult(ctx, rtn)
 }
 
+// SetInternalFieldCount sets the number of internal fields that instances of this
+// template will have.
+func (o *ObjectTemplate) SetInternalFieldCount(fieldCount uint32) {
+	C.ObjectTemplateSetInternalFieldCount(o.ptr, C.int(fieldCount))
+}
+
+// InternalFieldCount returns the number of internal fields that instances of this
+// template will have.
+func (o *ObjectTemplate) InternalFieldCount() uint32 {
+	return uint32(C.ObjectTemplateInternalFieldCount(o.ptr))
+}
+
 func (o *ObjectTemplate) apply(opts *contextOptions) {
 	opts.gTmpl = o
 }

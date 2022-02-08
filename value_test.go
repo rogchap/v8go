@@ -81,6 +81,7 @@ func TestValueString(t *testing.T) {
 	}{
 		{"Number", `13 * 2`, "26"},
 		{"String", `"string"`, "string"},
+		{"String with null character and non-latin unicode", `"a\x00Ω"`, "a\x00Ω"},
 		{"Object", `let obj = {}; obj`, "[object Object]"},
 		{"Function", `let fn = function(){}; fn`, "function(){}"},
 	}
@@ -92,6 +93,51 @@ func TestValueString(t *testing.T) {
 			str := result.String()
 			if str != tt.out {
 				t.Errorf("unexpected result: expected %q, got %q", tt.out, str)
+			}
+		})
+	}
+}
+
+func TestNewValue(t *testing.T) {
+	t.Parallel()
+	ctx := v8.NewContext(nil)
+	iso := ctx.Isolate()
+	defer iso.Dispose()
+	defer ctx.Close()
+
+	tests := []struct {
+		name      string
+		input     interface{}
+		predicate string
+	}{
+		{"string", "s\x00s\x00", `str => str === "s\x00s\x00"`},
+		{"int32", int32(36), `int => int === 36`},
+		{"bool", true, `b => b === true`},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			val, err := ctx.RunScript(tt.predicate, "test.js")
+			if err != nil {
+				t.Fatal(err)
+			}
+			fn, err := val.AsFunction()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			jsVal, err := v8.NewValue(iso, tt.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			result, err := fn.Call(ctx.Global(), jsVal)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !result.Boolean() {
+				t.Fatal("unexpected result: expected true, got false")
 			}
 		})
 	}
