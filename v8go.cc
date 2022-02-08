@@ -910,7 +910,9 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
   return rtn;
 }
 
-ValuePtr NewValueError(IsolatePtr iso, ErrorTypeIndex idx, const char* message) {
+ValuePtr NewValueError(IsolatePtr iso,
+                       ErrorTypeIndex idx,
+                       const char* message) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   Local<Context> local_ctx = ctx->ptr.Get(iso);
   Context::Scope context_scope(local_ctx);
@@ -918,32 +920,32 @@ ValuePtr NewValueError(IsolatePtr iso, ErrorTypeIndex idx, const char* message) 
   Local<String> local_msg = String::NewFromUtf8(iso, message).ToLocalChecked();
   Local<Value> v;
   switch (idx) {
-  case ERROR_RANGE:
-    v = Exception::RangeError(local_msg);
-    break;
-  case ERROR_REFERENCE:
-    v = Exception::ReferenceError(local_msg);
-    break;
-  case ERROR_SYNTAX:
-    v = Exception::SyntaxError(local_msg);
-    break;
-  case ERROR_TYPE:
-    v = Exception::TypeError(local_msg);
-    break;
-  case ERROR_WASM_COMPILE:
-    v = Exception::WasmCompileError(local_msg);
-    break;
-  case ERROR_WASM_LINK:
-    v = Exception::WasmLinkError(local_msg);
-    break;
-  case ERROR_WASM_RUNTIME:
-    v = Exception::WasmRuntimeError(local_msg);
-    break;
-  case ERROR_GENERIC:
-    v = Exception::Error(local_msg);
-    break;
-  default:
-    return nullptr;
+    case ERROR_RANGE:
+      v = Exception::RangeError(local_msg);
+      break;
+    case ERROR_REFERENCE:
+      v = Exception::ReferenceError(local_msg);
+      break;
+    case ERROR_SYNTAX:
+      v = Exception::SyntaxError(local_msg);
+      break;
+    case ERROR_TYPE:
+      v = Exception::TypeError(local_msg);
+      break;
+    case ERROR_WASM_COMPILE:
+      v = Exception::WasmCompileError(local_msg);
+      break;
+    case ERROR_WASM_LINK:
+      v = Exception::WasmLinkError(local_msg);
+      break;
+    case ERROR_WASM_RUNTIME:
+      v = Exception::WasmRuntimeError(local_msg);
+      break;
+    case ERROR_GENERIC:
+      v = Exception::Error(local_msg);
+      break;
+    default:
+      return nullptr;
   }
   m_value* val = new m_value;
   val->iso = iso;

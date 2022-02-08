@@ -214,7 +214,9 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
-extern ValuePtr NewValueError(IsolatePtr iso_ptr, ErrorTypeIndex idx, const char* message);
+extern ValuePtr NewValueError(IsolatePtr iso_ptr,
+                              ErrorTypeIndex idx,
+                              const char* message);
 extern RtnString ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
