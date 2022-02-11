@@ -156,3 +156,22 @@ func TestObjectTemplate_garbageCollection(t *testing.T) {
 
 	runtime.GC()
 }
+
+func TestObjectTemplate_leakCheck(t *testing.T) {
+	isolate := v8.NewIsolate()
+	global := v8.NewObjectTemplate(isolate)
+
+	cb := func(info *v8.FunctionCallbackInfo) *v8.Value {
+		// referencing global seems to be the cause of the leak
+		_ = global
+
+		return v8.Null(isolate)
+	}
+
+	global.Set("fn", v8.NewFunctionTemplate(isolate, cb), v8.ReadOnly)
+
+	context := v8.NewContext(isolate, global)
+	context.Close()
+
+	isolate.Dispose()
+}
