@@ -106,7 +106,8 @@ typedef struct {
 } RtnValue;
 
 typedef struct {
-  const char* string;
+  const char* data;
+  int length;
   RtnError error;
 } RtnString;
 
@@ -199,7 +200,7 @@ extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
 extern ValuePtr NewValueUndefined(IsolatePtr iso_ptr);
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
-extern RtnValue NewValueString(IsolatePtr iso_ptr, const char* v);
+extern RtnValue NewValueString(IsolatePtr iso_ptr, const char* v, int v_length);
 extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
@@ -208,7 +209,7 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
-const char* ValueToString(ValuePtr ptr);
+extern RtnString ValueToString(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
 int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);

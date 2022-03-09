@@ -58,12 +58,12 @@ const char* CopyString(String::Utf8Value& value) {
   if (value.length() == 0) {
     return nullptr;
   }
-  return CopyString(*value);
+  return CopyString(std::string(*value, value.length()));
 }
 
-RtnError ExceptionError(TryCatch& try_catch, Isolate* iso, Local<Context> ctx) {
-  Locker locker(iso);
-  Isolate::Scope isolate_scope(iso);
+static RtnError ExceptionError(TryCatch& try_catch,
+                               Isolate* iso,
+                               Local<Context> ctx) {
   HandleScope handle_scope(iso);
 
   RtnError rtn = {nullptr, nullptr, nullptr};
@@ -808,12 +808,13 @@ ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
   return tracked_value(ctx, val);
 }
 
-RtnValue NewValueString(IsolatePtr iso, const char* v) {
+RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   TryCatch try_catch(iso);
   RtnValue rtn = {};
   Local<String> str;
-  if (!String::NewFromUtf8(iso, v).ToLocal(&str)) {
+  if (!String::NewFromUtf8(iso, v, NewStringType::kNormal, v_length)
+           .ToLocal(&str)) {
     rtn.error = ExceptionError(try_catch, iso, ctx->ptr.Get(iso));
     return rtn;
   }
@@ -948,18 +949,24 @@ RtnString ValueToDetailString(ValuePtr ptr) {
     return rtn;
   }
   String::Utf8Value ds(iso, str);
-  rtn.string = CopyString(ds);
+  rtn.data = CopyString(ds);
+  rtn.length = ds.length();
   return rtn;
 }
 
-const char* ValueToString(ValuePtr ptr) {
+RtnString ValueToString(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
+  RtnString rtn = {0};
   // String::Utf8Value will result in an empty string if conversion to a string
   // fails
   // TODO: Consider propagating the JS error. A fallback value could be returned
   // in Value.String()
-  String::Utf8Value utf8(iso, value);
-  return CopyString(utf8);
+  String::Utf8Value src(iso, value);
+  char* data = static_cast<char*>(malloc(src.length()));
+  memcpy(data, *src, src.length());
+  rtn.data = data;
+  rtn.length = src.length();
+  return rtn;
 }
 
 uint32_t ValueToUint32(ValuePtr ptr) {

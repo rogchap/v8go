@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Use string length to ensure null character-containing strings in Go/JS are not terminated early.
+- Object.Set with an empty key string is now supported
+
 ## [v0.7.0] - 2021-12-09
 
 ### Added
