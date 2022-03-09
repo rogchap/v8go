@@ -6,6 +6,7 @@ package v8go_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	v8 "rogchap.com/v8go"
@@ -200,6 +201,27 @@ func TestObjectDelete(t *testing.T) {
 		t.Error("expected delete to return true, got false")
 	}
 
+}
+
+func TestGetEnumerablePropertyNames(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+	val, _ := ctx.RunScript("const foo = {}; foo", "")
+	obj, _ := val.AsObject()
+	obj.Set("bar2", "baz2")
+	obj.Set("foo", "foobar")
+	obj.Set("hello", "world")
+
+	expectedProperties := []string{"bar2", "foo", "hello"}
+	properties, err := obj.GetEnumerablePropertyNames()
+	fatalIf(t, err)
+
+	if !reflect.DeepEqual(properties, expectedProperties) {
+		t.Error("properteis are not the same")
+	}
 }
 
 func ExampleObject_global() {

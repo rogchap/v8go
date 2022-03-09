@@ -112,6 +112,12 @@ typedef struct {
 } RtnString;
 
 typedef struct {
+  const char** strings;
+  int length;
+  RtnError error;
+} RtnStrings;
+
+typedef struct {
   size_t total_heap_size;
   size_t total_heap_size_executable;
   size_t total_physical_size;
@@ -271,6 +277,7 @@ int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
+RtnStrings ObjectGetPropertyNames(ValuePtr ptr);
 extern int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr);
 extern int ObjectInternalFieldCount(ValuePtr ptr);
 extern RtnValue ObjectGet(ValuePtr ptr, const char* key);

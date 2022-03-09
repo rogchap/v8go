@@ -1297,6 +1297,38 @@ void ObjectSet(ValuePtr ptr, const char* key, ValuePtr prop_val) {
   obj->Set(local_ctx, key_val, prop_val->ptr.Get(iso)).Check();
 }
 
+RtnStrings ObjectGetPropertyNames(ValuePtr ptr) {
+  LOCAL_OBJECT(ptr);
+  RtnStrings rtn = {};
+
+  Local<Array> names;
+  if (!obj->GetPropertyNames(local_ctx).ToLocal(&names)) {
+    rtn.error = ExceptionError(try_catch, iso, local_ctx);
+    return rtn;
+  }
+
+  uint32_t length = names->Length();
+  const char** strings = (const char**)malloc(length * sizeof(const char*));
+
+  for (uint32_t i = 0; i < length; i++) {
+    Local<Value> name_from_array;
+    if (!names->Get(local_ctx, i).ToLocal(&name_from_array)) {
+      for (i = i - 1; i > 0; i--) {
+        free(&strings[i]);
+      }
+      free(strings);
+      rtn.error = ExceptionError(try_catch, iso, local_ctx);
+      return rtn;
+    }
+    String::Utf8Value ds(iso, name_from_array);
+    strings[i] = CopyString(ds);
+  }
+
+  rtn.strings = strings;
+  rtn.length = length;
+  return rtn;
+}
+
 void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr prop_val) {
   LOCAL_OBJECT(ptr);
   obj->Set(local_ctx, idx, prop_val->ptr.Get(iso)).Check();

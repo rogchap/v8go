@@ -169,6 +169,22 @@ func valueResult(ctx *Context, rtn C.RtnValue) (*Value, error) {
 	return &Value{rtn.value, ctx}, nil
 }
 
+func valueStrings(ctx *Context, rtn C.RtnStrings) ([]string, error) {
+	if rtn.strings == nil {
+		return []string{}, newJSError(rtn.error)
+	}
+	length := rtn.length
+	slice := (*[1 << 28]*C.char)(unsafe.Pointer(rtn.strings))[:length:length]
+	var result []string
+	for i := 0; i < len(slice); i++ {
+		s := slice[i]
+		defer C.free(unsafe.Pointer(s))
+		result = append(result, C.GoString(s))
+	}
+	defer C.free(unsafe.Pointer(rtn.strings))
+	return result, nil
+}
+
 func objectResult(ctx *Context, rtn C.RtnValue) (*Object, error) {
 	if rtn.value == nil {
 		return nil, newJSError(rtn.error)
