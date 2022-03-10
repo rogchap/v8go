@@ -47,7 +47,9 @@ class V8_EXPORT ScriptOrModule {
    * The options that were passed by the embedder as HostDefinedOptions to
    * the ScriptOrigin.
    */
+  V8_DEPRECATE_SOON("Use HostDefinedOptions")
   Local<PrimitiveArray> GetHostDefinedOptions();
+  Local<Data> HostDefinedOptions();
 };
 
 /**
@@ -340,6 +342,8 @@ class V8_EXPORT Script {
    * UnboundScript::BindToCurrentContext()).
    */
   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Run(Local<Context> context);
+  V8_WARN_UNUSED_RESULT MaybeLocal<Value> Run(Local<Context> context,
+                                              Local<Data> host_defined_options);
 
   /**
    * Returns the corresponding context-unbound script.
@@ -403,6 +407,7 @@ class V8_EXPORT ScriptCompiler {
   class Source {
    public:
     // Source takes ownership of both CachedData and CodeCacheConsumeTask.
+    // The caller *must* ensure that the cached data is from a trusted source.
     V8_INLINE Source(Local<String> source_string, const ScriptOrigin& origin,
                      CachedData* cached_data = nullptr,
                      ConsumeCodeCacheTask* consume_cache_task = nullptr);
@@ -430,7 +435,7 @@ class V8_EXPORT ScriptCompiler {
     int resource_column_offset;
     ScriptOriginOptions resource_options;
     Local<Value> source_map_url;
-    Local<PrimitiveArray> host_defined_options;
+    Local<Data> host_defined_options;
 
     // Cached data from previous compilation (if a kConsume*Cache flag is
     // set), or hold newly generated cache data (kProduce*Cache flags) are
@@ -748,7 +753,7 @@ ScriptCompiler::Source::Source(Local<String> string, const ScriptOrigin& origin,
       resource_column_offset(origin.ColumnOffset()),
       resource_options(origin.Options()),
       source_map_url(origin.SourceMapUrl()),
-      host_defined_options(origin.HostDefinedOptions()),
+      host_defined_options(origin.GetHostDefinedOptions()),
       cached_data(data),
       consume_cache_task(consume_cache_task) {}
 
