@@ -86,6 +86,7 @@ func (s *SnapshotCreator) AddContext(ctx *Context) (int, error) {
 }
 
 // Create creates a snapshot data blob.
+// The snapshot creator instance is unsable after creating the snapshot data blob.
 func (s *SnapshotCreator) Create(functionCode FunctionCodeHandling) (*StartupData, error) {
 	if s.ptr == nil {
 		return nil, errors.New("v8go: Cannot use snapshot creator after creating the blob")
