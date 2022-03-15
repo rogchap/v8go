@@ -14,7 +14,7 @@ import (
 
 type FunctionCodeHandling int
 
-//  Clear - does not keeps any compiled data prior to serialization/deserialization/verify pass
+//  Clear - does not keep any compiled data prior to serialization/deserialization/verify pass
 //  Keep - keeps any compiled data prior to serialization/deserialization/verify pass
 const (
 	FunctionCodeHandlingClear FunctionCodeHandling = iota
@@ -50,7 +50,7 @@ func NewSnapshotCreator() *SnapshotCreator {
 }
 
 // GetIsolate returns the Isolate associated with the SnapshotCreator.
-// This Isolate must be use to create the contexts that later will be use to create the snapshot blob.
+// This Isolate must be used to create the contexts that later will be used to create the snapshot blob.
 func (s *SnapshotCreator) GetIsolate() (*Isolate, error) {
 	if s.ptr == nil {
 		return nil, errors.New("v8go: Cannot get Isolate after creating the blob")

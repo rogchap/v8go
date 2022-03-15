@@ -168,7 +168,7 @@ func TestCreateSnapshotErrorAfterSuccessfullCreate(t *testing.T) {
 	}
 }
 
-func TestCreateSnapshotErrorIfNodefaultContextIsAdded(t *testing.T) {
+func TestCreateSnapshotErrorIfNoDefaultContextIsAdded(t *testing.T) {
 	snapshotCreator := v8.NewSnapshotCreator()
 	defer snapshotCreator.Dispose()
 
