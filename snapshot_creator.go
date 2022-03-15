@@ -112,5 +112,6 @@ func (s *SnapshotCreator) Create(functionCode FunctionCodeHandling) (*StartupDat
 func (s *SnapshotCreator) Dispose() {
 	if s.ptr != nil {
 		C.DeleteSnapshotCreator(s.ptr)
+		s.ptr = nil
 	}
 }
