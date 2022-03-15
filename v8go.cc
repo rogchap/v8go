@@ -684,10 +684,8 @@ RtnContext NewContextFromSnapshot(IsolatePtr iso,
   // has special meaning for the Chrome debugger.
 
   Local<Context> local_ctx;
-  MaybeLocal<Context> maybe_local_ctx =
-      Context::FromSnapshot(iso, snapshot_blob_index);
 
-  if (!maybe_local_ctx.ToLocal(&local_ctx)) {
+  if (!Context::FromSnapshot(iso, snapshot_blob_index).ToLocal(&local_ctx)) {
     RtnError error = {nullptr, nullptr, nullptr};
     error.msg = CopyString("Failed to create context from snapshot index: " +
                            std::to_string(snapshot_blob_index));
