@@ -123,6 +123,7 @@ func TestCreateSnapshotErrorAfterAddingMultipleDefaultContext(t *testing.T) {
 	snapshotCreatorIso, err := snapshotCreator.GetIsolate()
 	fatalIf(t, err)
 	snapshotCreatorCtx := v8.NewContext(snapshotCreatorIso)
+	defer snapshotCreatorCtx.Close()
 
 	snapshotCreatorCtx.RunScript(`const add = (a, b) => a + b`, "add.js")
 	snapshotCreatorCtx.RunScript(`function run() { return add(3, 4); }`, "main.js")
@@ -130,7 +131,6 @@ func TestCreateSnapshotErrorAfterAddingMultipleDefaultContext(t *testing.T) {
 	fatalIf(t, err)
 
 	err = snapshotCreator.SetDefaultContext(snapshotCreatorCtx)
-	defer snapshotCreatorCtx.Close()
 
 	if err == nil {
 		t.Error("setting another default context should have failed, got <nil>")
