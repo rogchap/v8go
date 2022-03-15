@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+- NewIsolate accepts option arguments. Thanks to [@GustavoCaso](https://github.com/GustavoCaso)
+- Add support for Snapshot creation. Thanks to [@GustavoCaso](https://github.com/GustavoCaso)
 
 ### Fixed
 - Use string length to ensure null character-containing strings in Go/JS are not terminated early.
