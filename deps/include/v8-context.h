@@ -313,17 +313,6 @@ class V8_EXPORT Context : public Data {
     explicit BackupIncumbentScope(Local<Context> backup_incumbent_context);
     ~BackupIncumbentScope();
 
-    /**
-     * Returns address that is comparable with JS stack address.  Note that JS
-     * stack may be allocated separately from the native stack.  See also
-     * |TryCatch::JSStackComparableAddressPrivate| for details.
-     */
-    V8_DEPRECATED(
-        "This is private V8 information that should not be exposed in the API.")
-    uintptr_t JSStackComparableAddress() const {
-      return JSStackComparableAddressPrivate();
-    }
-
    private:
     friend class internal::Isolate;
 
@@ -379,18 +368,18 @@ Local<Value> Context::GetEmbedderData(int index) {
 }
 
 void* Context::GetAlignedPointerFromEmbedderData(int index) {
-#ifndef V8_ENABLE_CHECKS
-  using A = internal::Address;
   using I = internal::Internals;
+  static_assert(I::kEmbedderDataSlotSize == internal::kApiSystemPointerSize,
+                "Enable fast path with sandboxed external pointers enabled "
+                "once embedder data slots are 32 bits large");
+#if !defined(V8_ENABLE_CHECKS) && !defined(V8_SANDBOXED_EXTERNAL_POINTERS)
+  using A = internal::Address;
   A ctx = *reinterpret_cast<const A*>(this);
   A embedder_data =
       I::ReadTaggedPointerField(ctx, I::kNativeContextEmbedderDataOffset);
   int value_offset =
       I::kEmbedderDataArrayHeaderSize + (I::kEmbedderDataSlotSize * index);
-#ifdef V8_HEAP_SANDBOX
-  value_offset += I::kEmbedderDataSlotRawPayloadOffset;
-#endif
-  internal::Isolate* isolate = I::GetIsolateForHeapSandbox(ctx);
+  internal::Isolate* isolate = I::GetIsolateForSandbox(ctx);
   return reinterpret_cast<void*>(
       I::ReadExternalPointerField(isolate, embedder_data, value_offset,
                                   internal::kEmbedderDataSlotPayloadTag));
