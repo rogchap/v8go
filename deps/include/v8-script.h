@@ -47,7 +47,9 @@ class V8_EXPORT ScriptOrModule {
    * The options that were passed by the embedder as HostDefinedOptions to
    * the ScriptOrigin.
    */
+  V8_DEPRECATED("Use HostDefinedOptions")
   Local<PrimitiveArray> GetHostDefinedOptions();
+  Local<Data> HostDefinedOptions();
 };
 
 /**
@@ -171,29 +173,6 @@ class V8_EXPORT Module : public Data {
   Local<Value> GetException() const;
 
   /**
-   * Returns the number of modules requested by this module.
-   */
-  V8_DEPRECATED("Use Module::GetModuleRequests() and FixedArray::Length().")
-  int GetModuleRequestsLength() const;
-
-  /**
-   * Returns the ith module specifier in this module.
-   * i must be < GetModuleRequestsLength() and >= 0.
-   */
-  V8_DEPRECATED(
-      "Use Module::GetModuleRequests() and ModuleRequest::GetSpecifier().")
-  Local<String> GetModuleRequest(int i) const;
-
-  /**
-   * Returns the source location (line number and column number) of the ith
-   * module specifier's first occurrence in this module.
-   */
-  V8_DEPRECATED(
-      "Use Module::GetModuleRequests(), ModuleRequest::GetSourceOffset(), and "
-      "Module::SourceOffsetToLocation().")
-  Location GetModuleRequestLocation(int i) const;
-
-  /**
    * Returns the ModuleRequests for this module.
    */
   Local<FixedArray> GetModuleRequests() const;
@@ -209,9 +188,6 @@ class V8_EXPORT Module : public Data {
    */
   int GetIdentityHash() const;
 
-  using ResolveCallback V8_DEPRECATED("Use ResolveModuleCallback") =
-      MaybeLocal<Module> (*)(Local<Context> context, Local<String> specifier,
-                             Local<Module> referrer);
   using ResolveModuleCallback = MaybeLocal<Module> (*)(
       Local<Context> context, Local<String> specifier,
       Local<FixedArray> import_assertions, Local<Module> referrer);
@@ -223,11 +199,6 @@ class V8_EXPORT Module : public Data {
    * instantiation. (In the case where the callback throws an exception, that
    * exception is propagated.)
    */
-  V8_DEPRECATED(
-      "Use the version of InstantiateModule that takes a ResolveModuleCallback "
-      "parameter")
-  V8_WARN_UNUSED_RESULT Maybe<bool> InstantiateModule(Local<Context> context,
-                                                      ResolveCallback callback);
   V8_WARN_UNUSED_RESULT Maybe<bool> InstantiateModule(
       Local<Context> context, ResolveModuleCallback callback);
 
@@ -340,6 +311,8 @@ class V8_EXPORT Script {
    * UnboundScript::BindToCurrentContext()).
    */
   V8_WARN_UNUSED_RESULT MaybeLocal<Value> Run(Local<Context> context);
+  V8_WARN_UNUSED_RESULT MaybeLocal<Value> Run(Local<Context> context,
+                                              Local<Data> host_defined_options);
 
   /**
    * Returns the corresponding context-unbound script.
@@ -403,6 +376,7 @@ class V8_EXPORT ScriptCompiler {
   class Source {
    public:
     // Source takes ownership of both CachedData and CodeCacheConsumeTask.
+    // The caller *must* ensure that the cached data is from a trusted source.
     V8_INLINE Source(Local<String> source_string, const ScriptOrigin& origin,
                      CachedData* cached_data = nullptr,
                      ConsumeCodeCacheTask* consume_cache_task = nullptr);
@@ -430,7 +404,7 @@ class V8_EXPORT ScriptCompiler {
     int resource_column_offset;
     ScriptOriginOptions resource_options;
     Local<Value> source_map_url;
-    Local<PrimitiveArray> host_defined_options;
+    Local<Data> host_defined_options;
 
     // Cached data from previous compilation (if a kConsume*Cache flag is
     // set), or hold newly generated cache data (kProduce*Cache flags) are
@@ -469,18 +443,6 @@ class V8_EXPORT ScriptCompiler {
      * V8 has parsed the data it received so far.
      */
     virtual size_t GetMoreData(const uint8_t** src) = 0;
-
-    /**
-     * [DEPRECATED]: No longer used, will be removed soon.
-     */
-    V8_DEPRECATED("Not used")
-    virtual bool SetBookmark() { return false; }
-
-    /**
-     * [DEPRECATED]: No longer used, will be removed soon.
-     */
-    V8_DEPRECATED("Not used")
-    virtual void ResetToBookmark() {}
   };
 
   /**
@@ -688,7 +650,7 @@ class V8_EXPORT ScriptCompiler {
    * It is possible to specify multiple context extensions (obj in the above
    * example).
    */
-  V8_DEPRECATE_SOON("Use CompileFunction")
+  V8_DEPRECATED("Use CompileFunction")
   static V8_WARN_UNUSED_RESULT MaybeLocal<Function> CompileFunctionInContext(
       Local<Context> context, Source* source, size_t arguments_count,
       Local<String> arguments[], size_t context_extension_count,
@@ -748,7 +710,7 @@ ScriptCompiler::Source::Source(Local<String> string, const ScriptOrigin& origin,
       resource_column_offset(origin.ColumnOffset()),
       resource_options(origin.Options()),
       source_map_url(origin.SourceMapUrl()),
-      host_defined_options(origin.HostDefinedOptions()),
+      host_defined_options(origin.GetHostDefinedOptions()),
       cached_data(data),
       consume_cache_task(consume_cache_task) {}
 
