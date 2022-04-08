@@ -33,7 +33,7 @@ type Promise struct {
 	*Object
 }
 
-// MewPromiseResolver creates a new Promise resolver for the given context.
+// NewPromiseResolver creates a new Promise resolver for the given context.
 // The associated Promise will be in a Pending state.
 func NewPromiseResolver(ctx *Context) (*PromiseResolver, error) {
 	if ctx == nil {
