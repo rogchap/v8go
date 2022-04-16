@@ -76,6 +76,30 @@ func NewContext(opt ...ContextOption) *Context {
 	return ctx
 }
 
+// NewContextFromSnapshot creates a new JavaScript context from the Isolate startup data;
+// error will be of type `JSError` if not nil.
+func NewContextFromSnapshot(iso *Isolate, snapshot_index int) (*Context, error) {
+	ctxMutex.Lock()
+	ctxSeq++
+	ref := ctxSeq
+	ctxMutex.Unlock()
+
+	rtn := C.NewContextFromSnapshot(iso.ptr, C.size_t(snapshot_index), C.int(ref))
+
+	if rtn.context == nil {
+		return nil, newJSError(rtn.error)
+	}
+
+	ctx := &Context{
+		ref: ref,
+		ptr: rtn.context,
+		iso: iso,
+	}
+
+	ctx.register()
+	return ctx, nil
+}
+
 // Isolate gets the current context's parent isolate.An  error is returned
 // if the isolate has been terninated.
 func (c *Context) Isolate() *Isolate {

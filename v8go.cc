@@ -26,6 +26,7 @@ const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
 
 struct m_ctx {
   Isolate* iso;
+  StartupData* startup_data;
   std::vector<m_value*> vals;
   std::vector<m_unboundScript*> unboundScripts;
   Persistent<Context> ptr;
@@ -152,9 +153,19 @@ void Init() {
   return;
 }
 
-IsolatePtr NewIsolate() {
+IsolatePtr NewIsolate(IsolateOptions options) {
   Isolate::CreateParams params;
   params.array_buffer_allocator = default_allocator;
+
+  StartupData* startup_data;
+  if (options.snapshot_blob_data) {
+    startup_data = new StartupData{options.snapshot_blob_data,
+                                   options.snapshot_blob_raw_size};
+    params.snapshot_blob = startup_data;
+  } else {
+    startup_data = nullptr;
+  }
+
   Isolate* iso = Isolate::New(params);
   Locker locker(iso);
   Isolate::Scope isolate_scope(iso);
@@ -166,6 +177,7 @@ IsolatePtr NewIsolate() {
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, Context::New(iso));
   ctx->iso = iso;
+  ctx->startup_data = startup_data;
   iso->SetData(0, ctx);
 
   return iso;
@@ -262,6 +274,65 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
   us->ptr.Reset(iso, unbound_script);
   rtn.ptr = tracked_unbound_script(ctx, us);
   return rtn;
+}
+
+/********** SnapshotCreator **********/
+
+RtnSnapshotCreator NewSnapshotCreator() {
+  RtnSnapshotCreator rtn = {};
+  SnapshotCreator* creator = new SnapshotCreator;
+  Isolate* iso = creator->GetIsolate();
+  rtn.creator = creator;
+  rtn.iso = iso;
+
+  return rtn;
+}
+
+void DeleteSnapshotCreator(SnapshotCreatorPtr snapshotCreator) {
+  delete snapshotCreator;
+}
+
+void SetDefaultContext(SnapshotCreatorPtr snapshotCreator, ContextPtr ctx) {
+  Isolate* iso = ctx->iso;
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  ContextFree(ctx);
+
+  snapshotCreator->SetDefaultContext(local_ctx);
+}
+
+size_t AddContext(SnapshotCreatorPtr snapshotCreator, ContextPtr ctx) {
+  Isolate* iso = ctx->iso;
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  ContextFree(ctx);
+
+  return snapshotCreator->AddContext(local_ctx);
+}
+
+RtnSnapshotBlob* CreateBlob(SnapshotCreatorPtr snapshotCreator,
+                            int function_code_handling) {
+  StartupData startup_data = snapshotCreator->CreateBlob(
+      SnapshotCreator::FunctionCodeHandling(function_code_handling));
+
+  RtnSnapshotBlob* rtn = new RtnSnapshotBlob;
+  rtn->data = startup_data.data;
+  rtn->raw_size = startup_data.raw_size;
+  delete snapshotCreator;
+  return rtn;
+}
+
+void SnapshotBlobDelete(RtnSnapshotBlob* ptr) {
+  delete[] ptr->data;
+  delete ptr;
 }
 
 /********** Exceptions & Errors **********/
@@ -593,7 +664,43 @@ ContextPtr NewContext(IsolatePtr iso,
   m_ctx* ctx = new m_ctx;
   ctx->ptr.Reset(iso, local_ctx);
   ctx->iso = iso;
+  ctx->startup_data = nullptr;
   return ctx;
+}
+
+RtnContext NewContextFromSnapshot(IsolatePtr iso,
+                                  size_t snapshot_blob_index,
+                                  int ref) {
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  RtnContext rtn = {};
+
+  // For function callbacks we need a reference to the context, but because of
+  // the complexities of C -> Go function pointers, we store a reference to the
+  // context as a simple integer identifier; this can then be used on the Go
+  // side to lookup the context in the context registry. We use slot 1 as slot 0
+  // has special meaning for the Chrome debugger.
+
+  Local<Context> local_ctx;
+
+  if (!Context::FromSnapshot(iso, snapshot_blob_index).ToLocal(&local_ctx)) {
+    RtnError error = {nullptr, nullptr, nullptr};
+    error.msg = CopyString("Failed to create context from snapshot index: " +
+                           std::to_string(snapshot_blob_index));
+    rtn.error = error;
+    return rtn;
+  }
+
+  local_ctx->SetEmbedderData(1, Integer::New(iso, ref));
+
+  m_ctx* ctx = new m_ctx;
+  ctx->ptr.Reset(iso, local_ctx);
+  ctx->iso = iso;
+  ctx->startup_data = nullptr;
+  rtn.context = ctx;
+  return rtn;
 }
 
 void ContextFree(ContextPtr ctx) {
@@ -610,6 +717,10 @@ void ContextFree(ContextPtr ctx) {
   for (m_unboundScript* us : ctx->unboundScripts) {
     us->ptr.Reset();
     delete us;
+  }
+
+  if (ctx->startup_data) {
+    delete ctx->startup_data;
   }
 
   delete ctx;

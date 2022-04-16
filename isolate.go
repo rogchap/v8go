@@ -25,8 +25,9 @@ type Isolate struct {
 	cbSeq   int
 	cbs     map[int]FunctionCallback
 
-	null      *Value
-	undefined *Value
+	null         *Value
+	undefined    *Value
+	createParams *CreateParams
 }
 
 // HeapStatistics represents V8 isolate heap statistics
@@ -44,20 +45,48 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
+type createOptions func(*CreateParams)
+
+func WithStartupData(startupData *StartupData) createOptions {
+	return func(params *CreateParams) {
+		params.startupData = startupData
+	}
+}
+
+type CreateParams struct {
+	startupData *StartupData
+}
+
 // NewIsolate creates a new V8 isolate. Only one thread may access
 // a given isolate at a time, but different threads may access
 // different isolates simultaneously.
 // When an isolate is no longer used its resources should be freed
 // by calling iso.Dispose().
+// If StartupData is passed as part of createOptions it will be use as part
+// of the createParams. The StartupData will be use when creating new context
+// from the Isolate.
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
-func NewIsolate() *Isolate {
+func NewIsolate(opts ...createOptions) *Isolate {
 	v8once.Do(func() {
 		C.Init()
 	})
+	params := &CreateParams{}
+	for _, opt := range opts {
+		opt(params)
+	}
+
+	var cOptions C.IsolateOptions
+
+	if params.startupData != nil {
+		cOptions.snapshot_blob_data = (*C.char)(unsafe.Pointer(&params.startupData.data[0]))
+		cOptions.snapshot_blob_raw_size = params.startupData.raw_size
+	}
+
 	iso := &Isolate{
-		ptr: C.NewIsolate(),
-		cbs: make(map[int]FunctionCallback),
+		ptr:          C.NewIsolate(cOptions),
+		cbs:          make(map[int]FunctionCallback),
+		createParams: params,
 	}
 	iso.null = newValueNull(iso)
 	iso.undefined = newValueUndefined(iso)
@@ -146,6 +175,7 @@ func (i *Isolate) Dispose() {
 		return
 	}
 	C.IsolateDispose(i.ptr)
+	i.createParams = nil
 	i.ptr = nil
 }
 

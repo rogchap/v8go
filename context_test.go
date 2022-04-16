@@ -39,6 +39,61 @@ func TestContextExec(t *testing.T) {
 	}
 }
 
+func TestNewContextFromSnapshotErrorWhenIsolateHasNoStartupData(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	ctx, err := v8.NewContextFromSnapshot(iso, 1)
+
+	if ctx != nil {
+		t.Errorf("expected nil context got: %+v", ctx)
+	}
+	if err == nil {
+		t.Error("error expected but was <nil>")
+	}
+}
+
+func TestNewContextFromSnapshotErrorWhenIndexOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	snapshotCreator := v8.NewSnapshotCreator()
+	snapshotCreatorIso, err := snapshotCreator.GetIsolate()
+	fatalIf(t, err)
+
+	snapshotCreatorCtx := v8.NewContext(snapshotCreatorIso)
+	defer snapshotCreatorCtx.Close()
+
+	snapshotCreatorCtx.RunScript(`const add = (a, b) => a + b`, "add.js")
+	snapshotCreatorCtx.RunScript(`function run() { return add(3, 4); }`, "main.js")
+	err = snapshotCreator.SetDefaultContext(snapshotCreatorCtx)
+	fatalIf(t, err)
+
+	snapshotCreatorCtx2 := v8.NewContext(snapshotCreatorIso)
+	defer snapshotCreatorCtx2.Close()
+
+	snapshotCreatorCtx2.RunScript(`const multiply = (a, b) => a * b`, "add.js")
+	snapshotCreatorCtx2.RunScript(`function run() { return multiply(3, 4); }`, "main.js")
+	index, err := snapshotCreator.AddContext(snapshotCreatorCtx2)
+	fatalIf(t, err)
+
+	data, err := snapshotCreator.Create(v8.FunctionCodeHandlingClear)
+	fatalIf(t, err)
+
+	iso := v8.NewIsolate(v8.WithStartupData(data))
+	defer iso.Dispose()
+
+	ctx, err := v8.NewContextFromSnapshot(iso, index+1)
+
+	if ctx != nil {
+		t.Errorf("expected nil context got: %+v", ctx)
+	}
+	if err == nil {
+		t.Error("error expected but was <nil>")
+	}
+}
+
 func TestJSExceptions(t *testing.T) {
 	t.Parallel()
 
