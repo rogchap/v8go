@@ -298,7 +298,7 @@ extern RtnValue FunctionCall(ValuePtr ptr,
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
-const char* Version();
+const char* V8goVersion();
 extern void SetFlags(const char* flags);
 
 #ifdef __cplusplus

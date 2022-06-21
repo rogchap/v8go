@@ -1615,7 +1615,7 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
 
 /********** v8::V8 **********/
 
-const char* Version() {
+const char* V8goVersion() {
   return V8::GetVersion();
 }
 
