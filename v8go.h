@@ -131,7 +131,7 @@ typedef struct {
   int sign_bit;
 } ValueBigInt;
 
-extern void Init();
+extern void V8goInit();
 extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);

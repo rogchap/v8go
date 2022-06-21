@@ -143,7 +143,7 @@ extern "C" {
   ISOLATE_SCOPE(iso);                       \
   m_ctx* ctx = isolateInternalContext(iso);
 
-void Init() {
+void V8goInit() {
 #ifdef _WIN32
   V8::InitializeExternalStartupData(".");
 #endif
