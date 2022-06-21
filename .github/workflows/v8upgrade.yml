@@ -3,7 +3,7 @@ name: V8 Upgrade
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *' # Run every day
+    - cron: '0 0 1 * *' # Run every day
 
 jobs:
     upgrade:
