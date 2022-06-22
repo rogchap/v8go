@@ -59,7 +59,7 @@ class V8_EXPORT Heap {
   };
 
   /**
-   * Specifies supported marking types
+   * Specifies supported marking types.
    */
   enum class MarkingType : uint8_t {
     /**
@@ -68,8 +68,8 @@ class V8_EXPORT Heap {
      */
     kAtomic,
     /**
-     * Incremental marking, i.e. interleave marking is the rest of the
-     * application on the same thread.
+     * Incremental marking interleaves marking with the rest of the application
+     * workload on the same thread.
      */
     kIncremental,
     /**
@@ -79,13 +79,18 @@ class V8_EXPORT Heap {
   };
 
   /**
-   * Specifies supported sweeping types
+   * Specifies supported sweeping types.
    */
   enum class SweepingType : uint8_t {
     /**
      * Atomic stop-the-world sweeping. All of sweeping is performed at once.
      */
     kAtomic,
+    /**
+     * Incremental sweeping interleaves sweeping with the rest of the
+     * application workload on the same thread.
+     */
+    kIncremental,
     /**
      * Incremental and concurrent sweeping. Sweeping is split and interleaved
      * with the rest of the application.
