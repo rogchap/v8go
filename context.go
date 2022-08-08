@@ -76,8 +76,7 @@ func NewContext(opt ...ContextOption) *Context {
 	return ctx
 }
 
-// Isolate gets the current context's parent isolate.An  error is returned
-// if the isolate has been terninated.
+// Isolate gets the current context's parent isolate.
 func (c *Context) Isolate() *Isolate {
 	return c.iso
 }
