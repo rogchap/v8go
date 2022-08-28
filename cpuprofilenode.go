@@ -17,6 +17,12 @@ type CPUProfileNode struct {
 	// The number of the column where the function originates.
 	columnNumber int
 
+	// The number of samples recorded in the function
+	hitCount uint
+
+	// The number of lines in which samples were recorded in the function
+	hitLineCount uint
+
 	// The children node of this node.
 	children []*CPUProfileNode
 
@@ -42,6 +48,16 @@ func (c *CPUProfileNode) GetLineNumber() int {
 // Returns number of the column where the function originates.
 func (c *CPUProfileNode) GetColumnNumber() int {
 	return c.columnNumber
+}
+
+// Returns total samples recorded inside the function
+func (c *CPUProfileNode) GetHitCount() uint {
+	return c.hitCount
+}
+
+// Returns total number of lines inside the function recording samples
+func (c *CPUProfileNode) GetHitLineCount() uint {
+	return c.hitLineCount
 }
 
 // Retrieves the ancestor node, or nil if the root.

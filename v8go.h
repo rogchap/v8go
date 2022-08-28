@@ -88,6 +88,8 @@ typedef struct CPUProfileNode {
   const char* functionName;
   int lineNumber;
   int columnNumber;
+  unsigned int hitCount;
+  unsigned int hitLineCount;
   int childrenCount;
   struct CPUProfileNode** children;
 } CPUProfileNode;

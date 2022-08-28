@@ -332,6 +332,8 @@ CPUProfileNode* NewCPUProfileNode(const CpuProfileNode* ptr_) {
       ptr_->GetFunctionNameStr(),
       ptr_->GetLineNumber(),
       ptr_->GetColumnNumber(),
+      ptr_->GetHitCount(),
+      ptr_->GetHitLineCount(),
       count,
       children,
   };

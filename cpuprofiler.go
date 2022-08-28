@@ -79,6 +79,8 @@ func newCPUProfileNode(node *C.CPUProfileNode, parent *CPUProfileNode) *CPUProfi
 		functionName:       C.GoString(node.functionName),
 		lineNumber:         int(node.lineNumber),
 		columnNumber:       int(node.columnNumber),
+		hitCount:           uint(node.hitCount),
+		hitLineCount:       uint(node.hitLineCount),
 		parent:             parent,
 	}
 
