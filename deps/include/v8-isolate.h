@@ -10,7 +10,6 @@
 
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include "cppgc/common.h"
 #include "v8-array-buffer.h"       // NOLINT(build/include_directory)
@@ -212,6 +211,8 @@ class V8_EXPORT Isolate {
     CreateParams();
     ~CreateParams();
 
+    ALLOW_COPY_AND_MOVE_WITH_DEPRECATED_FIELDS(CreateParams)
+
     /**
      * Allows the host application to provide the address of a function that is
      * notified each time code is added, moved or removed.
@@ -225,6 +226,7 @@ class V8_EXPORT Isolate {
 
     /**
      * Explicitly specify a startup snapshot blob. The embedder owns the blob.
+     * The embedder *must* ensure that the snapshot is from a trusted source.
      */
     StartupData* snapshot_blob = nullptr;
 
@@ -283,6 +285,15 @@ class V8_EXPORT Isolate {
     int embedder_wrapper_object_index = -1;
 
     /**
+     * Callbacks to invoke in case of fatal or OOM errors.
+     */
+    FatalErrorCallback fatal_error_callback = nullptr;
+    OOMErrorCallback oom_error_callback = nullptr;
+
+    V8_DEPRECATED("Use oom_error_callback (https://crbug.com/1323177)")
+    LegacyOOMErrorCallback legacy_oom_error_callback = nullptr;
+
+    /**
      * The following parameter is experimental and may change significantly.
      * This is currently for internal testing.
      */
@@ -295,16 +306,18 @@ class V8_EXPORT Isolate {
    */
   class V8_EXPORT V8_NODISCARD Scope {
    public:
-    explicit Scope(Isolate* isolate) : isolate_(isolate) { isolate->Enter(); }
+    explicit Scope(Isolate* isolate) : v8_isolate_(isolate) {
+      v8_isolate_->Enter();
+    }
 
-    ~Scope() { isolate_->Exit(); }
+    ~Scope() { v8_isolate_->Exit(); }
 
     // Prevent copying of Scope objects.
     Scope(const Scope&) = delete;
     Scope& operator=(const Scope&) = delete;
 
    private:
-    Isolate* const isolate_;
+    Isolate* const v8_isolate_;
   };
 
   /**
@@ -325,7 +338,7 @@ class V8_EXPORT Isolate {
 
    private:
     OnFailure on_failure_;
-    Isolate* isolate_;
+    v8::Isolate* v8_isolate_;
 
     bool was_execution_allowed_assert_;
     bool was_execution_allowed_throws_;
@@ -347,7 +360,7 @@ class V8_EXPORT Isolate {
         const AllowJavascriptExecutionScope&) = delete;
 
    private:
-    Isolate* isolate_;
+    Isolate* v8_isolate_;
     bool was_execution_allowed_assert_;
     bool was_execution_allowed_throws_;
     bool was_execution_allowed_dump_;
@@ -370,7 +383,7 @@ class V8_EXPORT Isolate {
         const SuppressMicrotaskExecutionScope&) = delete;
 
    private:
-    internal::Isolate* const isolate_;
+    internal::Isolate* const i_isolate_;
     internal::MicrotaskQueue* const microtask_queue_;
     internal::Address previous_stack_height_;
 
@@ -383,7 +396,7 @@ class V8_EXPORT Isolate {
    */
   class V8_EXPORT V8_NODISCARD SafeForTerminationScope {
    public:
-    explicit SafeForTerminationScope(v8::Isolate* isolate);
+    explicit SafeForTerminationScope(v8::Isolate* v8_isolate);
     ~SafeForTerminationScope();
 
     // Prevent copying of Scope objects.
@@ -391,7 +404,7 @@ class V8_EXPORT Isolate {
     SafeForTerminationScope& operator=(const SafeForTerminationScope&) = delete;
 
    private:
-    internal::Isolate* isolate_;
+    internal::Isolate* i_isolate_;
     bool prev_value_;
   };
 
@@ -523,6 +536,8 @@ class V8_EXPORT Isolate {
     kWasmMultiValue = 110,
     kWasmExceptionHandling = 111,
     kInvalidatedMegaDOMProtector = 112,
+    kFunctionPrototypeArguments = 113,
+    kFunctionPrototypeCaller = 114,
 
     // If you add new values here, you'll also need to update Chromium's:
     // web_feature.mojom, use_counter_callback.cc, and enums.xml. V8 changes to
@@ -629,7 +644,7 @@ class V8_EXPORT Isolate {
    * import() language feature to load modules.
    */
   void SetHostImportModuleDynamicallyCallback(
-      HostImportModuleDynamicallyWithImportAssertionsCallback callback);
+      HostImportModuleDynamicallyCallback callback);
 
   /**
    * This specifies the callback called by the upcoming import.meta
@@ -637,6 +652,13 @@ class V8_EXPORT Isolate {
    */
   void SetHostInitializeImportMetaObjectCallback(
       HostInitializeImportMetaObjectCallback callback);
+
+  /**
+   * This specifies the callback called by the upcoming ShadowRealm
+   * construction language feature to retrieve host created globals.
+   */
+  void SetHostCreateShadowRealmContextCallback(
+      HostCreateShadowRealmContextCallback callback);
 
   /**
    * This specifies the callback called when the stack property of Error
@@ -822,12 +844,6 @@ class V8_EXPORT Isolate {
   int64_t AdjustAmountOfExternalAllocatedMemory(int64_t change_in_bytes);
 
   /**
-   * Returns the number of phantom handles without callbacks that were reset
-   * by the garbage collector since the last call to this function.
-   */
-  size_t NumberOfPhantomHandleResetsSinceLastCall();
-
-  /**
    * Returns heap profiler for this isolate. Will return NULL until the isolate
    * is initialized.
    */
@@ -911,11 +927,13 @@ class V8_EXPORT Isolate {
 
   /**
    * Sets the embedder heap tracer for the isolate.
+   * SetEmbedderHeapTracer cannot be used simultaneously with AttachCppHeap.
    */
   void SetEmbedderHeapTracer(EmbedderHeapTracer* tracer);
 
   /*
-   * Gets the currently active heap tracer for the isolate.
+   * Gets the currently active heap tracer for the isolate that was set with
+   * SetEmbedderHeapTracer.
    */
   EmbedderHeapTracer* GetEmbedderHeapTracer();
 
@@ -935,6 +953,7 @@ class V8_EXPORT Isolate {
    * Attaches a managed C++ heap as an extension to the JavaScript heap. The
    * embedder maintains ownership of the CppHeap. At most one C++ heap can be
    * attached to V8.
+   * AttachCppHeap cannot be used simultaneously with SetEmbedderHeapTracer.
    *
    * This is an experimental feature and may still change significantly.
    */
@@ -1130,6 +1149,21 @@ class V8_EXPORT Isolate {
    * schedule.
    */
   void RequestGarbageCollectionForTesting(GarbageCollectionType type);
+
+  /**
+   * Request garbage collection with a specific embedderstack state in this
+   * Isolate. It is only valid to call this function if --expose_gc was
+   * specified.
+   *
+   * This should only be used for testing purposes and not to enforce a garbage
+   * collection schedule. It has strong negative impact on the garbage
+   * collection performance. Use IdleNotificationDeadline() or
+   * LowMemoryNotification() instead to influence the garbage collection
+   * schedule.
+   */
+  void RequestGarbageCollectionForTesting(
+      GarbageCollectionType type,
+      EmbedderHeapTracer::EmbedderStackState stack_state);
 
   /**
    * Set the callback to invoke for logging event.
@@ -1436,6 +1470,10 @@ class V8_EXPORT Isolate {
   /** Set the callback to invoke in case of fatal errors. */
   void SetFatalErrorHandler(FatalErrorCallback that);
 
+  /** Set the callback to invoke in case of OOM errors (deprecated). */
+  V8_DEPRECATED("Use OOMErrorCallback (https://crbug.com/1323177)")
+  void SetOOMErrorHandler(LegacyOOMErrorCallback that);
+
   /** Set the callback to invoke in case of OOM errors. */
   void SetOOMErrorHandler(OOMErrorCallback that);
 
@@ -1487,14 +1525,18 @@ class V8_EXPORT Isolate {
 
   void SetWasmStreamingCallback(WasmStreamingCallback callback);
 
+  void SetWasmAsyncResolvePromiseCallback(
+      WasmAsyncResolvePromiseCallback callback);
+
   void SetWasmLoadSourceMapCallback(WasmLoadSourceMapCallback callback);
 
   void SetWasmSimdEnabledCallback(WasmSimdEnabledCallback callback);
 
   void SetWasmExceptionsEnabledCallback(WasmExceptionsEnabledCallback callback);
 
-  void SetWasmDynamicTieringEnabledCallback(
-      WasmDynamicTieringEnabledCallback callback);
+  V8_DEPRECATE_SOON("Dynamic tiering is now enabled by default")
+  void SetWasmDynamicTieringEnabledCallback(WasmDynamicTieringEnabledCallback) {
+  }
 
   void SetSharedArrayBufferConstructorEnabledCallback(
       SharedArrayBufferConstructorEnabledCallback callback);
@@ -1561,19 +1603,6 @@ class V8_EXPORT Isolate {
    * guarantee that visited objects are still alive.
    */
   void VisitExternalResources(ExternalResourceVisitor* visitor);
-
-  /**
-   * Iterates through all the persistent handles in the current isolate's heap
-   * that have class_ids.
-   */
-  void VisitHandlesWithClassIds(PersistentHandleVisitor* visitor);
-
-  /**
-   * Iterates through all the persistent handles in the current isolate's heap
-   * that have class_ids and are weak to be marked as inactive if there is no
-   * pending activity for the handle.
-   */
-  void VisitWeakHandles(PersistentHandleVisitor* visitor);
 
   /**
    * Check if this isolate is in use.

@@ -12,6 +12,7 @@
 #include "cppgc/common.h"
 #include "v8-data.h"          // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
+#include "v8-promise.h"       // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
 #if defined(V8_OS_WIN)
@@ -148,11 +149,13 @@ using JitCodeEventHandler = void (*)(const JitCodeEvent* event);
  */
 enum GCType {
   kGCTypeScavenge = 1 << 0,
-  kGCTypeMarkSweepCompact = 1 << 1,
-  kGCTypeIncrementalMarking = 1 << 2,
-  kGCTypeProcessWeakCallbacks = 1 << 3,
-  kGCTypeAll = kGCTypeScavenge | kGCTypeMarkSweepCompact |
-               kGCTypeIncrementalMarking | kGCTypeProcessWeakCallbacks
+  kGCTypeMinorMarkCompact = 1 << 1,
+  kGCTypeMarkSweepCompact = 1 << 2,
+  kGCTypeIncrementalMarking = 1 << 3,
+  kGCTypeProcessWeakCallbacks = 1 << 4,
+  kGCTypeAll = kGCTypeScavenge | kGCTypeMinorMarkCompact |
+               kGCTypeMarkSweepCompact | kGCTypeIncrementalMarking |
+               kGCTypeProcessWeakCallbacks
 };
 
 /**
@@ -214,7 +217,17 @@ using AddHistogramSampleCallback = void (*)(void* histogram, int sample);
 
 using FatalErrorCallback = void (*)(const char* location, const char* message);
 
-using OOMErrorCallback = void (*)(const char* location, bool is_heap_oom);
+using LegacyOOMErrorCallback V8_DEPRECATED(
+    "Use OOMErrorCallback (https://crbug.com/1323177)") =
+    void (*)(const char* location, bool is_heap_oom);
+
+struct OOMDetails {
+  bool is_heap_oom = false;
+  const char* detail = nullptr;
+};
+
+using OOMErrorCallback = void (*)(const char* location,
+                                  const OOMDetails& details);
 
 using MessageCallback = void (*)(Local<Message> message, Local<Value> data);
 
@@ -231,6 +244,8 @@ enum class CrashKeyId {
   kMapSpaceFirstPageAddress,
   kCodeSpaceFirstPageAddress,
   kDumpType,
+  kSnapshotChecksumCalculated,
+  kSnapshotChecksumExpected,
 };
 
 using AddCrashKeyCallback = void (*)(CrashKeyId id, const std::string& value);
@@ -298,6 +313,13 @@ using ApiImplementationCallback = void (*)(const FunctionCallbackInfo<Value>&);
 // --- Callback for WebAssembly.compileStreaming ---
 using WasmStreamingCallback = void (*)(const FunctionCallbackInfo<Value>&);
 
+enum class WasmAsyncSuccess { kSuccess, kFail };
+
+// --- Callback called when async WebAssembly operations finish ---
+using WasmAsyncResolvePromiseCallback = void (*)(
+    Isolate* isolate, Local<Context> context, Local<Promise::Resolver> resolver,
+    Local<Value> result, WasmAsyncSuccess success);
+
 // --- Callback for loading source map file for Wasm profiling support
 using WasmLoadSourceMapCallback = Local<String> (*)(Isolate* isolate,
                                                     const char* name);
@@ -309,14 +331,16 @@ using WasmSimdEnabledCallback = bool (*)(Local<Context> context);
 using WasmExceptionsEnabledCallback = bool (*)(Local<Context> context);
 
 // --- Callback for checking if WebAssembly dynamic tiering is enabled ---
-using WasmDynamicTieringEnabledCallback = bool (*)(Local<Context> context);
+using WasmDynamicTieringEnabledCallback V8_DEPRECATE_SOON(
+    "Dynamic tiering is now enabled by default") =
+    bool (*)(Local<Context> context);
 
 // --- Callback for checking if the SharedArrayBuffer constructor is enabled ---
 using SharedArrayBufferConstructorEnabledCallback =
     bool (*)(Local<Context> context);
 
 /**
- * HostImportModuleDynamicallyWithImportAssertionsCallback is called when we
+ * HostImportModuleDynamicallyCallback is called when we
  * require the embedder to load a module. This is used as part of the dynamic
  * import syntax.
  *
@@ -346,6 +370,10 @@ using HostImportModuleDynamicallyWithImportAssertionsCallback =
                             Local<ScriptOrModule> referrer,
                             Local<String> specifier,
                             Local<FixedArray> import_assertions);
+using HostImportModuleDynamicallyCallback = MaybeLocal<Promise> (*)(
+    Local<Context> context, Local<Data> host_defined_options,
+    Local<Value> resource_name, Local<String> specifier,
+    Local<FixedArray> import_assertions);
 
 /**
  * HostInitializeImportMetaObjectCallback is called the first time import.meta
@@ -360,6 +388,20 @@ using HostImportModuleDynamicallyWithImportAssertionsCallback =
 using HostInitializeImportMetaObjectCallback = void (*)(Local<Context> context,
                                                         Local<Module> module,
                                                         Local<Object> meta);
+
+/**
+ * HostCreateShadowRealmContextCallback is called each time a ShadowRealm is
+ * being constructed in the initiator_context.
+ *
+ * The method combines Context creation and implementation defined abstract
+ * operation HostInitializeShadowRealm into one.
+ *
+ * The embedder should use v8::Context::New or v8::Context:NewFromSnapshot to
+ * create a new context. If the creation fails, the embedder must propagate
+ * that exception by returning an empty MaybeLocal.
+ */
+using HostCreateShadowRealmContextCallback =
+    MaybeLocal<Context> (*)(Local<Context> initiator_context);
 
 /**
  * PrepareStackTraceCallback is called when the stack property of an error is
