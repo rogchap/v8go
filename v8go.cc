@@ -328,10 +328,14 @@ CPUProfileNode* NewCPUProfileNode(const CpuProfileNode* ptr_) {
 
   CPUProfileNode* root = new CPUProfileNode{
       ptr_,
+      ptr_->GetNodeId(),
+      ptr_->GetScriptId(),
       ptr_->GetScriptResourceNameStr(),
       ptr_->GetFunctionNameStr(),
       ptr_->GetLineNumber(),
       ptr_->GetColumnNumber(),
+      ptr_->GetHitCount(),
+      ptr_->GetBailoutReason(),
       count,
       children,
   };

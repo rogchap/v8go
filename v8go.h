@@ -84,10 +84,14 @@ typedef struct {
 
 typedef struct CPUProfileNode {
   CpuProfileNodePtr ptr;
+  unsigned nodeId;
+  int scriptId;
   const char* scriptResourceName;
   const char* functionName;
   int lineNumber;
   int columnNumber;
+  unsigned hitCount;
+  const char* bailoutReason;
   int childrenCount;
   struct CPUProfileNode** children;
 } CPUProfileNode;
