@@ -75,10 +75,14 @@ func (c *CPUProfiler) StopProfiling(title string) *CPUProfile {
 
 func newCPUProfileNode(node *C.CPUProfileNode, parent *CPUProfileNode) *CPUProfileNode {
 	n := &CPUProfileNode{
+		nodeId:             int(node.nodeId),
+		scriptId:           int(node.scriptId),
 		scriptResourceName: C.GoString(node.scriptResourceName),
 		functionName:       C.GoString(node.functionName),
 		lineNumber:         int(node.lineNumber),
 		columnNumber:       int(node.columnNumber),
+		hitCount:           int(node.hitCount),
+		bailoutReason:      C.GoString(node.bailoutReason),
 		parent:             parent,
 	}
 
