@@ -560,6 +560,13 @@ func (v *Value) AsPromise() (*Promise, error) {
 	return &Promise{&Object{v}}, nil
 }
 
+func (v *Value) AsException() (*Exception, error) {
+	if !v.IsNativeError() {
+		return nil, errors.New("v8go: value is not an Error")
+	}
+	return &Exception{v}, nil
+}
+
 func (v *Value) AsFunction() (*Function, error) {
 	if !v.IsFunction() {
 		return nil, errors.New("v8go: value is not a Function")

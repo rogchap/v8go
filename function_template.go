@@ -15,11 +15,24 @@ import (
 // FunctionCallback is a callback that is executed in Go when a function is executed in JS.
 type FunctionCallback func(info *FunctionCallbackInfo) *Value
 
+// FunctionCallbackWithError is a callback that is executed in Go when
+// a function is executed in JS. If a ValueError is returned, its
+// value will be thrown as an exception in V8, otherwise Error() is
+// invoked, and the string is thrown.
+type FunctionCallbackWithError func(info *FunctionCallbackInfo) (*Value, error)
+
 // FunctionCallbackInfo is the argument that is passed to a FunctionCallback.
 type FunctionCallbackInfo struct {
 	ctx  *Context
 	args []*Value
 	this *Object
+}
+
+// A ValueError can be returned from a FunctionCallbackWithError, and
+// its value will be thrown as an exception in V8.
+type ValueError interface {
+	error
+	Valuer
 }
 
 // Context is the current context that the callback is being executed in.
@@ -44,8 +57,21 @@ type FunctionTemplate struct {
 	*template
 }
 
-// NewFunctionTemplate creates a FunctionTemplate for a given callback.
+// NewFunctionTemplate creates a FunctionTemplate for a given
+// callback. Prefer using NewFunctionTemplateWithError.
 func NewFunctionTemplate(iso *Isolate, callback FunctionCallback) *FunctionTemplate {
+	if callback == nil {
+		panic("nil FunctionCallback argument not supported")
+	}
+	return NewFunctionTemplateWithError(iso, func(info *FunctionCallbackInfo) (*Value, error) {
+		return callback(info), nil
+	})
+}
+
+// NewFunctionTemplateWithError creates a FunctionTemplate for a given
+// callback. If the callback returns an error, it will be thrown as a
+// JS error.
+func NewFunctionTemplateWithError(iso *Isolate, callback FunctionCallbackWithError) *FunctionTemplate {
 	if iso == nil {
 		panic("nil Isolate argument not supported")
 	}
@@ -77,7 +103,7 @@ func (tmpl *FunctionTemplate) GetFunction(ctx *Context) *Function {
 // Note that ideally `thisAndArgs` would be split into two separate arguments, but they were combined
 // to workaround an ERROR_COMMITMENT_LIMIT error on windows that was detected in CI.
 //export goFunctionCallback
-func goFunctionCallback(ctxref int, cbref int, thisAndArgs *C.ValuePtr, argsCount int) C.ValuePtr {
+func goFunctionCallback(ctxref int, cbref int, thisAndArgs *C.ValuePtr, argsCount int) (rval C.ValuePtr, rerr C.ValuePtr) {
 	ctx := getContext(ctxref)
 
 	this := *thisAndArgs
@@ -94,8 +120,19 @@ func goFunctionCallback(ctxref int, cbref int, thisAndArgs *C.ValuePtr, argsCoun
 	}
 
 	callbackFunc := ctx.iso.getCallback(cbref)
-	if val := callbackFunc(info); val != nil {
-		return val.ptr
+	val, err := callbackFunc(info)
+	if err != nil {
+		if verr, ok := err.(ValueError); ok {
+			return nil, verr.value().ptr
+		}
+		errv, err := NewValue(ctx.iso, err.Error())
+		if err != nil {
+			panic(err)
+		}
+		return nil, errv.ptr
 	}
-	return nil
+	if val == nil {
+		return nil, nil
+	}
+	return val.ptr, nil
 }

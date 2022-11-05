@@ -512,10 +512,12 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
     args[i] = tracked_value(ctx, val);
   }
 
-  ValuePtr val =
+  goFunctionCallback_return retval =
       goFunctionCallback(ctx_ref, callback_ref, thisAndArgs, args_count);
-  if (val != nullptr) {
-    info.GetReturnValue().Set(val->ptr.Get(iso));
+  if (retval.r1 != nullptr) {
+    iso->ThrowException(retval.r1->ptr.Get(iso));
+  } else if (retval.r0 != nullptr) {
+    info.GetReturnValue().Set(retval.r0->ptr.Get(iso));
   } else {
     info.GetReturnValue().SetUndefined();
   }
@@ -912,6 +914,50 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
   return rtn;
 }
 
+ValuePtr NewValueError(IsolatePtr iso,
+                       ErrorTypeIndex idx,
+                       const char* message) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  Local<String> local_msg = String::NewFromUtf8(iso, message).ToLocalChecked();
+  Local<Value> v;
+  switch (idx) {
+    case ERROR_RANGE:
+      v = Exception::RangeError(local_msg);
+      break;
+    case ERROR_REFERENCE:
+      v = Exception::ReferenceError(local_msg);
+      break;
+    case ERROR_SYNTAX:
+      v = Exception::SyntaxError(local_msg);
+      break;
+    case ERROR_TYPE:
+      v = Exception::TypeError(local_msg);
+      break;
+    case ERROR_WASM_COMPILE:
+      v = Exception::WasmCompileError(local_msg);
+      break;
+    case ERROR_WASM_LINK:
+      v = Exception::WasmLinkError(local_msg);
+      break;
+    case ERROR_WASM_RUNTIME:
+      v = Exception::WasmRuntimeError(local_msg);
+      break;
+    case ERROR_GENERIC:
+      v = Exception::Error(local_msg);
+      break;
+    default:
+      return nullptr;
+  }
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, v);
+  return tracked_value(ctx, val);
+}
+
 const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   Local<Uint32> array_index;
@@ -1286,6 +1332,17 @@ int ValueIsWasmModuleObject(ValuePtr ptr) {
 int ValueIsModuleNamespaceObject(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->IsModuleNamespaceObject();
+}
+
+/********** Exception **********/
+
+const char* ExceptionGetMessageString(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+
+  Local<Message> local_msg = Exception::CreateMessage(iso, value);
+  Local<String> local_str = local_msg->Get();
+  String::Utf8Value utf8(iso, local_str);
+  return CopyString(utf8);
 }
 
 /********** Object **********/

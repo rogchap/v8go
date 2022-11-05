@@ -498,6 +498,27 @@ func TestValuePromise(t *testing.T) {
 
 }
 
+func TestValueAsException(t *testing.T) {
+	t.Parallel()
+
+	ctx := v8.NewContext()
+	defer ctx.Isolate().Dispose()
+	defer ctx.Close()
+
+	val, _ := ctx.RunScript("1", "")
+	if _, err := val.AsException(); err == nil {
+		t.Error("Expected error but got <nil>")
+	}
+	val, err := ctx.RunScript("new Error('foo')", "")
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if _, err := val.AsException(); err != nil {
+		t.Errorf("Expected success but got: %v", err)
+	}
+
+}
+
 func TestValueFunction(t *testing.T) {
 	t.Parallel()
 
