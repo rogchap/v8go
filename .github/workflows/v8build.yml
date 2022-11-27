@@ -14,32 +14,65 @@ jobs:
                 #
                 # We need xcode 12.4 or newer to cross compile between arm64/amd64
                 # https://github.com/actions/virtual-environments/blob/main/images/macos/macos-11-Readme.md#xcode
-                platform: [ubuntu-18.04, macos-11]
-                arch: [x86_64, arm64]
+                platform: [ ubuntu-18.04, macos-11 ]
+                arch: [ x86_64, arm64 ]
         runs-on: ${{ matrix.platform }}
         steps:
-            - name: Checkout
-              uses: actions/checkout@v2
-              with:
-                  submodules: true
-                  fetch-depth: 1
-            - name: Update depot_tools fetch config
-              run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
-              shell: bash
-            - name: Install g++-aarch64-linux-gnu
-              if: matrix.platform == 'ubuntu-18.04' && matrix.arch == 'arm64'
-              run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
-            - name: Build V8 linux
-              if: matrix.platform == 'ubuntu-18.04'
-              run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }}
-            - name: Build V8 macOS
-              if: matrix.platform == 'macos-11'
-              run: cd deps && ./build.py --arch ${{ matrix.arch }}
-            - name: Create PR
-              uses: peter-evans/create-pull-request@v3
-              with:
-                commit-message: Update V8 static library for ${{ matrix.platform }} ${{ matrix.arch }}
-                branch-suffix: random
-                delete-branch: true
-                title: V8 static library for ${{ matrix.platform }} ${{ matrix.arch }}
-                body: Auto-generated pull request to build V8 for ${{ matrix.platform }} ${{ matrix.arch }}
+            -   name: Checkout
+                uses: actions/checkout@v2
+                with:
+                    submodules: true
+                    fetch-depth: 1
+            -   name: Update depot_tools fetch config
+                run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+                shell: bash
+            -   name: Install g++-aarch64-linux-gnu
+                if: matrix.platform == 'ubuntu-18.04' && matrix.arch == 'arm64'
+                run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
+            -   name: Build V8 linux
+                if: matrix.platform == 'ubuntu-18.04'
+                run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }}
+            -   name: Build V8 macOS
+                if: matrix.platform == 'macos-11'
+                run: cd deps && ./build.py --arch ${{ matrix.arch }}
+            -   name: Create PR
+                uses: peter-evans/create-pull-request@v3
+                with:
+                    commit-message: Update V8 static library for ${{ matrix.platform }} ${{ matrix.arch }}
+                    branch-suffix: random
+                    delete-branch: true
+                    title: V8 static library for ${{ matrix.platform }} ${{ matrix.arch }}
+                    body: Auto-generated pull request to build V8 for ${{ matrix.platform }} ${{ matrix.arch }}
+    build-alpine:
+        name: Build V8 for Alpine x86_64
+        runs-on: ubuntu-20.04
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v3
+                with:
+                    submodules: true
+                    fetch-depth: 1
+            -   name: Update depot_tools fetch config
+                run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
+                shell: bash
+            -   name: Get V8 deps linux
+                run: cd deps && ./get_v8deps.py
+            -   name: Set up QEMU
+                uses: docker/setup-qemu-action@v2
+            -   name: Set up Docker Buildx
+                uses: docker/setup-buildx-action@v2
+            -   name: Build container images
+                run: docker buildx build --platform=linux/amd64 --output=type=docker -t v8-builder-alpine -f deps/alpine-v8-builder.Dockerfile deps
+            -   name: Copy files
+                run: |
+                    id=$(docker create v8-builder-alpine)
+                    docker cp $id:alpine_x86_64/. deps/alpine_x86_64/
+                    docker rm -v $id
+            -   name: Create PR
+                uses: peter-evans/create-pull-request@v3
+                with:
+                    commit-message: Update V8 static library for Alpine x86_64
+                    branch-suffix: random
+                    delete-branch: true
+                    title: V8 static library for Alpine x86_64
+                    body: Auto-generated pull request to build V8 for Alpine x86_64

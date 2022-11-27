@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+//go:build cgo
+// +build cgo
+
 package v8go
 
 //go:generate clang-format -i --verbose -style=Chromium v8go.h v8go.cc
@@ -10,7 +13,6 @@ package v8go
 // #cgo LDFLAGS: -pthread -lv8
 // #cgo darwin,amd64 LDFLAGS: -L${SRCDIR}/deps/darwin_x86_64
 // #cgo darwin,arm64 LDFLAGS: -L${SRCDIR}/deps/darwin_arm64
-// #cgo linux,amd64 LDFLAGS: -L${SRCDIR}/deps/linux_x86_64 -ldl
 // #cgo linux,arm64 LDFLAGS: -L${SRCDIR}/deps/linux_arm64 -ldl
 import "C"
 
@@ -18,6 +20,7 @@ import "C"
 // contain V8 libraries and headers which otherwise would be ignored.
 // DO NOT REMOVE
 import (
+	_ "rogchap.com/v8go/deps/alpine_x86_64"
 	_ "rogchap.com/v8go/deps/darwin_arm64"
 	_ "rogchap.com/v8go/deps/darwin_x86_64"
 	_ "rogchap.com/v8go/deps/include"
