@@ -830,6 +830,46 @@ RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
   return rtn;
 }
 
+ValuePtr NewValueUint8Array(IsolatePtr iso, const uint8_t *v, int len) {
+  ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
+
+  Local<Context> local_ctx = ctx->ptr.Get(iso);
+  Context::Scope context_scope(local_ctx);
+
+  std::unique_ptr<BackingStore> bs = ArrayBuffer::NewBackingStore(
+    static_cast<void*>(const_cast<uint8_t*>(v)), len,
+    [](void* data, size_t length, void *deleter_data) {
+      free(data);
+      }, nullptr);
+
+  Local<ArrayBuffer> arbuf = ArrayBuffer::New(iso, std::move(bs));
+
+  m_value* val = new m_value;
+  val->iso = iso;
+  val->ctx = ctx;
+  val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
+      iso, Uint8Array::New(arbuf, 0, len));
+
+
+  return tracked_value(ctx, val);
+}
+
+uint8_t* ValueToUint8Array(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  MaybeLocal<Uint8Array> array = value.As<Uint8Array>();
+  int length = array.ToLocalChecked()->ByteLength();
+  uint8_t* bytes = new uint8_t[length];
+  memcpy(bytes, array.ToLocalChecked()->Buffer()->GetBackingStore()->Data(), length);
+  return bytes;
+}
+
+// Returns length of the array (number of elements, not number of bytes)
+uint64_t ValueToArrayLength(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  MaybeLocal<TypedArray> array = value.As<TypedArray>();
+  return array.ToLocalChecked()->Length();
+}
+
 ValuePtr NewValueNull(IsolatePtr iso) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
