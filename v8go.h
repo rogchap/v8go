@@ -212,6 +212,9 @@ extern RtnString ValueToString(ValuePtr ptr);
 extern uint8_t* ValueToUint8Array(ValuePtr ptr);
 extern uint64_t ValueToArrayLength(ValuePtr ptr);
 const uint32_t* ValueToArrayIndex(ValuePtr ptr);
+
+extern int PumpMessageLoop(IsolatePtr iso_ptr);
+
 int ValueToBoolean(ValuePtr ptr);
 int32_t ValueToInt32(ValuePtr ptr);
 int64_t ValueToInteger(ValuePtr ptr);

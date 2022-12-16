@@ -199,6 +199,21 @@ func TestIsolateDispose(t *testing.T) {
 	}
 }
 
+func TestIsolatePumpReturnsFalseWhenDone(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	if iso.GetHeapStatistics().TotalHeapSize == 0 {
+		t.Error("Isolate incorrectly allocated")
+	}
+
+	if iso.PumpMessageLoop() {
+		t.Error("pumping returned true")
+	}
+
+}
+
 func TestIsolateThrowException(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()

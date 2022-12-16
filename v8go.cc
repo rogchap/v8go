@@ -964,6 +964,11 @@ const uint32_t* ValueToArrayIndex(ValuePtr ptr) {
   return idx;
 }
 
+int PumpMessageLoop(IsolatePtr iso) {
+  ISOLATE_SCOPE(iso);
+  return platform::PumpMessageLoop(default_platform.get(), iso);
+}
+
 int ValueToBoolean(ValuePtr ptr) {
   LOCAL_VALUE(ptr);
   return value->BooleanValue(iso);

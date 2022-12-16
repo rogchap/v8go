@@ -83,6 +83,10 @@ type CompileOptions struct {
 	Mode CompileMode
 }
 
+func (i *Isolate) PumpMessageLoop() bool {
+	return C.PumpMessageLoop(i.ptr) != 0
+}
+
 // CompileUnboundScript will create an UnboundScript (i.e. context-indepdent)
 // using the provided source JavaScript, origin (a.k.a. filename), and options.
 // If options contain a non-null CachedData, compilation of the script will use
