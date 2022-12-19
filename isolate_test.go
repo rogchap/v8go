@@ -201,7 +201,7 @@ func TestIsolateDispose(t *testing.T) {
 	}
 }
 
-func TestIsolatePumpReturnsFalseWhenDone(t *testing.T) {
+func TestPumpingWebAssemblyCompilation(t *testing.T) {
 	t.Parallel()
 
 	iso := v8.NewIsolate()
