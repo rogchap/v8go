@@ -250,7 +250,6 @@ func TestIsolatePumpReturnsFalseWhenDone(t *testing.T) {
 		t.Fatal(err)
 	}
 	out, err := ctx.RunScript(`
-	log("what")
 	  let memory = new WebAssembly.Memory({initial:1});
 	  let compiled = awaitAndPump(WebAssembly.compile(getWasm()))
 	  let lastLog = "";
