@@ -7,9 +7,11 @@ package v8go_test
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"strings"
 	"testing"
+	"time"
 
 	v8 "rogchap.com/v8go"
 )
@@ -208,8 +210,75 @@ func TestIsolatePumpReturnsFalseWhenDone(t *testing.T) {
 		t.Error("Isolate incorrectly allocated")
 	}
 
-	if iso.PumpMessageLoop() {
-		t.Error("pumping returned true")
+	bytes, _ := ioutil.ReadFile("hello.wasm")
+	global := v8.NewObjectTemplate(iso)
+
+	logs := []string{}
+
+	global.Set("log", v8.NewFunctionTemplate(iso,
+		func(info *v8.FunctionCallbackInfo) *v8.Value {
+			for _, arg := range info.Args() {
+				logs = append(logs, arg.String())
+			}
+			return nil
+		},
+	))
+
+	global.Set("getWasm", v8.NewFunctionTemplate(iso,
+		func(info *v8.FunctionCallbackInfo) *v8.Value {
+			out, _ := v8.NewValue(iso, bytes)
+			return out
+		},
+	))
+
+	global.Set("awaitAndPump", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		promise, err := info.Args()[0].AsPromise()
+		if err != nil {
+			panic(err)
+		}
+		for iso.PumpMessageLoop() || promise.State() == v8.Pending {
+			info.Context().PerformMicrotaskCheckpoint()
+			time.Sleep(14 * time.Millisecond)
+		}
+		return promise.Result()
+	}))
+
+	ctx := v8.NewContext(iso, global)
+	poly, _ := ioutil.ReadFile("textencoder-polyfill.js")
+	_, err := ctx.RunScript(string(poly), "polyfill.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := ctx.RunScript(`
+	log("what")
+	  let memory = new WebAssembly.Memory({initial:1});
+	  let compiled = awaitAndPump(WebAssembly.compile(getWasm()))
+	  let lastLog = "";
+	  function logFromWASM(offset, length) {
+        let bytes = new Uint8Array(memory.buffer, offset, length);
+        let string = new TextDecoder('utf8').decode(bytes);
+        console.log(string);
+		lastLog = string;
+      };
+	  let importObject = {
+        console: {
+          log: logFromWASM
+        },
+        js: {
+          mem: memory
+        }
+      };
+	  const instance = awaitAndPump(WebAssembly.instantiate(compiled, importObject));
+	  instance.exports.helloWorld();
+	  lastLog;
+	`, "wasm.js")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if out.String() != "Hello World from WebAssembly!" {
+		t.Fatal("unexpected output:", out.String())
 	}
 
 }
