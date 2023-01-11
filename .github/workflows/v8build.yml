@@ -27,10 +27,10 @@ jobs:
               run: cd deps/depot_tools && git config --unset-all remote.origin.fetch; git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*
               shell: bash
             - name: Install g++-aarch64-linux-gnu
-              if: matrix.platform == 'ubuntu-18.04' && matrix.arch == 'arm64'
+              if: matrix.platform == 'ubuntu-22.04' && matrix.arch == 'arm64'
               run: sudo apt update && sudo apt install g++-aarch64-linux-gnu -y
             - name: Build V8 linux
-              if: matrix.platform == 'ubuntu-18.04'
+              if: matrix.platform == 'ubuntu-22.04'
               run: cd deps && ./build.py --no-clang --arch ${{ matrix.arch }}
             - name: Build V8 macOS
               if: matrix.platform == 'macos-11'
