@@ -243,7 +243,7 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
                                                  opts.cachedData.length);
   }
 
-  ScriptOrigin script_origin(ogn);
+  ScriptOrigin script_origin(iso, ogn);
 
   ScriptCompiler::Source source(src, script_origin, cached_data);
 
@@ -634,7 +634,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
     return rtn;
   }
 
-  ScriptOrigin script_origin(ogn);
+  ScriptOrigin script_origin(iso, ogn);
   Local<Script> script;
   if (!Script::Compile(local_ctx, src, &script_origin).ToLocal(&script)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
