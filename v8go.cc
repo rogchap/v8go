@@ -18,7 +18,7 @@
 using namespace v8;
 
 auto default_platform = platform::NewDefaultPlatform();
-auto default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
+ArrayBuffer::Allocator* default_allocator;
 
 const int ScriptCompilerNoCompileOptions = ScriptCompiler::kNoCompileOptions;
 const int ScriptCompilerConsumeCodeCache = ScriptCompiler::kConsumeCodeCache;
@@ -149,6 +149,8 @@ void Init() {
 #endif
   V8::InitializePlatform(default_platform.get());
   V8::Initialize();
+
+  default_allocator = ArrayBuffer::Allocator::NewDefaultAllocator();
   return;
 }
 
