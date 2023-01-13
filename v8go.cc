@@ -12,6 +12,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "_cgo_export.h"
 
@@ -26,12 +27,14 @@ const int ScriptCompilerEagerCompile = ScriptCompiler::kEagerCompile;
 
 struct m_ctx {
   Isolate* iso;
-  std::vector<m_value*> vals;
+  std::unordered_map<long, m_value*> vals;
   std::vector<m_unboundScript*> unboundScripts;
   Persistent<Context> ptr;
+  long nextValId;
 };
 
 struct m_value {
+  long id;
   Isolate* iso;
   m_ctx* ctx;
   Persistent<Value, CopyablePersistentTraits<Value>> ptr;
@@ -119,7 +122,10 @@ m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // Go <--> C, which would be a significant change, as there are places where
   // we get the context from the value, but if we then need the context to get
   // the value, we would be in a circular bind.
-  ctx->vals.push_back(val);
+  if (val->id == 0) {
+    val->id = ctx->nextValId++;
+    ctx->vals[val->id] = val;
+  }
 
   return val;
 }
@@ -600,16 +606,22 @@ ContextPtr NewContext(IsolatePtr iso,
   return ctx;
 }
 
+int ContextRetainedValueCount(ContextPtr ctx) {
+  return ctx->vals.size();
+}
+
 void ContextFree(ContextPtr ctx) {
   if (ctx == nullptr) {
     return;
   }
   ctx->ptr.Reset();
 
-  for (m_value* val : ctx->vals) {
-    val->ptr.Reset();
-    delete val;
+  
+  for(auto& [key, value] : ctx->vals) {
+    value->ptr.Reset();
+    delete value;
   }
+  ctx->vals.clear();
 
   for (m_unboundScript* us : ctx->unboundScripts) {
     us->ptr.Reset();
@@ -759,6 +771,17 @@ const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
   }
   String::Utf8Value json(iso, str);
   return CopyString(json);
+}
+
+
+void ValueRelease(ValuePtr ptr) {
+  if (ptr == nullptr) {
+    return;
+  }
+  
+  ptr->ctx->vals.erase(ptr->id);
+  ptr->ptr.Reset();
+  delete ptr;
 }
 
 ValuePtr ContextGlobal(ContextPtr ctx) {

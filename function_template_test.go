@@ -48,6 +48,44 @@ func TestFunctionTemplate_panic_on_nil_callback(t *testing.T) {
 	defer iso.Dispose()
 	v8.NewFunctionTemplate(iso, nil)
 }
+func TestFunctionTemplate_generates_values(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	global := v8.NewObjectTemplate(iso)
+	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		fmt.Printf("%+v\n", info.Args())
+		return nil
+	})
+	global.Set("print", printfn, v8.ReadOnly)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
+	if ctx.RetainedValueCount() != 5 {
+		t.Errorf("expected 5 retained values, got: %d", ctx.RetainedValueCount())
+	}
+}
+
+func TestFunctionTemplate_releases_values(t *testing.T) {
+	t.Parallel()
+
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	global := v8.NewObjectTemplate(iso)
+	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		defer info.Release()
+		fmt.Printf("%+v\n", info.Args())
+		return nil
+	})
+	global.Set("print", printfn, v8.ReadOnly)
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
+	if ctx.RetainedValueCount() != 0 {
+		t.Errorf("expected 0 retained values, got: %d", ctx.RetainedValueCount())
+	}
+}
 
 func TestFunctionTemplateGetFunction(t *testing.T) {
 	t.Parallel()
