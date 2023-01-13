@@ -12,11 +12,11 @@ jobs:
     name: Tests on ${{ matrix.go-version }} ${{ matrix.platform }}
     strategy:
       matrix:
-        go-version: [1.16.8, 1.17.1]
+        go-version: [1.18.10, 1.19.5]
         # We use macos-11 over macos-latest because macos-latest defaults to Catalina(10.15) and not Big Sur(11.0)
         # We can switch to macos-latest whenever Big Sur becomes the default
         # See https://github.com/actions/virtual-environments#available-environments
-        platform: [ubuntu-latest, macos-11]
+        platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
 
     steps:
