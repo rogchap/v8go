@@ -11,7 +11,7 @@ import (
 	"os"
 	"testing"
 
-	"rogchap.com/v8go"
+	"github.com/sundeck-io/v8go"
 )
 
 func TestMain(m *testing.M) {

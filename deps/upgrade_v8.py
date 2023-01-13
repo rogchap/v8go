@@ -41,7 +41,7 @@ def get_directories_names(path):
   return sorted(flist)
 
 def package_name(package, index, total):
-  name = f'_ "rogchap.com/v8go/deps/include/{package}"'
+  name = f'_ "github.com/sundeck-io/v8go/deps/include/{package}"'
   if (index + 1 == total):
     return name
   else:

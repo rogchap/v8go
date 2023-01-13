@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	v8 "rogchap.com/v8go"
+	v8 "github.com/sundeck-io/v8go"
 )
 
 func TestObjectMethodCall(t *testing.T) {

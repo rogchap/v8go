@@ -1,8 +1,8 @@
 # Execute JavaScript from Go
 
 <a href="https://github.com/rogchap/v8go/releases"><img src="https://img.shields.io/github/v/release/rogchap/v8go" alt="Github release"></a>
-[![Go Report Card](https://goreportcard.com/badge/rogchap.com/v8go)](https://goreportcard.com/report/rogchap.com/v8go)
-[![Go Reference](https://pkg.go.dev/badge/rogchap.com/v8go.svg)](https://pkg.go.dev/rogchap.com/v8go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sundeck-io/v8go)](https://goreportcard.com/report/github.com/sundeck-io/v8go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sundeck-io/v8go.svg)](https://pkg.go.dev/github.com/sundeck-io/v8go)
 [![CI](https://github.com/rogchap/v8go/workflows/CI/badge.svg)](https://github.com/rogchap/v8go/actions?query=workflow%3ACI)
 ![V8 Build](https://github.com/rogchap/v8go/workflows/V8%20Build/badge.svg)
 [![codecov](https://codecov.io/gh/rogchap/v8go/branch/master/graph/badge.svg?token=VHZwzGm3dV)](https://codecov.io/gh/rogchap/v8go)
@@ -14,7 +14,7 @@
 ## Usage
 
 ```go
-import v8 "rogchap.com/v8go"
+import v8 "github.com/sundeck-io/v8go"
 ```
 
 ### Running a script
@@ -183,7 +183,7 @@ func printTree(nest string, node *v8.CPUProfileNode) {
 
 ## Documentation
 
-Go Reference & more examples: https://pkg.go.dev/rogchap.com/v8go
+Go Reference & more examples: https://pkg.go.dev/github.com/sundeck-io/v8go
 
 ### Support
 

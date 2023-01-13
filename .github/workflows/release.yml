@@ -14,7 +14,7 @@ jobs:
       run: echo "::set-output name=tag::${GITHUB_REF/refs\/tags\//}"
     - name: Get changelog url
       id: changelog
-      run: echo "${{ steps.version.outputs.tag }}---$(date +'%Y-%m-%d')" | sed -e 's/\.//g' | awk '{print "::set-output name=url::https://github.com/rogchap/v8go/blob/master/CHANGELOG.md#" $1}'
+      run: echo "${{ steps.version.outputs.tag }}---$(date +'%Y-%m-%d')" | sed -e 's/\.//g' | awk '{print "::set-output name=url::https://github.com/sundeck-io/v8go/blob/master/CHANGELOG.md#" $1}'
     - name: Create release
       uses: actions/create-release@v1
       env:

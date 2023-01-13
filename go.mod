@@ -1,3 +1,3 @@
-module rogchap.com/v8go
+module github.com/sundeck-io/v8go
 
-go 1.16
+go 1.18
