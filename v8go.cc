@@ -137,7 +137,7 @@ extern "C" {
   ISOLATE_SCOPE(iso);                       \
   m_ctx* ctx = isolateInternalContext(iso);
 
-void Init() {
+void V8goInit() {
 #ifdef _WIN32
   V8::InitializeExternalStartupData(".");
 #endif
@@ -1661,7 +1661,7 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
 
 /********** v8::V8 **********/
 
-const char* Version() {
+const char* V8goVersion() {
   return V8::GetVersion();
 }
 

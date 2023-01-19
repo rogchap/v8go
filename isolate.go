@@ -53,7 +53,7 @@ type HeapStatistics struct {
 // Context, rather than creating a new default Isolate.
 func NewIsolate() *Isolate {
 	v8once.Do(func() {
-		C.Init()
+		C.V8goInit()
 	})
 	iso := &Isolate{
 		ptr: C.NewIsolate(),

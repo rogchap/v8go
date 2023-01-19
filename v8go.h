@@ -135,7 +135,7 @@ typedef struct {
   int sign_bit;
 } ValueBigInt;
 
-extern void Init();
+extern void V8goInit();
 extern IsolatePtr NewIsolate();
 extern void IsolatePerformMicrotaskCheckpoint(IsolatePtr ptr);
 extern void IsolateDispose(IsolatePtr ptr);
@@ -304,7 +304,7 @@ extern RtnValue FunctionCall(ValuePtr ptr,
 RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]);
 ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
-const char* Version();
+const char* V8goVersion();
 extern void SetFlags(const char* flags);
 
 #ifdef __cplusplus
