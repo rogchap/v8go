@@ -612,7 +612,7 @@ void ContextFree(ContextPtr ctx) {
   for (auto it = ctx->vals.begin(); it != ctx->vals.end(); ++it) {
     auto value = it->second;
     value->ptr.Reset();
-    // delete value;
+    delete value;
   }
   ctx->vals.clear();
 
