@@ -11,8 +11,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include "_cgo_export.h"
 
@@ -109,7 +109,7 @@ static RtnError ExceptionError(TryCatch& try_catch,
 m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // (rogchap) we track values against a context so that when the context is
   // closed (either manually or GC'd by Go) we can also release all the
-  // values associated with the context; 
+  // values associated with the context;
   if (val->id == 0) {
     val->id = ++ctx->nextValId;
     ctx->vals[val->id] = val;
@@ -769,12 +769,11 @@ const char* JSONStringify(ContextPtr ctx, ValuePtr val) {
   return CopyString(json);
 }
 
-
 void ValueRelease(ValuePtr ptr) {
   if (ptr == nullptr) {
     return;
   }
-  
+
   ptr->ctx->vals.erase(ptr->id);
   ptr->ptr.Reset();
   delete ptr;
