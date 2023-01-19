@@ -109,21 +109,9 @@ static RtnError ExceptionError(TryCatch& try_catch,
 m_value* tracked_value(m_ctx* ctx, m_value* val) {
   // (rogchap) we track values against a context so that when the context is
   // closed (either manually or GC'd by Go) we can also release all the
-  // values associated with the context; previously the Go GC would not run
-  // quickly enough, as it has no understanding of the C memory allocation size.
-  // By doing so we hold pointers to all values that are created/returned to Go
-  // until the context is released; this is a compromise.
-  // Ideally we would be able to delete the value object and cancel the
-  // finalizer on the Go side, but we currently don't pass the Go ptr, but
-  // rather the C ptr. A potential future iteration would be to use an
-  // unordered_map, where we could do O(1) lookups for the value, but then know
-  // if the object has been finalized or not by being in the map or not. This
-  // would require some ref id for the value rather than passing the ptr between
-  // Go <--> C, which would be a significant change, as there are places where
-  // we get the context from the value, but if we then need the context to get
-  // the value, we would be in a circular bind.
+  // values associated with the context; 
   if (val->id == 0) {
-    val->id = ctx->nextValId++;
+    val->id = ++ctx->nextValId;
     ctx->vals[val->id] = val;
   }
 
@@ -279,6 +267,7 @@ ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
   Local<Value> throw_ret_val = iso->ThrowException(value->ptr.Get(iso));
 
   m_value* new_val = new m_value;
+  new_val->id = 0;
   new_val->iso = iso;
   new_val->ctx = ctx;
   new_val->ptr =
@@ -463,6 +452,7 @@ RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx) {
   }
 
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
@@ -500,6 +490,7 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   int callback_ref = info.Data().As<Integer>()->Value();
 
   m_value* _this = new m_value;
+  _this->id = 0;
   _this->iso = iso;
   _this->ctx = ctx;
   _this->ptr.Reset(iso, Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -511,6 +502,7 @@ static void FunctionTemplateCallback(const FunctionCallbackInfo<Value>& info) {
   ValuePtr* args = thisAndArgs + 1;
   for (int i = 0; i < args_count; i++) {
     m_value* val = new m_value;
+    val->id = 0;
     val->iso = iso;
     val->ctx = ctx;
     val->ptr.Reset(
@@ -560,6 +552,7 @@ RtnValue FunctionTemplateGetFunction(TemplatePtr ptr, ContextPtr ctx) {
   }
 
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, fn);
@@ -619,7 +612,7 @@ void ContextFree(ContextPtr ctx) {
   for (auto it = ctx->vals.begin(); it != ctx->vals.end(); ++it) {
     auto value = it->second;
     value->ptr.Reset();
-    delete value;
+    // delete value;
   }
   ctx->vals.clear();
 
@@ -658,6 +651,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
     return rtn;
   }
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
@@ -707,6 +701,7 @@ RtnValue UnboundScriptRun(ContextPtr ctx, UnboundScriptPtr us_ptr) {
     return rtn;
   }
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
@@ -730,6 +725,7 @@ RtnValue JSONParse(ContextPtr ctx, const char* str) {
     return rtn;
   }
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
@@ -787,6 +783,7 @@ void ValueRelease(ValuePtr ptr) {
 ValuePtr ContextGlobal(ContextPtr ctx) {
   LOCAL_CONTEXT(ctx);
   m_value* val = new m_value;
+  val->id = 0;
 
   val->iso = iso;
   val->ctx = ctx;
@@ -818,6 +815,7 @@ ValuePtr ContextGlobal(ContextPtr ctx) {
 ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -828,6 +826,7 @@ ValuePtr NewValueInteger(IsolatePtr iso, int32_t v) {
 ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso, uint32_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -846,6 +845,7 @@ RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
     return rtn;
   }
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, str);
@@ -856,6 +856,7 @@ RtnValue NewValueString(IsolatePtr iso, const char* v, int v_length) {
 ValuePtr NewValueNull(IsolatePtr iso) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, Null(iso));
@@ -865,6 +866,7 @@ ValuePtr NewValueNull(IsolatePtr iso) {
 ValuePtr NewValueUndefined(IsolatePtr iso) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr =
@@ -875,6 +877,7 @@ ValuePtr NewValueUndefined(IsolatePtr iso) {
 ValuePtr NewValueBoolean(IsolatePtr iso, int v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -885,6 +888,7 @@ ValuePtr NewValueBoolean(IsolatePtr iso, int v) {
 ValuePtr NewValueNumber(IsolatePtr iso, double v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -895,6 +899,7 @@ ValuePtr NewValueNumber(IsolatePtr iso, double v) {
 ValuePtr NewValueBigInt(IsolatePtr iso, int64_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -905,6 +910,7 @@ ValuePtr NewValueBigInt(IsolatePtr iso, int64_t v) {
 ValuePtr NewValueBigIntFromUnsigned(IsolatePtr iso, uint64_t v) {
   ISOLATE_SCOPE_INTERNAL_CONTEXT(iso);
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(
@@ -928,6 +934,7 @@ RtnValue NewValueBigIntFromWords(IsolatePtr iso,
     return rtn;
   }
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, bigint);
@@ -1025,6 +1032,7 @@ RtnValue ValueToObject(ValuePtr ptr) {
     return rtn;
   }
   m_value* new_val = new m_value;
+  new_val->id = 0;
   new_val->iso = iso;
   new_val->ctx = ctx;
   new_val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, obj);
@@ -1363,6 +1371,7 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
     return rtn;
   }
   m_value* new_val = new m_value;
+  new_val->id = 0;
   new_val->iso = iso;
   new_val->ctx = ctx;
   new_val->ptr =
@@ -1382,6 +1391,7 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
   Local<Value> result = obj->GetInternalField(idx);
 
   m_value* new_val = new m_value;
+  new_val->id = 0;
   new_val->iso = iso;
   new_val->ctx = ctx;
   new_val->ptr =
@@ -1400,6 +1410,7 @@ RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
     return rtn;
   }
   m_value* new_val = new m_value;
+  new_val->id = 0;
   new_val->iso = iso;
   new_val->ctx = ctx;
   new_val->ptr =
@@ -1444,6 +1455,7 @@ RtnValue NewPromiseResolver(ContextPtr ctx) {
     return rtn;
   }
   m_value* val = new m_value;
+  val->id = 0;
   val->iso = iso;
   val->ctx = ctx;
   val->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, resolver);
@@ -1456,6 +1468,7 @@ ValuePtr PromiseResolverGetPromise(ValuePtr ptr) {
   Local<Promise::Resolver> resolver = value.As<Promise::Resolver>();
   Local<Promise> promise = resolver->GetPromise();
   m_value* promise_val = new m_value;
+  promise_val->id = 0;
   promise_val->iso = iso;
   promise_val->ctx = ctx;
   promise_val->ptr =
@@ -1498,6 +1511,7 @@ RtnValue PromiseThen(ValuePtr ptr, int callback_ref) {
     return rtn;
   }
   m_value* result_val = new m_value;
+  result_val->id = 0;
   result_val->iso = iso;
   result_val->ctx = ctx;
   result_val->ptr =
@@ -1531,6 +1545,7 @@ RtnValue PromiseThen2(ValuePtr ptr, int on_fulfilled_ref, int on_rejected_ref) {
     return rtn;
   }
   m_value* result_val = new m_value;
+  result_val->id = 0;
   result_val->iso = iso;
   result_val->ctx = ctx;
   result_val->ptr =
@@ -1556,6 +1571,7 @@ RtnValue PromiseCatch(ValuePtr ptr, int callback_ref) {
     return rtn;
   }
   m_value* result_val = new m_value;
+  result_val->id = 0;
   result_val->iso = iso;
   result_val->ctx = ctx;
   result_val->ptr =
@@ -1569,6 +1585,7 @@ ValuePtr PromiseResult(ValuePtr ptr) {
   Local<Promise> promise = value.As<Promise>();
   Local<Value> result = promise->Result();
   m_value* result_val = new m_value;
+  result_val->id = 0;
   result_val->iso = iso;
   result_val->ctx = ctx;
   result_val->ptr =
@@ -1603,6 +1620,7 @@ RtnValue FunctionCall(ValuePtr ptr, ValuePtr recv, int argc, ValuePtr args[]) {
     return rtn;
   }
   m_value* rtnval = new m_value;
+  rtnval->id = 0;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
   rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
@@ -1622,6 +1640,7 @@ RtnValue FunctionNewInstance(ValuePtr ptr, int argc, ValuePtr args[]) {
     return rtn;
   }
   m_value* rtnval = new m_value;
+  rtnval->id = 0;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
   rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);
@@ -1634,6 +1653,7 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr) {
   Local<Function> fn = Local<Function>::Cast(value);
   Local<Value> result = fn->GetScriptOrigin().SourceMapUrl();
   m_value* rtnval = new m_value;
+  rtnval->id = 0;
   rtnval->iso = iso;
   rtnval->ctx = ctx;
   rtnval->ptr = Persistent<Value, CopyablePersistentTraits<Value>>(iso, result);

@@ -62,8 +62,8 @@ func TestFunctionTemplate_generates_values(t *testing.T) {
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
-	if ctx.RetainedValueCount() != 5 {
-		t.Errorf("expected 5 retained values, got: %d", ctx.RetainedValueCount())
+	if ctx.RetainedValueCount() != 6 {
+		t.Errorf("expected 6 retained values, got: %d", ctx.RetainedValueCount())
 	}
 }
 
@@ -82,8 +82,9 @@ func TestFunctionTemplate_releases_values(t *testing.T) {
 	ctx := v8.NewContext(iso, global)
 	defer ctx.Close()
 	ctx.RunScript("print('foo', 'bar', 0, 1)", "")
-	if ctx.RetainedValueCount() != 0 {
-		t.Errorf("expected 0 retained values, got: %d", ctx.RetainedValueCount())
+	// there is a constant factor associated with the global.
+	if ctx.RetainedValueCount() != 1 {
+		t.Errorf("expected 1 retained values, got: %d", ctx.RetainedValueCount())
 	}
 }
 
