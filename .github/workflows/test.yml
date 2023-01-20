@@ -47,4 +47,33 @@ jobs:
         fossa analyze
       env:
         FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
-        
+  test-alpine:
+    name: Tests on ${{ matrix.go-version }} ${{ matrix.base-os }}
+    strategy:
+      matrix:
+        base-image: [golang]
+        base-os: [alpine3.16]
+        go-version: [1.17.13, 1.19.3]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build container image
+        run: docker buildx build --build-arg IMAGE_NAME=${IMAGE_NAME} --platform=linux/amd64 --output=type=docker -t v8go-alpine-test -f alpine-test.Dockerfile .
+        env:
+          IMAGE_NAME: ${{ format('{0}:{1}-{2}', matrix.image-name, matrix.go-version, matrix.base-os) }}
+      - name: Go Test
+        run: |
+          docker run v8go-alpine-test > c.out
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        env:
+          OS: ${{ matrix.base-os }}
+          GO: ${{ matrix.go-version }}
+        with:
+          files: ./c.out
+          env_vars: OS,GO

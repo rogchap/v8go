@@ -1,0 +1,35 @@
+name: GN Alpine Build
+
+on:
+    workflow_dispatch:
+
+jobs:
+    build-alpine:
+        name: Build GN for Alpine x86_64
+        runs-on: ubuntu-20.04
+        steps:
+            -   name: Checkout
+                uses: actions/checkout@v3
+                with:
+                    submodules: true
+                    fetch-depth: 1
+            -   name: Set up QEMU
+                uses: docker/setup-qemu-action@v2
+            -   name: Set up Docker Buildx
+                uses: docker/setup-buildx-action@v2
+            -   name: Build container images
+                run: docker buildx build --platform=linux/amd64 --output=type=docker -t gn-builder-alpine -f deps/alpine-gn-builder.Dockerfile deps
+            -   name: Copy files
+                run: |
+                    id=$(docker create gn-builder-alpine)
+                    docker cp $id:/usr/local/bin/gn deps/alpine_x86_64/gn
+                    docker rm -v $id
+            -   name: Create PR
+                uses: peter-evans/create-pull-request@v3
+                with:
+                    commit-message: Update GN static library for Alpine x86_64
+                    branch-suffix: random
+                    delete-branch: true
+                    title: GN static library for Alpine x86_64
+                    body: Auto-generated pull request to build GN for Alpine x86_64
+                    base: master
