@@ -81,6 +81,12 @@ func (c *Context) Isolate() *Isolate {
 	return c.iso
 }
 
+func (c *Context) RetainedValueCount() int {
+	ctxMutex.Lock()
+	defer ctxMutex.Unlock()
+	return int(C.ContextRetainedValueCount(c.ptr))
+}
+
 // RunScript executes the source JavaScript; origin (a.k.a. filename) provides a
 // reference for the script and used in the stack trace if there is an error.
 // error will be of type `JSError` if not nil.

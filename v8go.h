@@ -166,6 +166,7 @@ extern void CPUProfileDelete(CPUProfile* ptr);
 extern ContextPtr NewContext(IsolatePtr iso_ptr,
                              TemplatePtr global_template_ptr,
                              int ref);
+extern int ContextRetainedValueCount(ContextPtr ctx);
 extern void ContextFree(ContextPtr ptr);
 extern RtnValue RunScript(ContextPtr ctx_ptr,
                           const char* source,
@@ -208,6 +209,7 @@ extern RtnValue NewValueBigIntFromWords(IsolatePtr iso_ptr,
                                         int sign_bit,
                                         int word_count,
                                         const uint64_t* words);
+void ValueRelease(ValuePtr ptr);
 extern RtnString ValueToString(ValuePtr ptr);
 extern uint8_t* ValueToUint8Array(ValuePtr ptr);
 extern uint64_t ValueToArrayLength(ValuePtr ptr);
