@@ -67,7 +67,6 @@ v8_enable_gdbjit=false
 v8_enable_i18n_support=true
 icu_use_data_file=false
 v8_enable_test_features=false
-v8_untrusted_code_mitigations=false
 exclude_unwind_tables=true
 """
 

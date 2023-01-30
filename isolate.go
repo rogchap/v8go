@@ -52,9 +52,7 @@ type HeapStatistics struct {
 // An *Isolate can be used as a v8go.ContextOption to create a new
 // Context, rather than creating a new default Isolate.
 func NewIsolate() *Isolate {
-	v8once.Do(func() {
-		C.Init()
-	})
+	initializeIfNecessary()
 	iso := &Isolate{
 		ptr: C.NewIsolate(),
 		cbs: make(map[int]FunctionCallback),
