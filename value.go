@@ -531,6 +531,11 @@ func (v *Value) IsProxy() bool {
 	return C.ValueIsProxy(v.ptr) != 0
 }
 
+// Release this value.  Using the value after calling this function will result in undefined behavior.
+func (v *Value) Release() {
+	C.ValueRelease(v.ptr)
+}
+
 // IsWasmModuleObject returns true if this value is a `WasmModuleObject`.
 func (v *Value) IsWasmModuleObject() bool {
 	// TODO(rogchap): requires test case

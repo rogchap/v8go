@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added support for Value.release() and FunctionCallbackInfo.release(). This is useful when using v8go in a long-running context.
+
 ### Fixed
 - Use string length to ensure null character-containing strings in Go/JS are not terminated early.
 - Object.Set with an empty key string is now supported
