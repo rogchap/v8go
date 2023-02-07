@@ -305,16 +305,14 @@ class BufferOutputStream : public v8::OutputStream {
   }
 
   Local<String> ToString(Isolate* isolate) {
-    return String::NewExternalOneByte(isolate,
-                                      buffer.release()).ToLocalChecked();
+    return String::NewExternalOneByte(isolate, buffer.release())
+        .ToLocalChecked();
   }
 
  private:
   class ExternalStringResource : public String::ExternalOneByteStringResource {
    public:
-    void Append(char* data, size_t count) {
-      store.append(data, count);
-    }
+    void Append(char* data, size_t count) { store.append(data, count); }
 
     const char* data() const override { return store.data(); }
     size_t length() const override { return store.size(); }
@@ -327,20 +325,19 @@ class BufferOutputStream : public v8::OutputStream {
 };
 
 const char* TakeHeapSnapshot(V8HeapProfiler* profiler) {
-    if (profiler->iso == nullptr) {
-      return nullptr;
-    }
-    Locker locker(profiler->iso);
-    Isolate::Scope isolate_scope(profiler->iso);
-    HandleScope handle_scope(profiler->iso);
-    const HeapSnapshot* snapshot = profiler->ptr->TakeHeapSnapshot();
-    BufferOutputStream stream;
-    snapshot->Serialize(&stream);
-    const_cast<HeapSnapshot*>(snapshot)->Delete();
-    String::Utf8Value json(profiler->iso, stream.ToString(profiler->iso));
-    return CopyString(json);
+  if (profiler->iso == nullptr) {
+    return nullptr;
+  }
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+  const HeapSnapshot* snapshot = profiler->ptr->TakeHeapSnapshot();
+  BufferOutputStream stream;
+  snapshot->Serialize(&stream);
+  const_cast<HeapSnapshot*>(snapshot)->Delete();
+  String::Utf8Value json(profiler->iso, stream.ToString(profiler->iso));
+  return CopyString(json);
 }
-
 
 /********** CpuProfiler **********/
 
