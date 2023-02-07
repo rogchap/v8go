@@ -197,7 +197,7 @@ func createHeapSnapshot() {
 	ctx := v8.NewContext(iso, global)
 	ctx.RunScript("print('foo')", "print.js")
 
-	// This snapshot can be loaded in Chrome dev tools in memory tab
+	// This snapshot can be loaded in Chrome dev tools for debugging and inspection
 	str, err := heapProfiler.TakeHeapSnapshot()
 	ioutil.WriteFile("isolate.heapsnapshot", []byte(str), 0755)
 }
