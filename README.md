@@ -181,6 +181,27 @@ func printTree(nest string, node *v8.CPUProfileNode) {
 //   (garbage collector) :0:0
 ```
 
+### Heap Snapshots
+
+```go
+func createHeapSnapshot() {
+	iso := v8.NewIsolate()
+	heapProfiler := v8.NewHeapProfiler(iso)
+	defer iso.Dispose()
+	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		fmt.Printf("%v", info.Args())
+		return nil
+	})
+	global := v8.NewObjectTemplate(iso)
+	global.Set("print", printfn)
+	ctx := v8.NewContext(iso, global)
+	ctx.RunScript("print('foo')", "print.js")
+
+    // This snapshot can be loaded in Chrome dev tools in memory tab
+	str, err := heapProfiler.TakeHeapSnapshot()
+    ioutil.WriteFile("isolate.heapsnapshot", []byte(str), 0755)
+}
+```
 ## Documentation
 
 Go Reference & more examples: https://pkg.go.dev/rogchap.com/v8go
