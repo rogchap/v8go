@@ -54,10 +54,26 @@ class V8_EXPORT BackingStore : public v8::internal::BackingStoreBase {
   size_t ByteLength() const;
 
   /**
+   * The maximum length (in bytes) that this backing store may grow to.
+   *
+   * If this backing store was created for a resizable ArrayBuffer or a growable
+   * SharedArrayBuffer, it is >= ByteLength(). Otherwise it is ==
+   * ByteLength().
+   */
+  size_t MaxByteLength() const;
+
+  /**
    * Indicates whether the backing store was created for an ArrayBuffer or
    * a SharedArrayBuffer.
    */
   bool IsShared() const;
+
+  /**
+   * Indicates whether the backing store was created for a resizable ArrayBuffer
+   * or a growable SharedArrayBuffer, and thus may be resized by user JavaScript
+   * code.
+   */
+  bool IsResizableByUserJavaScript() const;
 
   /**
    * Prevent implicit instantiation of operator delete with size_t argument.
@@ -175,8 +191,8 @@ class V8_EXPORT ArrayBuffer : public Object {
     /**
      * Convenience allocator.
      *
-     * When the virtual memory cage is enabled, this allocator will allocate its
-     * backing memory inside the cage. Otherwise, it will rely on malloc/free.
+     * When the sandbox is enabled, this allocator will allocate its backing
+     * memory inside the sandbox. Otherwise, it will rely on malloc/free.
      *
      * Caller takes ownership, i.e. the returned object needs to be freed using
      * |delete allocator| once it is no longer in use.
@@ -188,6 +204,11 @@ class V8_EXPORT ArrayBuffer : public Object {
    * Data length in bytes.
    */
   size_t ByteLength() const;
+
+  /**
+   * Maximum length in bytes.
+   */
+  size_t MaxByteLength() const;
 
   /**
    * Create a new ArrayBuffer. Allocate |byte_length| bytes.
@@ -236,9 +257,29 @@ class V8_EXPORT ArrayBuffer : public Object {
       void* deleter_data);
 
   /**
+   * Returns a new resizable standalone BackingStore that is allocated using the
+   * array buffer allocator of the isolate. The result can be later passed to
+   * ArrayBuffer::New.
+   *
+   * |byte_length| must be <= |max_byte_length|.
+   *
+   * This function is usable without an isolate. Unlike |NewBackingStore| calls
+   * with an isolate, GCs cannot be triggered, and there are no
+   * retries. Allocation failure will cause the function to crash with an
+   * out-of-memory error.
+   */
+  static std::unique_ptr<BackingStore> NewResizableBackingStore(
+      size_t byte_length, size_t max_byte_length);
+
+  /**
    * Returns true if this ArrayBuffer may be detached.
    */
   bool IsDetachable() const;
+
+  /**
+   * Returns true if this ArrayBuffer has been detached.
+   */
+  bool WasDetached() const;
 
   /**
    * Detaches this ArrayBuffer and all its views (typed arrays).
@@ -246,15 +287,42 @@ class V8_EXPORT ArrayBuffer : public Object {
    * preventing JavaScript from ever accessing underlying backing store.
    * ArrayBuffer should have been externalized and must be detachable.
    */
+  V8_DEPRECATE_SOON(
+      "Use the version which takes a key parameter (passing a null handle is "
+      "ok).")
   void Detach();
+
+  /**
+   * Detaches this ArrayBuffer and all its views (typed arrays).
+   * Detaching sets the byte length of the buffer and all typed arrays to zero,
+   * preventing JavaScript from ever accessing underlying backing store.
+   * ArrayBuffer should have been externalized and must be detachable. Returns
+   * Nothing if the key didn't pass the [[ArrayBufferDetachKey]] check,
+   * Just(true) otherwise.
+   */
+  V8_WARN_UNUSED_RESULT Maybe<bool> Detach(v8::Local<v8::Value> key);
+
+  /**
+   * Sets the ArrayBufferDetachKey.
+   */
+  void SetDetachKey(v8::Local<v8::Value> key);
 
   /**
    * Get a shared pointer to the backing store of this array buffer. This
    * pointer coordinates the lifetime management of the internal storage
    * with any live ArrayBuffers on the heap, even across isolates. The embedder
    * should not attempt to manage lifetime of the storage through other means.
+   *
+   * The returned shared pointer will not be empty, even if the ArrayBuffer has
+   * been detached. Use |WasDetached| to tell if it has been detached instead.
    */
   std::shared_ptr<BackingStore> GetBackingStore();
+
+  /**
+   * More efficient shortcut for GetBackingStore()->Data(). The returned pointer
+   * is valid as long as the ArrayBuffer is alive.
+   */
+  void* Data() const;
 
   V8_INLINE static ArrayBuffer* Cast(Value* value) {
 #ifdef V8_ENABLE_CHECKS
@@ -361,6 +429,11 @@ class V8_EXPORT SharedArrayBuffer : public Object {
   size_t ByteLength() const;
 
   /**
+   * Maximum length in bytes.
+   */
+  size_t MaxByteLength() const;
+
+  /**
    * Create a new SharedArrayBuffer. Allocate |byte_length| bytes.
    * Allocated memory will be owned by a created SharedArrayBuffer and
    * will be deallocated when it is garbage-collected,
@@ -413,6 +486,12 @@ class V8_EXPORT SharedArrayBuffer : public Object {
    * should not attempt to manage lifetime of the storage through other means.
    */
   std::shared_ptr<BackingStore> GetBackingStore();
+
+  /**
+   * More efficient shortcut for GetBackingStore()->Data(). The returned pointer
+   * is valid as long as the ArrayBuffer is alive.
+   */
+  void* Data() const;
 
   V8_INLINE static SharedArrayBuffer* Cast(Value* value) {
 #ifdef V8_ENABLE_CHECKS

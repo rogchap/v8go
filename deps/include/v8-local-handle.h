@@ -46,8 +46,6 @@ class String;
 template <class F>
 class Traced;
 template <class F>
-class TracedGlobal;
-template <class F>
 class TracedReference;
 class TracedReferenceBase;
 class Utils;
@@ -55,6 +53,7 @@ class Utils;
 namespace internal {
 template <typename T>
 class CustomArguments;
+class SamplingHeapProfiler;
 }  // namespace internal
 
 namespace api_internal {
@@ -88,7 +87,7 @@ class V8_EXPORT V8_NODISCARD HandleScope {
   static int NumberOfHandles(Isolate* isolate);
 
   V8_INLINE Isolate* GetIsolate() const {
-    return reinterpret_cast<Isolate*>(isolate_);
+    return reinterpret_cast<Isolate*>(i_isolate_);
   }
 
   HandleScope(const HandleScope&) = delete;
@@ -99,7 +98,7 @@ class V8_EXPORT V8_NODISCARD HandleScope {
 
   void Initialize(Isolate* isolate);
 
-  static internal::Address* CreateHandle(internal::Isolate* isolate,
+  static internal::Address* CreateHandle(internal::Isolate* i_isolate,
                                          internal::Address value);
 
  private:
@@ -110,7 +109,7 @@ class V8_EXPORT V8_NODISCARD HandleScope {
   void operator delete(void*, size_t);
   void operator delete[](void*, size_t);
 
-  internal::Isolate* isolate_;
+  internal::Isolate* i_isolate_;
   internal::Address* prev_next_;
   internal::Address* prev_limit_;
 
@@ -312,11 +311,10 @@ class Local {
   template <class F>
   friend class Traced;
   template <class F>
-  friend class TracedGlobal;
-  template <class F>
   friend class BasicTracedReference;
   template <class F>
   friend class TracedReference;
+  friend class v8::internal::SamplingHeapProfiler;
 
   explicit V8_INLINE Local(T* that) : val_(that) {}
   V8_INLINE static Local<T> New(Isolate* isolate, T* that) {
@@ -358,7 +356,7 @@ class MaybeLocal {
 
   /**
    * Converts this MaybeLocal<> to a Local<>. If this MaybeLocal<> is empty,
-   * |false| is returned and |out| is left untouched.
+   * |false| is returned and |out| is assigned with nullptr.
    */
   template <class S>
   V8_WARN_UNUSED_RESULT V8_INLINE bool ToLocal(Local<S>* out) const {
@@ -449,7 +447,7 @@ class V8_EXPORT V8_NODISCARD SealHandleScope {
   void operator delete(void*, size_t);
   void operator delete[](void*, size_t);
 
-  internal::Isolate* const isolate_;
+  internal::Isolate* const i_isolate_;
   internal::Address* prev_limit_;
   int prev_sealed_level_;
 };

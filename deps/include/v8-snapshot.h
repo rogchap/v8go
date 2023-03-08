@@ -5,8 +5,6 @@
 #ifndef INCLUDE_V8_SNAPSHOT_H_
 #define INCLUDE_V8_SNAPSHOT_H_
 
-#include <vector>
-
 #include "v8-internal.h"      // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
@@ -93,7 +91,7 @@ class V8_EXPORT SnapshotCreator {
    */
   SnapshotCreator(Isolate* isolate,
                   const intptr_t* external_references = nullptr,
-                  StartupData* existing_blob = nullptr);
+                  const StartupData* existing_blob = nullptr);
 
   /**
    * Create and enter an isolate, and set it up for serialization.
@@ -104,7 +102,7 @@ class V8_EXPORT SnapshotCreator {
    *        that must be equivalent to CreateParams::external_references.
    */
   SnapshotCreator(const intptr_t* external_references = nullptr,
-                  StartupData* existing_blob = nullptr);
+                  const StartupData* existing_blob = nullptr);
 
   /**
    * Destroy the snapshot creator, and exit and dispose of the Isolate

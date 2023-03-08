@@ -20,6 +20,7 @@ class String;
 namespace internal {
 class ExternalString;
 class ScopedExternalStringLock;
+class StringForwardingTable;
 }  // namespace internal
 
 /**
@@ -54,12 +55,22 @@ class V8_EXPORT Boolean : public Primitive {
  * This is passed back to the embedder as part of
  * HostImportModuleDynamicallyCallback for module loading.
  */
-class V8_EXPORT PrimitiveArray {
+class V8_EXPORT PrimitiveArray : public Data {
  public:
   static Local<PrimitiveArray> New(Isolate* isolate, int length);
   int Length() const;
   void Set(Isolate* isolate, int index, Local<Primitive> item);
   Local<Primitive> Get(Isolate* isolate, int index);
+
+  V8_INLINE static PrimitiveArray* Cast(Data* data) {
+#ifdef V8_ENABLE_CHECKS
+    CheckCast(data);
+#endif
+    return reinterpret_cast<PrimitiveArray*>(data);
+  }
+
+ private:
+  static void CheckCast(Data* obj);
 };
 
 /**
@@ -259,6 +270,7 @@ class V8_EXPORT String : public Name {
    private:
     friend class internal::ExternalString;
     friend class v8::String;
+    friend class internal::StringForwardingTable;
     friend class internal::ScopedExternalStringLock;
   };
 
@@ -575,8 +587,6 @@ class V8_EXPORT Symbol : public Name {
   /**
    * Returns the description string of the symbol, or undefined if none.
    */
-  V8_DEPRECATED("Use Symbol::Description(isolate)")
-  Local<Value> Description() const;
   Local<Value> Description(Isolate* isolate) const;
 
   /**
@@ -777,10 +787,9 @@ String::ExternalStringResource* String::GetExternalStringResource() const {
 
   ExternalStringResource* result;
   if (I::IsExternalTwoByteString(I::GetInstanceType(obj))) {
-    internal::Isolate* isolate = I::GetIsolateForHeapSandbox(obj);
-    A value =
-        I::ReadExternalPointerField(isolate, obj, I::kStringResourceOffset,
-                                    internal::kExternalStringResourceTag);
+    Isolate* isolate = I::GetIsolateForSandbox(obj);
+    A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
+        isolate, obj, I::kStringResourceOffset);
     result = reinterpret_cast<String::ExternalStringResource*>(value);
   } else {
     result = GetExternalStringResourceSlow();
@@ -796,15 +805,14 @@ String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
   using A = internal::Address;
   using I = internal::Internals;
   A obj = *reinterpret_cast<const A*>(this);
-  int type = I::GetInstanceType(obj) & I::kFullStringRepresentationMask;
+  int type = I::GetInstanceType(obj) & I::kStringRepresentationAndEncodingMask;
   *encoding_out = static_cast<Encoding>(type & I::kStringEncodingMask);
   ExternalStringResourceBase* resource;
   if (type == I::kExternalOneByteRepresentationTag ||
       type == I::kExternalTwoByteRepresentationTag) {
-    internal::Isolate* isolate = I::GetIsolateForHeapSandbox(obj);
-    A value =
-        I::ReadExternalPointerField(isolate, obj, I::kStringResourceOffset,
-                                    internal::kExternalStringResourceTag);
+    Isolate* isolate = I::GetIsolateForSandbox(obj);
+    A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
+        isolate, obj, I::kStringResourceOffset);
     resource = reinterpret_cast<ExternalStringResourceBase*>(value);
   } else {
     resource = GetExternalStringResourceBaseSlow(encoding_out);
