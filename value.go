@@ -53,6 +53,16 @@ func Null(iso *Isolate) *Value {
 	return iso.null
 }
 
+// NewStringFromBytes returns V8::string from byte array. Creates binary string from bytes.
+func NewStringFromBytes(iso *Isolate, bytes []byte) (*Value, error) {
+	if iso == nil {
+		panic(errors.New("v8go: failed to create new Value: Isolate cannot be <nil>"))
+	}
+	cUint := (*C.uchar)(unsafe.Pointer(&bytes[0]))
+	rtnVal := C.NewStringFromBytes(iso.ptr, cUint, C.int(len(bytes)))
+	return valueResult(nil, rtnVal)
+}
+
 // NewValue will create a primitive value. Supported values types to create are:
 //   string -> V8::String
 //   int32 -> V8::Integer

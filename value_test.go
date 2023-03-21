@@ -519,6 +519,63 @@ func TestValueFunction(t *testing.T) {
 
 }
 
+func TestNewStringFromBytes(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+	global := v8.NewObjectTemplate(iso)
+
+	if recoverPanic(func() { v8.NewStringFromBytes(nil, []byte{}) }) == nil {
+		t.Error("expected panic")
+	}
+
+	testFn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		args := info.Args()
+		input := args[0].String()
+		if len(input) == 0 {
+			//String() terminates input at null character. hence hardcoding for 3rd input
+			input = "a\x00\xffe"
+		}
+		val, _ := v8.NewStringFromBytes(iso, []byte(input))
+		return val
+	})
+	global.Set("foo", testFn, v8.ReadOnly)
+
+	ctx := v8.NewContext(iso, global)
+	defer ctx.Close()
+	tests := [...]struct {
+		name   string
+		script string
+	}{
+		{"normal string",
+			` 	let res = foo("str"); 
+				if(res.length != 3){
+					throw Error("expected length 3")
+				}
+			`},
+		{"multi-byte sequence",
+			` 	res = foo("Ò"); 
+				if(res.length != 2 ){
+					throw Error("expected length 2")
+				}
+			`},
+		{"null terminated sequence",
+			` 	res = foo("");
+				if(res.length != 4){
+					throw Error("expected length 4")
+				}
+			`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := ctx.RunScript(tt.script, ""); err != nil {
+				t.Errorf("expected <nil> error, but got error: %v", err)
+			}
+		})
+	}
+
+}
+
 func TestValueSameValue(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
