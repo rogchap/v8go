@@ -32,6 +32,28 @@ func TestValueNewBaseCases(t *testing.T) {
 
 }
 
+func TestValueNewUint8Array(t *testing.T) {
+	t.Parallel()
+	ctx := v8.NewContext()
+	iso := ctx.Isolate()
+	in := []uint8{1, 2, 3, 4, 5}
+	if val, err := v8.NewValue(iso, in); err != nil {
+		t.Fatalf("Error %v", err)
+	} else if !val.IsUint8Array() {
+		t.Errorf("Val is not []uint")
+	} else {
+		out := val.Uint8Array()
+		if len(out) != 5 {
+			t.Errorf("Expected array length 5, got %d", len(out))
+		}
+		for i := 0; i < 5; i++ {
+			if out[i] != in[i] {
+				t.Errorf("Wrong byte at %d", i)
+			}
+		}
+	}
+}
+
 func TestValueFormatting(t *testing.T) {
 	t.Parallel()
 	ctx := v8.NewContext(nil)

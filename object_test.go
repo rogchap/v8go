@@ -5,9 +5,11 @@
 package v8go_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
+	"rogchap.com/v8go"
 	v8 "rogchap.com/v8go"
 )
 
@@ -221,4 +223,83 @@ func ExampleObject_global() {
 	ctx.RunScript("console.log('foo')", "")
 	// Output:
 	// foo
+}
+
+func createObjectFunctionCallback(info *v8go.FunctionCallbackInfo) *v8go.Value {
+	iso := info.Context().Isolate()
+	args := info.Args()
+	if len(args) != 2 {
+		e, _ := v8.NewValue(iso, "Function createObject expects 2 parameters")
+		return iso.ThrowException(e)
+	}
+	if !args[0].IsInt32() || !args[1].IsInt32() {
+		e, _ := v8.NewValue(iso, "Function createObject expects 2 Int32 parameters")
+		return iso.ThrowException(e)
+	}
+	read := args[0].Int32()
+	written := args[1].Int32()
+	obj := v8go.NewObject(info.Context()) // create object
+	obj.Set("read", read)                 // set some properties
+	obj.Set("written", written)
+	return obj.Value
+}
+
+func injectObjectTester(ctx *v8go.Context, funcName string, funcCb v8go.FunctionCallback) error {
+	if ctx == nil {
+		return errors.New("ctx is required")
+	}
+
+	iso := ctx.Isolate()
+
+	con := v8go.NewObjectTemplate(iso)
+
+	funcTempl := v8go.NewFunctionTemplate(iso, funcCb)
+
+	if err := con.Set(funcName, funcTempl, v8go.ReadOnly); err != nil {
+		return fmt.Errorf("ObjectTemplate.Set: %v", err)
+	}
+
+	nativeObj, err := con.NewInstance(ctx)
+	if err != nil {
+		return fmt.Errorf("ObjectTemplate.NewInstance: %v", err)
+	}
+
+	global := ctx.Global()
+
+	if err := global.Set("native", nativeObj); err != nil {
+		return fmt.Errorf("global.Set: %v", err)
+	}
+
+	return nil
+}
+
+// Test that golang can create an object with "read", "written" int32 properties and pass that back to JS.
+func TestObjectCreate(t *testing.T) {
+	t.Parallel()
+	iso := v8go.NewIsolate()
+	ctx := v8go.NewContext(iso)
+
+	if err := injectObjectTester(ctx, "createObject", createObjectFunctionCallback); err != nil {
+		t.Error(err)
+	}
+
+	js := `
+		obj = native.createObject(123, 456);
+		obj.read + obj.written;
+	`
+
+	val, err := ctx.RunScript(js, "")
+	if err != nil {
+		t.Errorf("Got error from script: %v", err)
+	}
+	if val == nil {
+		t.Errorf("Got nil value from script")
+	}
+	if !val.IsInt32() {
+		t.Errorf("Expected int32 value from script")
+	}
+	fmt.Printf("Script return value: %d\n", val.Int32())
+	if val.Int32() != 123+456 {
+		t.Errorf("Got wrong return value from script: %d", val.Int32())
+	}
 }

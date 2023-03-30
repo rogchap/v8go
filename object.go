@@ -34,6 +34,12 @@ func (o *Object) MethodCall(methodName string, args ...Valuer) (*Value, error) {
 	return fn.Call(o, args...)
 }
 
+// Instantiate a new blank object without any properties.
+// Add properties on the object using Set.
+func NewObject(ctx *Context) *Object {
+	return &Object{&Value{C.NewObject(ctx.iso.ptr), ctx}}
+}
+
 func coerceValue(iso *Isolate, val interface{}) (*Value, error) {
 	switch v := val.(type) {
 	case string, int32, uint32, int64, uint64, float64, bool, *big.Int:

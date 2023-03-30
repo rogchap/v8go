@@ -190,7 +190,7 @@ extern RtnValue ObjectTemplateNewInstance(TemplatePtr ptr, ContextPtr ctx_ptr);
 extern void ObjectTemplateSetInternalFieldCount(TemplatePtr ptr,
                                                 int field_count);
 extern int ObjectTemplateInternalFieldCount(TemplatePtr ptr);
-
+extern void ThrowException(IsolatePtr iso_ptr, const char* message);
 extern TemplatePtr NewFunctionTemplate(IsolatePtr iso_ptr, int callback_ref);
 extern RtnValue FunctionTemplateGetFunction(TemplatePtr ptr,
                                             ContextPtr ctx_ptr);
@@ -199,7 +199,8 @@ extern ValuePtr NewValueNull(IsolatePtr iso_ptr);
 extern ValuePtr NewValueUndefined(IsolatePtr iso_ptr);
 extern ValuePtr NewValueInteger(IsolatePtr iso_ptr, int32_t v);
 extern ValuePtr NewValueIntegerFromUnsigned(IsolatePtr iso_ptr, uint32_t v);
-extern RtnValue NewValueString(IsolatePtr iso_ptr, const char* v, int v_length);
+extern RtnValue NewValueString(IsolatePtr iso_ptr, const char* v, int v_length);   
+extern ValuePtr NewValueUint8Array(IsolatePtr iso_ptr, const uint8_t* v, int len);
 extern ValuePtr NewValueBoolean(IsolatePtr iso_ptr, int v);
 extern ValuePtr NewValueNumber(IsolatePtr iso_ptr, double v);
 extern ValuePtr NewValueBigInt(IsolatePtr iso_ptr, int64_t v);
@@ -220,6 +221,8 @@ uint32_t ValueToUint32(ValuePtr ptr);
 extern ValueBigInt ValueToBigInt(ValuePtr ptr);
 extern RtnValue ValueToObject(ValuePtr ptr);
 int ValueSameValue(ValuePtr ptr, ValuePtr otherPtr);
+extern uint8_t* ValueToUint8Array(ValuePtr ptr);
+extern uint64_t ValueToArrayLength(ValuePtr ptr);
 int ValueIsUndefined(ValuePtr ptr);
 int ValueIsNull(ValuePtr ptr);
 int ValueIsNullOrUndefined(ValuePtr ptr);
@@ -275,6 +278,7 @@ int ValueIsProxy(ValuePtr ptr);
 int ValueIsWasmModuleObject(ValuePtr ptr);
 int ValueIsModuleNamespaceObject(ValuePtr ptr);
 
+extern ValuePtr NewObject(IsolatePtr iso_ptr);
 extern void ObjectSet(ValuePtr ptr, const char* key, ValuePtr val_ptr);
 extern void ObjectSetIdx(ValuePtr ptr, uint32_t idx, ValuePtr val_ptr);
 extern int ObjectSetInternalField(ValuePtr ptr, int idx, ValuePtr val_ptr);
@@ -306,6 +310,12 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
 const char* Version();
 extern void SetFlags(const char* flags);
+
+// ArrayBuffer support
+extern ValuePtr NewArrayBuffer(IsolatePtr iso_ptr, size_t byte_length);
+extern size_t ArrayBufferByteLength(ValuePtr val_ptr);
+extern void* GetArrayBufferBytes(ValuePtr val_ptr); // returns pointer into BackingStore data buffer
+extern void PutArrayBufferBytes(ValuePtr val_ptr, size_t byteOffset, const char *bytes, size_t byteLength); // writes byteLength bytes into BackingStore data buffer at byteOffset
 
 #ifdef __cplusplus
 }  // extern "C"
