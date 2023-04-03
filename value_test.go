@@ -7,6 +7,7 @@ package v8go_test
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"math/big"
 	"reflect"
@@ -709,5 +710,52 @@ func TestValueMarshalJSON(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestValueArrayBufferContents(t *testing.T) {
+	t.Parallel()
+	log.Printf("v8.Version(): %#v\n", v8.Version())
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	ctx := v8.NewContext(iso)
+	defer ctx.Close()
+
+	val, err := ctx.RunScript(`
+	  (()=>{
+			let buf = new SharedArrayBuffer(1024);
+			let arr = new Int8Array(buf);
+			arr[0] = 42;
+			arr[1] = 52;
+			return buf;
+		})();
+	`, "test.js")
+
+	if err != nil {
+		t.Fatalf("failed to run script: %v", err)
+	}
+
+	if !val.IsSharedArrayBuffer() {
+		t.Fatalf("expected SharedArrayBuffer value")
+	}
+
+	buf, cleanup, err := val.SharedArrayBufferGetContents()
+	defer cleanup()
+
+	if len(buf) != 1024 {
+		t.Fatalf("expected len(buf) to be 1024")
+	}
+
+	if buf[0] != 42 {
+		t.Fatalf("expected buf[0] to be 42")
+	}
+
+	if buf[1] != 52 {
+		t.Fatalf("expected buf[1] to be 52")
+	}
+
+	if buf[3] != 0 {
+		t.Fatalf("expected buf[1] to be 0")
 	}
 }

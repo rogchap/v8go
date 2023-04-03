@@ -1670,4 +1670,45 @@ const char* Version() {
 void SetFlags(const char* flags) {
   V8::SetFlagsFromString(flags);
 }
+
+/********** SharedArrayBuffer & BackingStore ***********/
+
+struct v8BackingStore {
+  v8BackingStore(std::shared_ptr<v8::BackingStore>&& ptr)
+    : backing_store{ptr}
+  {}
+  std::shared_ptr<v8::BackingStore> backing_store;
+};
+
+BackingStorePtr SharedArrayBufferGetBackingStore(ValuePtr ptr) {
+  LOCAL_VALUE(ptr);
+  auto buffer = Local<SharedArrayBuffer>::Cast(value);
+  auto backing_store = buffer->GetBackingStore();
+  auto proxy = new v8BackingStore(std::move(backing_store));
+  return proxy;
+}
+
+void BackingStoreRelease(BackingStorePtr ptr) {
+  if (ptr == nullptr){
+    return;
+  }
+  ptr->backing_store.reset();
+  delete ptr;
+}
+
+void* BackingStoreData(BackingStorePtr ptr) {
+  if (ptr == nullptr){
+    return nullptr;
+  }
+
+  return ptr->backing_store->Data();
+}
+
+size_t BackingStoreByteLength(BackingStorePtr ptr) {
+  if (ptr == nullptr){
+    return 0;
+  }
+  return ptr->backing_store->ByteLength();
+}
+
 }
