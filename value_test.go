@@ -741,6 +741,9 @@ func TestValueArrayBufferContents(t *testing.T) {
 	}
 
 	buf, cleanup, err := val.SharedArrayBufferGetContents()
+	if err != nil {
+		t.Fatalf("error getting array buffer contents: %#v", err)
+	}
 	defer cleanup()
 
 	if len(buf) != 1024 {
