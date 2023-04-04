@@ -7,7 +7,6 @@ package v8go_test
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"math"
 	"math/big"
 	"reflect"
@@ -715,7 +714,6 @@ func TestValueMarshalJSON(t *testing.T) {
 
 func TestValueArrayBufferContents(t *testing.T) {
 	t.Parallel()
-	log.Printf("v8.Version(): %#v\n", v8.Version())
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
 
