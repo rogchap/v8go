@@ -1675,8 +1675,7 @@ void SetFlags(const char* flags) {
 
 struct v8BackingStore {
   v8BackingStore(std::shared_ptr<v8::BackingStore>&& ptr)
-    : backing_store{ptr}
-  {}
+      : backing_store{ptr} {}
   std::shared_ptr<v8::BackingStore> backing_store;
 };
 
@@ -1689,7 +1688,7 @@ BackingStorePtr SharedArrayBufferGetBackingStore(ValuePtr ptr) {
 }
 
 void BackingStoreRelease(BackingStorePtr ptr) {
-  if (ptr == nullptr){
+  if (ptr == nullptr) {
     return;
   }
   ptr->backing_store.reset();
@@ -1697,7 +1696,7 @@ void BackingStoreRelease(BackingStorePtr ptr) {
 }
 
 void* BackingStoreData(BackingStorePtr ptr) {
-  if (ptr == nullptr){
+  if (ptr == nullptr) {
     return nullptr;
   }
 
@@ -1705,10 +1704,9 @@ void* BackingStoreData(BackingStorePtr ptr) {
 }
 
 size_t BackingStoreByteLength(BackingStorePtr ptr) {
-  if (ptr == nullptr){
+  if (ptr == nullptr) {
     return 0;
   }
   return ptr->backing_store->ByteLength();
 }
-
 }
