@@ -15,12 +15,16 @@ typedef v8::CpuProfiler* CpuProfilerPtr;
 typedef v8::CpuProfile* CpuProfilePtr;
 typedef const v8::CpuProfileNode* CpuProfileNodePtr;
 typedef v8::ScriptCompiler::CachedData* ScriptCompilerCachedDataPtr;
+typedef v8::HeapProfiler* HeapProfilerPtr;
 
 extern "C" {
 #else
 // Opaque to cgo, but useful to treat it as a pointer to a distinct type
 typedef struct v8Isolate v8Isolate;
 typedef v8Isolate* IsolatePtr;
+
+typedef struct v8HeapProfiler v8HeapProfiler;
+typedef v8HeapProfiler* HeapProfilerPtr;
 
 typedef struct v8CpuProfiler v8CpuProfiler;
 typedef v8CpuProfiler* CpuProfilerPtr;
@@ -80,6 +84,11 @@ typedef struct {
   ScriptCompilerCachedData cachedData;
   int compileOption;
 } CompileOptions;
+
+typedef struct {
+  HeapProfilerPtr ptr;
+  IsolatePtr iso;
+} V8HeapProfiler;
 
 typedef struct {
   CpuProfilerPtr ptr;
@@ -159,6 +168,9 @@ extern ScriptCompilerCachedData* UnboundScriptCreateCodeCache(
 extern void ScriptCompilerCachedDataDelete(
     ScriptCompilerCachedData* cached_data);
 extern RtnValue UnboundScriptRun(ContextPtr ctx_ptr, UnboundScriptPtr us_ptr);
+
+extern V8HeapProfiler* NewHeapProfiler(IsolatePtr iso_ptr);
+extern const char* TakeHeapSnapshot(V8HeapProfiler* ptr);
 
 extern CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr);
 extern void CPUProfilerDispose(CPUProfiler* ptr);

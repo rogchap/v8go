@@ -278,6 +278,67 @@ ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value) {
   return tracked_value(ctx, new_val);
 }
 
+/********** HeapProfiler **********/
+
+V8HeapProfiler* NewHeapProfiler(IsolatePtr iso_ptr) {
+  Isolate* iso = static_cast<Isolate*>(iso_ptr);
+  Locker locker(iso);
+  Isolate::Scope isolate_scope(iso);
+  HandleScope handle_scope(iso);
+
+  V8HeapProfiler* c = new V8HeapProfiler;
+  c->iso = iso;
+  c->ptr = iso->GetHeapProfiler();
+  return c;
+}
+
+//  v8::OutputStream is required for snapshot serialization
+class BufferOutputStream : public v8::OutputStream {
+ public:
+  BufferOutputStream() : buffer(new ExternalStringResource()) {}
+
+  void EndOfStream() override {}
+  int GetChunkSize() override { return 1024 * 1024; }
+  WriteResult WriteAsciiChunk(char* data, int size) override {
+    buffer->Append(data, size);
+    return kContinue;
+  }
+
+  Local<String> ToString(Isolate* isolate) {
+    return String::NewExternalOneByte(isolate, buffer.release())
+        .ToLocalChecked();
+  }
+
+ private:
+  class ExternalStringResource : public String::ExternalOneByteStringResource {
+   public:
+    void Append(char* data, size_t count) { store.append(data, count); }
+
+    const char* data() const override { return store.data(); }
+    size_t length() const override { return store.size(); }
+
+   private:
+    std::string store;
+  };
+
+  std::unique_ptr<ExternalStringResource> buffer;
+};
+
+const char* TakeHeapSnapshot(V8HeapProfiler* profiler) {
+  if (profiler->iso == nullptr) {
+    return nullptr;
+  }
+  Locker locker(profiler->iso);
+  Isolate::Scope isolate_scope(profiler->iso);
+  HandleScope handle_scope(profiler->iso);
+  const HeapSnapshot* snapshot = profiler->ptr->TakeHeapSnapshot();
+  BufferOutputStream stream;
+  snapshot->Serialize(&stream);
+  const_cast<HeapSnapshot*>(snapshot)->Delete();
+  String::Utf8Value json(profiler->iso, stream.ToString(profiler->iso));
+  return CopyString(json);
+}
+
 /********** CpuProfiler **********/
 
 CPUProfiler* NewCPUProfiler(IsolatePtr iso_ptr) {
