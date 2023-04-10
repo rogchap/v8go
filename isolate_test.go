@@ -301,11 +301,22 @@ func TestIsolateGetHeapSpaceStatistics(t *testing.T) {
 	t.Parallel()
 	iso := v8.NewIsolate()
 	defer iso.Dispose()
+	printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+		fmt.Printf("%v", info.Args())
+		return nil
+	})
+	global := v8.NewObjectTemplate(iso)
+	global.Set("print", printfn)
+	ctx := v8.NewContext(iso, global)
+	ctx.RunScript("print('foo')", "print.js")
 
 	heapSpaceStats := iso.GetHeapSpaceStatistics()
 
 	for _, stats := range heapSpaceStats {
 		if stats.SpaceName == "new_space" && (stats.SpaceSize <= 0 || stats.SpaceUsedSize <= 0) {
+			t.Errorf("expected non-zero size for heap space, got %d size for %s", stats.SpaceSize, stats.SpaceName)
+		}
+		if stats.SpaceName == "old_space" && (stats.SpaceSize <= 0 || stats.SpaceUsedSize <= 0) {
 			t.Errorf("expected non-zero size for heap space, got %d size for %s", stats.SpaceSize, stats.SpaceName)
 		}
 	}
