@@ -193,6 +193,24 @@ int IsolateIsExecutionTerminating(IsolatePtr iso) {
   return iso->IsExecutionTerminating();
 }
 
+/********** Heap Statistics **********/
+
+size_t NumberOfHeapSpaces(IsolatePtr iso) {
+  return iso->NumberOfHeapSpaces();
+}
+
+IsolateHeapSpaceStatistics IsolateGetHeapSpaceStatistics(IsolatePtr iso,
+                                                         size_t index) {
+  if (iso == nullptr) {
+    return IsolateHeapSpaceStatistics{0};
+  }
+  v8::HeapSpaceStatistics hs;
+  iso->GetHeapSpaceStatistics(&hs, index);
+  return IsolateHeapSpaceStatistics{
+      hs.space_name(), hs.space_size(), hs.space_used_size(),
+      hs.space_available_size(), hs.physical_space_size()};
+}
+
 IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr iso) {
   if (iso == nullptr) {
     return IsolateHStatistics{0};

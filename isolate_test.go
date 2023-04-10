@@ -296,3 +296,18 @@ func makeObject() interface{} {
 		"b": "AAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBB",
 	}
 }
+
+func TestIsolateGetHeapSpaceStatistics(t *testing.T) {
+	t.Parallel()
+	iso := v8.NewIsolate()
+	defer iso.Dispose()
+
+	heapSpaceStats := iso.GetHeapSpaceStatistics()
+
+	for _, stats := range heapSpaceStats {
+		if stats.SpaceName == "new_space" && (stats.SpaceSize <= 0 || stats.SpaceUsedSize <= 0) {
+			t.Errorf("expected non-zero size for heap space, got %d size for %s", stats.SpaceSize, stats.SpaceName)
+		}
+	}
+
+}
