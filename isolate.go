@@ -44,6 +44,14 @@ type HeapStatistics struct {
 	NumberOfDetachedContexts uint64
 }
 
+type HeapSpaceStatistics struct {
+	SpaceName          string
+	SpaceSize          uint64
+	SpaceUsedSize      uint64
+	SpaceAvailableSize uint64
+	PhysicalSpaceSize  uint64
+}
+
 // NewIsolate creates a new V8 isolate. Only one thread may access
 // a given isolate at a time, but different threads may access
 // different isolates simultaneously.
@@ -117,6 +125,23 @@ func (i *Isolate) CompileUnboundScript(source, origin string, opts CompileOption
 		ptr: rtn.ptr,
 		iso: i,
 	}, nil
+}
+
+// Returns heap statistics segmented by V8 heap spaces.
+func (i *Isolate) GetHeapSpaceStatistics() []HeapSpaceStatistics {
+	spaceStats := []HeapSpaceStatistics{}
+	heapSpaces := int(C.NumberOfHeapSpaces(i.ptr))
+	for space := 0; space < heapSpaces; space++ {
+		stats := C.IsolateGetHeapSpaceStatistics(i.ptr, (C.size_t)(space))
+		spaceStats = append(spaceStats, HeapSpaceStatistics{
+			SpaceName:          C.GoString(stats.space_name),
+			SpaceSize:          uint64(stats.space_size),
+			SpaceUsedSize:      uint64(stats.space_used_size),
+			SpaceAvailableSize: uint64(stats.space_available_size),
+			PhysicalSpaceSize:  uint64(stats.physical_space_size),
+		})
+	}
+	return spaceStats
 }
 
 // GetHeapStatistics returns heap statistics for an isolate.

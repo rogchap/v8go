@@ -134,6 +134,14 @@ typedef struct {
 } IsolateHStatistics;
 
 typedef struct {
+  const char* space_name;
+  size_t space_size;
+  size_t space_used_size;
+  size_t space_available_size;
+  size_t physical_space_size;
+} IsolateHeapSpaceStatistics;
+
+typedef struct {
   const uint64_t* word_array;
   int word_count;
   int sign_bit;
@@ -146,6 +154,9 @@ extern void IsolateDispose(IsolatePtr ptr);
 extern void IsolateTerminateExecution(IsolatePtr ptr);
 extern int IsolateIsExecutionTerminating(IsolatePtr ptr);
 extern IsolateHStatistics IsolationGetHeapStatistics(IsolatePtr ptr);
+extern size_t NumberOfHeapSpaces(IsolatePtr ptr);
+extern IsolateHeapSpaceStatistics IsolateGetHeapSpaceStatistics(IsolatePtr ptr,
+                                                                size_t index);
 
 extern ValuePtr IsolateThrowException(IsolatePtr iso, ValuePtr value);
 
