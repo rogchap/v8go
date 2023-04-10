@@ -759,4 +759,14 @@ func TestValueArrayBufferContents(t *testing.T) {
 	if buf[3] != 0 {
 		t.Fatalf("expected buf[1] to be 0")
 	}
+
+	// ensure there's an error if we call the method on something that isn't a SharedArrayBuffer
+	val, err = ctx.RunScript("7", "test2.js")
+	if err != nil {
+		t.Fatalf("error running trivial script")
+	}
+	_, _, err = val.SharedArrayBufferGetContents()
+	if err == nil {
+		t.Fatalf("Expected an error trying call SharedArrayBufferGetContents on value of incorrect type")
+	}
 }
