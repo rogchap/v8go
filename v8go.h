@@ -35,6 +35,10 @@ typedef struct v8ScriptCompilerCachedData v8ScriptCompilerCachedData;
 typedef const v8ScriptCompilerCachedData* ScriptCompilerCachedDataPtr;
 #endif
 
+// Opaque to both C and C++
+typedef struct v8BackingStore v8BackingStore;
+typedef v8BackingStore* BackingStorePtr;
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -306,6 +310,11 @@ ValuePtr FunctionSourceMapUrl(ValuePtr ptr);
 
 const char* Version();
 extern void SetFlags(const char* flags);
+
+extern BackingStorePtr SharedArrayBufferGetBackingStore(ValuePtr ptr);
+extern void BackingStoreRelease(BackingStorePtr ptr);
+extern void* BackingStoreData(BackingStorePtr ptr);
+extern size_t BackingStoreByteLength(BackingStorePtr ptr);
 
 #ifdef __cplusplus
 }  // extern "C"
