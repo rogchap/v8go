@@ -40,20 +40,35 @@ if _, err := ctx2.RunScript("multiply(3, 4)", "main.js"); err != nil {
 }
 ```
 
-### JavaScript function with Go callback
+### Call Go function from JavaScript
 
 ```go
 iso := v8.NewIsolate() // create a new VM
 // a template that represents a JS function
-printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-    fmt.Printf("%v", info.Args()) // when the JS function is called this Go callback will execute
-    return nil // you can return a value back to the JS caller if required
+addFn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
+    fmt.Print("got args: %v\n", info.Args()) // when the JS function is called this Go callback will execute
+    ret, _ := v8.NewValue(iso, info.Args()[0].Number()+info.Args()[1].Number())
+    return ret // you can return a value back to the JS caller if required
 })
+
 global := v8.NewObjectTemplate(iso) // a template that represents a JS Object
-global.Set("print", printfn) // sets the "print" property of the Object to our function
+global.Set("add", addFn) // sets the "add" property of the Object to our function
 ctx := v8.NewContext(iso, global) // new Context with the global Object set to our object template
-ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
+ret, _ := ctx.RunScript("add(1, 2)", "add.js") // will execute the Go callback with a single argunent 'foo'
+fmt.Println(ret) // Output: 3
 ```
+
+### Get JavaScript Promise's result in Go
+
+```go
+ctx := v8.NewContext()
+ret, _ := ctx.RunScript("Promise.resolve('yoo')", "promise.js")  // js return a promise object
+
+// get promise result in Go
+p, _ := ret.AsPromise()
+fmt.Println(p.Result().String()) // Output: "yoo"
+```
+
 
 ### Update a JavaScript object from Go
 
