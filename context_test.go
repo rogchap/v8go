@@ -123,9 +123,7 @@ func TestRegistryFromJSON(t *testing.T) {
 
 	global := v8.NewObjectTemplate(iso)
 	err := global.Set("location", v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.Value {
-		v, err := v8.NewValue(iso, "world")
-		fatalIf(t, err)
-		return v
+		return v8.MustNewString(iso, "world").Value
 	}))
 	fatalIf(t, err)
 

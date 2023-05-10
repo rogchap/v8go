@@ -162,8 +162,7 @@ func TestFunctionNewInstance(t *testing.T) {
 	fatalIf(t, err)
 	fn, err := value.AsFunction()
 	fatalIf(t, err)
-	messageObj, err := v8.NewValue(iso, "test message")
-	fatalIf(t, err)
+	messageObj := v8.MustNewString(iso, "test message")
 	errObj, err := fn.NewInstance(messageObj)
 	fatalIf(t, err)
 

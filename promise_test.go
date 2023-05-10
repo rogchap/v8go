@@ -41,7 +41,7 @@ func TestPromiseFulfilled(t *testing.T) {
 		t.Error("unexpected call of Then prior to resolving the promise")
 	}
 
-	val1, _ := v8.NewValue(iso, "foo")
+	val1 := v8.MustNewString(iso, "foo")
 	res1.Resolve(val1)
 
 	if s := prom1.State(); s != v8.Fulfilled {
@@ -69,8 +69,8 @@ func TestPromiseRejected(t *testing.T) {
 	defer ctx.Close()
 
 	res2, _ := v8.NewPromiseResolver(ctx)
-	val2, _ := v8.NewValue(iso, "Bad Foo")
-	res2.Reject(val2)
+	val2 := v8.MustNewString(iso, "Bad Foo")
+	res2.Reject(val2.Value)
 
 	prom2 := res2.GetPromise()
 	if s := prom2.State(); s != v8.Rejected {

@@ -33,7 +33,7 @@ func ExampleFunctionTemplate_fetch() {
 		go func() {
 			res, _ := http.Get(url)
 			body, _ := ioutil.ReadAll(res.Body)
-			val, _ := v8.NewValue(iso, string(body))
+			val := v8.MustNewString(iso, string(body))
 			resolver.Resolve(val)
 		}()
 		return resolver.GetPromise().Value

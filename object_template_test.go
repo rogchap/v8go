@@ -24,7 +24,7 @@ func TestObjectTemplate(t *testing.T) {
 		}
 	}
 
-	val, _ := v8.NewValue(iso, "bar")
+	val := v8.MustNewString(iso, "bar").Value
 	objVal := v8.NewObjectTemplate(iso)
 	bigbigint, _ := new(big.Int).SetString("36893488147419099136", 10) // larger than a single word size (64bit)
 	bigbignegint, _ := new(big.Int).SetString("-36893488147419099136", 10)
