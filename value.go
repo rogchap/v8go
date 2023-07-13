@@ -125,7 +125,7 @@ func NewValue(iso *Isolate, val interface{}) (*Value, error) {
 		bits := v.Bits()
 		count = len(bits)
 
-		words := make([]C.uint64_t, count, count)
+		words := make([]C.uint64_t, count)
 		for idx, word := range bits {
 			words[idx] = C.uint64_t(word)
 		}
