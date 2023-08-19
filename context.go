@@ -71,6 +71,7 @@ func NewContext(opt ...ContextOption) *Context {
 		ptr: C.NewContext(opts.iso.ptr, opts.gTmpl.ptr, C.int(ref)),
 		iso: opts.iso,
 	}
+	addContext(ctx)
 	ctx.register()
 	runtime.KeepAlive(opts.gTmpl)
 	return ctx
@@ -123,6 +124,7 @@ func (c *Context) PerformMicrotaskCheckpoint() {
 // Access to any values associated with the context after calling Close may panic.
 func (c *Context) Close() {
 	c.deregister()
+	delContext(c)
 	C.ContextFree(c.ptr)
 	c.ptr = nil
 }
