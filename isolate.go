@@ -57,6 +57,7 @@ func NewIsolate() *Isolate {
 		ptr: C.NewIsolate(),
 		cbs: make(map[int]FunctionCallback),
 	}
+	addIsolate(iso)
 	iso.null = newValueNull(iso)
 	iso.undefined = newValueUndefined(iso)
 	return iso
@@ -143,6 +144,7 @@ func (i *Isolate) Dispose() {
 	if i.ptr == nil {
 		return
 	}
+	delIsolate(i)
 	C.IsolateDispose(i.ptr)
 	i.ptr = nil
 }
