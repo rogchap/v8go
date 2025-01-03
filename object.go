@@ -116,15 +116,11 @@ func (o *Object) Get(key string) (*Value, error) {
 // or the JS undefined value if the index hadn't been set.
 // Panics if given an out of range index.
 func (o *Object) GetInternalField(idx uint32) *Value {
-	return nil
-
-	/*
-		rtn := C.ObjectGetInternalField(o.ptr, C.int(idx))
-		if rtn == nil {
-			panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
-		}
-		return &Value{rtn, o.ctx}
-	*/
+	rtn := C.ObjectGetInternalField(o.ptr, C.int(idx))
+	if rtn == nil {
+		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
+	}
+	return &Value{rtn, o.ctx}
 }
 
 // GetIdx tries to get a Value at a give Object index.

@@ -399,7 +399,8 @@ void CPUProfileDelete(CPUProfile* profile) {
   Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFreeWrapper(TemplatePtr tmpl) {
-  tmpl->ptr.IsEmpty();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
+  tmpl->ptr
+      .IsEmpty();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
   delete tmpl;
 }
 
@@ -1382,7 +1383,6 @@ RtnValue ObjectGet(ValuePtr ptr, const char* key) {
   return rtn;
 }
 
-/*
 ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
   LOCAL_OBJECT(ptr);
 
@@ -1390,7 +1390,7 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
     return nullptr;
   }
 
-  Local<Value> result = obj->GetInternalField(idx);
+  Local<Value> result = obj->GetInternalField(idx).As<Value>();
 
   m_value* new_val = new m_value;
   new_val->id = 0;
@@ -1401,7 +1401,6 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
 
   return tracked_value(ctx, new_val);
 }
-*/
 
 RtnValue ObjectGetIdx(ValuePtr ptr, uint32_t idx) {
   LOCAL_OBJECT(ptr);

@@ -11,6 +11,8 @@ import (
 )
 
 func TestIntlSupport(t *testing.T) {
+	t.Skip("Intl is not supported with the current build of v8 - need to re-enable this test when it is")
+
 	t.Parallel()
 
 	ctx := v8.NewContext(nil)
