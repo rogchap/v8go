@@ -4,6 +4,8 @@
 .build
 .cipd
 .gclient_entries
+.gcs_entries
+gn-args*.txt
 
 deps/darwin-x86_64/libv8_debug.a
 deps/.gclient_previous*

@@ -223,6 +223,12 @@ class V8_EXPORT String : public Name {
    */
   bool IsExternalOneByte() const;
 
+  /**
+   * Returns the internalized string. See `NewStringType::kInternalized` for
+   * details on internalized strings.
+   */
+  Local<String> InternalizeString(Isolate* isolate);
+
   class V8_EXPORT ExternalStringResourceBase {
    public:
     virtual ~ExternalStringResourceBase() = default;
@@ -233,6 +239,13 @@ class V8_EXPORT String : public Name {
      * expected to be stable beyond the current top-level task.
      */
     virtual bool IsCacheable() const { return true; }
+
+    /**
+     * Internally V8 will call this Unaccount method when the external string
+     * resource should be unaccounted for. This method can be overridden in
+     * subclasses to control how allocated external bytes are accounted.
+     */
+    virtual void Unaccount(Isolate* isolate) {}
 
     // Disallow copying and assigning.
     ExternalStringResourceBase(const ExternalStringResourceBase&) = delete;
@@ -383,6 +396,8 @@ class V8_EXPORT String : public Name {
    * string is returned in encoding_out.
    */
   V8_INLINE ExternalStringResourceBase* GetExternalStringResourceBase(
+      v8::Isolate* isolate, Encoding* encoding_out) const;
+  V8_INLINE ExternalStringResourceBase* GetExternalStringResourceBase(
       Encoding* encoding_out) const;
 
   /**
@@ -466,7 +481,19 @@ class V8_EXPORT String : public Name {
    * The string is not modified if the operation fails. See NewExternal for
    * information on the lifetime of the resource.
    */
+  V8_DEPRECATE_SOON("Use the version with the isolate argument instead.")
   bool MakeExternal(ExternalStringResource* resource);
+
+  /**
+   * Associate an external string resource with this string by transforming it
+   * in place so that existing references to this string in the JavaScript heap
+   * will use the external string resource. The external string resource's
+   * character contents need to be equivalent to this string.
+   * Returns true if the string has been changed to be an external string.
+   * The string is not modified if the operation fails. See NewExternal for
+   * information on the lifetime of the resource.
+   */
+  bool MakeExternal(Isolate* isolate, ExternalStringResource* resource);
 
   /**
    * Creates a new external string using the one-byte data defined in the given
@@ -488,12 +515,25 @@ class V8_EXPORT String : public Name {
    * The string is not modified if the operation fails. See NewExternal for
    * information on the lifetime of the resource.
    */
+  V8_DEPRECATE_SOON("Use the version with the isolate argument instead.")
   bool MakeExternal(ExternalOneByteStringResource* resource);
 
   /**
-   * Returns true if this string can be made external.
+   * Associate an external string resource with this string by transforming it
+   * in place so that existing references to this string in the JavaScript heap
+   * will use the external string resource. The external string resource's
+   * character contents need to be equivalent to this string.
+   * Returns true if the string has been changed to be an external string.
+   * The string is not modified if the operation fails. See NewExternal for
+   * information on the lifetime of the resource.
    */
-  bool CanMakeExternal() const;
+  bool MakeExternal(Isolate* isolate, ExternalOneByteStringResource* resource);
+
+  /**
+   * Returns true if this string can be made external, given the encoding for
+   * the external string resource.
+   */
+  bool CanMakeExternal(Encoding encoding) const;
 
   /**
    * Returns true if the strings values are equal. Same as JS ==/===.
@@ -506,10 +546,15 @@ class V8_EXPORT String : public Name {
    * (e.g. due to an exception in the toString() method of the object)
    * then the length() method returns 0 and the * operator returns
    * NULL.
+   *
+   * WARNING: This will unconditionally copy the contents of the JavaScript
+   * string, and should be avoided in situations where performance is a concern.
+   * Consider using WriteUtf8() instead.
    */
   class V8_EXPORT Utf8Value {
    public:
-    Utf8Value(Isolate* isolate, Local<v8::Value> obj);
+    Utf8Value(Isolate* isolate, Local<v8::Value> obj,
+              WriteOptions options = REPLACE_INVALID_UTF8);
     ~Utf8Value();
     char* operator*() { return str_; }
     const char* operator*() const { return str_; }
@@ -526,12 +571,19 @@ class V8_EXPORT String : public Name {
 
   /**
    * Converts an object to a two-byte (UTF-16-encoded) string.
+   *
    * If conversion to a string fails (eg. due to an exception in the toString()
    * method of the object) then the length() method returns 0 and the * operator
    * returns NULL.
+   *
+   * WARNING: This will unconditionally copy the contents of the JavaScript
+   * string, and should be avoided in situations where performance is a concern.
    */
   class V8_EXPORT Value {
    public:
+    V8_DEPRECATE_SOON(
+        "Prefer using String::ValueView if you can, or string->Write to a "
+        "buffer if you cannot.")
     Value(Isolate* isolate, Local<v8::Value> obj);
     ~Value();
     uint16_t* operator*() { return str_; }
@@ -545,6 +597,55 @@ class V8_EXPORT String : public Name {
    private:
     uint16_t* str_;
     int length_;
+  };
+
+  /**
+   * Returns a view onto a string's contents.
+   *
+   * WARNING: This does not copy the string's contents, and will therefore be
+   * invalidated if the GC can move the string while the ValueView is alive. It
+   * is therefore required that no GC or allocation can happen while there is an
+   * active ValueView. This requirement may be relaxed in the future.
+   *
+   * V8 strings are either encoded as one-byte or two-bytes per character.
+   */
+  class V8_EXPORT ValueView {
+   public:
+    ValueView(Isolate* isolate, Local<v8::String> str);
+    ~ValueView();
+    const uint8_t* data8() const {
+#if V8_ENABLE_CHECKS
+      CheckOneByte(true);
+#endif
+      return data8_;
+    }
+    const uint16_t* data16() const {
+#if V8_ENABLE_CHECKS
+      CheckOneByte(false);
+#endif
+      return data16_;
+    }
+    int length() const { return length_; }
+    bool is_one_byte() const { return is_one_byte_; }
+
+    // Disallow copying and assigning.
+    ValueView(const ValueView&) = delete;
+    void operator=(const ValueView&) = delete;
+
+   private:
+    void CheckOneByte(bool is_one_byte) const;
+
+    Local<v8::String> flat_str_;
+    union {
+      const uint8_t* data8_;
+      const uint16_t* data16_;
+    };
+    int length_;
+    bool is_one_byte_;
+    // Avoid exposing the internal DisallowGarbageCollection scope.
+    alignas(internal::Internals::
+                kDisallowGarbageCollectionAlign) char no_gc_debug_scope_
+        [internal::Internals::kDisallowGarbageCollectionSize];
   };
 
  private:
@@ -638,9 +739,19 @@ class V8_EXPORT Symbol : public Name {
 };
 
 /**
+ * A JavaScript numeric value (either Number or BigInt).
+ * https://tc39.es/ecma262/#sec-numeric-types
+ */
+class V8_EXPORT Numeric : public Primitive {
+ private:
+  Numeric();
+  static void CheckCast(v8::Data* that);
+};
+
+/**
  * A JavaScript number value (ECMA-262, 4.3.20)
  */
-class V8_EXPORT Number : public Primitive {
+class V8_EXPORT Number : public Numeric {
  public:
   double Value() const;
   static Local<Number> New(Isolate* isolate, double value);
@@ -715,7 +826,7 @@ class V8_EXPORT Uint32 : public Integer {
 /**
  * A JavaScript BigInt value (https://tc39.github.io/proposal-bigint)
  */
-class V8_EXPORT BigInt : public Primitive {
+class V8_EXPORT BigInt : public Numeric {
  public:
   static Local<BigInt> New(Isolate* isolate, int64_t value);
   static Local<BigInt> NewFromUnsigned(Isolate* isolate, uint64_t value);
@@ -776,14 +887,14 @@ Local<String> String::Empty(Isolate* isolate) {
   using S = internal::Address;
   using I = internal::Internals;
   I::CheckInitialized(isolate);
-  S* slot = I::GetRoot(isolate, I::kEmptyStringRootIndex);
-  return Local<String>(reinterpret_cast<String*>(slot));
+  S* slot = I::GetRootSlot(isolate, I::kEmptyStringRootIndex);
+  return Local<String>::FromSlot(slot);
 }
 
 String::ExternalStringResource* String::GetExternalStringResource() const {
   using A = internal::Address;
   using I = internal::Internals;
-  A obj = *reinterpret_cast<const A*>(this);
+  A obj = internal::ValueHelper::ValueAsAddress(this);
 
   ExternalStringResource* result;
   if (I::IsExternalTwoByteString(I::GetInstanceType(obj))) {
@@ -801,10 +912,32 @@ String::ExternalStringResource* String::GetExternalStringResource() const {
 }
 
 String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
+    v8::Isolate* isolate, String::Encoding* encoding_out) const {
+  using A = internal::Address;
+  using I = internal::Internals;
+  A obj = internal::ValueHelper::ValueAsAddress(this);
+  int type = I::GetInstanceType(obj) & I::kStringRepresentationAndEncodingMask;
+  *encoding_out = static_cast<Encoding>(type & I::kStringEncodingMask);
+  ExternalStringResourceBase* resource;
+  if (type == I::kExternalOneByteRepresentationTag ||
+      type == I::kExternalTwoByteRepresentationTag) {
+    A value = I::ReadExternalPointerField<internal::kExternalStringResourceTag>(
+        isolate, obj, I::kStringResourceOffset);
+    resource = reinterpret_cast<ExternalStringResourceBase*>(value);
+  } else {
+    resource = GetExternalStringResourceBaseSlow(encoding_out);
+  }
+#ifdef V8_ENABLE_CHECKS
+  VerifyExternalStringResourceBase(resource, *encoding_out);
+#endif
+  return resource;
+}
+
+String::ExternalStringResourceBase* String::GetExternalStringResourceBase(
     String::Encoding* encoding_out) const {
   using A = internal::Address;
   using I = internal::Internals;
-  A obj = *reinterpret_cast<const A*>(this);
+  A obj = internal::ValueHelper::ValueAsAddress(this);
   int type = I::GetInstanceType(obj) & I::kStringRepresentationAndEncodingMask;
   *encoding_out = static_cast<Encoding>(type & I::kStringEncodingMask);
   ExternalStringResourceBase* resource;
@@ -829,32 +962,32 @@ V8_INLINE Local<Primitive> Undefined(Isolate* isolate) {
   using S = internal::Address;
   using I = internal::Internals;
   I::CheckInitialized(isolate);
-  S* slot = I::GetRoot(isolate, I::kUndefinedValueRootIndex);
-  return Local<Primitive>(reinterpret_cast<Primitive*>(slot));
+  S* slot = I::GetRootSlot(isolate, I::kUndefinedValueRootIndex);
+  return Local<Primitive>::FromSlot(slot);
 }
 
 V8_INLINE Local<Primitive> Null(Isolate* isolate) {
   using S = internal::Address;
   using I = internal::Internals;
   I::CheckInitialized(isolate);
-  S* slot = I::GetRoot(isolate, I::kNullValueRootIndex);
-  return Local<Primitive>(reinterpret_cast<Primitive*>(slot));
+  S* slot = I::GetRootSlot(isolate, I::kNullValueRootIndex);
+  return Local<Primitive>::FromSlot(slot);
 }
 
 V8_INLINE Local<Boolean> True(Isolate* isolate) {
   using S = internal::Address;
   using I = internal::Internals;
   I::CheckInitialized(isolate);
-  S* slot = I::GetRoot(isolate, I::kTrueValueRootIndex);
-  return Local<Boolean>(reinterpret_cast<Boolean*>(slot));
+  S* slot = I::GetRootSlot(isolate, I::kTrueValueRootIndex);
+  return Local<Boolean>::FromSlot(slot);
 }
 
 V8_INLINE Local<Boolean> False(Isolate* isolate) {
   using S = internal::Address;
   using I = internal::Internals;
   I::CheckInitialized(isolate);
-  S* slot = I::GetRoot(isolate, I::kFalseValueRootIndex);
-  return Local<Boolean>(reinterpret_cast<Boolean*>(slot));
+  S* slot = I::GetRootSlot(isolate, I::kFalseValueRootIndex);
+  return Local<Boolean>::FromSlot(slot);
 }
 
 Local<Boolean> Boolean::New(Isolate* isolate, bool value) {

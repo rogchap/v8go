@@ -15,13 +15,12 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.17.2
+        go-version: 1.22.10
+
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
+
     - name: Go Test
-      env:
-        CC: clang
-        CXX: clang++
       run: |
         go test -c --tags leakcheck
         ./v8go.test

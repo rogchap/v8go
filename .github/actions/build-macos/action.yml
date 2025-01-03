@@ -1,0 +1,54 @@
+name: Build for macOS
+description: 'Build V8 for macOS'
+
+inputs:
+  target-arch:
+    description: 'Target Architecture'
+    default: x64
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+    - name: Restore CCache
+      uses: actions/cache@v4
+      with:
+        path: .ccache
+        key: ${{ runner.os }}-${{ runner.arch }}:libv8:ccache:${{ github.run_number }}
+        restore-keys: |
+          ${{ runner.os }}-${{ runner.arch }}:libv8:ccache:
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.8' # https://chromium.googlesource.com/chromium/tools/depot_tools.git/+/refs/heads/main/README.md
+
+    - name: Setup Build Tools
+      shell: bash
+      run: |
+        brew install ccache
+
+        echo "$(brew --prefix ccache)/libexec" >> "$GITHUB_PATH"
+        echo "CCACHE_CPP2=yes" >> "$GITHUB_ENV"
+        echo "CCACHE_SLOPPINESS=time_macros" >> "$GITHUB_ENV"
+
+        ccacheDir="${GITHUB_WORKSPACE}/.ccache"
+        test -d "$ccacheDir" || mkdir "$ccacheDir"
+
+        echo "CCACHE_DIR=$ccacheDir" >> "$GITHUB_ENV"
+
+    - name: Download V8 Source
+      shell: bash
+      working-directory: ./deps
+      run: ./v8_download.sh
+
+    - name: Compile V8
+      shell: bash
+      working-directory: ./deps
+      run: ./v8_compile.sh ${{ inputs.target-arch }}
+
+    - name: Show CCache Status
+      shell: bash
+      working-directory: ./deps
+      run: ccache -s

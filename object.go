@@ -121,7 +121,6 @@ func (o *Object) GetInternalField(idx uint32) *Value {
 		panic(fmt.Errorf("index out of range [%v] with length %v", idx, o.InternalFieldCount()))
 	}
 	return &Value{rtn, o.ctx}
-
 }
 
 // GetIdx tries to get a Value at a give Object index.

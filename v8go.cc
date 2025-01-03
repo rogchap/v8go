@@ -239,7 +239,7 @@ RtnUnboundScript IsolateCompileUnboundScript(IsolatePtr iso,
                                                  opts.cachedData.length);
   }
 
-  ScriptOrigin script_origin(iso, ogn);
+  ScriptOrigin script_origin(ogn);
 
   ScriptCompiler::Source source(src, script_origin, cached_data);
 
@@ -399,7 +399,8 @@ void CPUProfileDelete(CPUProfile* profile) {
   Local<Template> tmpl = tmpl_ptr->ptr.Get(iso);
 
 void TemplateFreeWrapper(TemplatePtr tmpl) {
-  tmpl->ptr.Empty();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
+  tmpl->ptr
+      .IsEmpty();  // Just does `val_ = 0;` without calling V8::DisposeGlobal
   delete tmpl;
 }
 
@@ -641,7 +642,7 @@ RtnValue RunScript(ContextPtr ctx, const char* source, const char* origin) {
     return rtn;
   }
 
-  ScriptOrigin script_origin(iso, ogn);
+  ScriptOrigin script_origin(ogn);
   Local<Script> script;
   if (!Script::Compile(local_ctx, src, &script_origin).ToLocal(&script)) {
     rtn.error = ExceptionError(try_catch, iso, local_ctx);
@@ -1389,7 +1390,7 @@ ValuePtr ObjectGetInternalField(ValuePtr ptr, int idx) {
     return nullptr;
   }
 
-  Local<Value> result = obj->GetInternalField(idx);
+  Local<Value> result = obj->GetInternalField(idx).As<Value>();
 
   m_value* new_val = new m_value;
   new_val->id = 0;

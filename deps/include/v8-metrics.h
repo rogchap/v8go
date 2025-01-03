@@ -8,9 +8,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <optional>
 #include <vector>
 
 #include "v8-internal.h"      // NOLINT(build/include_directory)
+#include "v8-isolate.h"       // NOLINT(build/include_directory)
 #include "v8-local-handle.h"  // NOLINT(build/include_directory)
 #include "v8config.h"         // NOLINT(build/include_directory)
 
@@ -37,6 +39,10 @@ struct GarbageCollectionSizes {
 
 struct GarbageCollectionFullCycle {
   int reason = -1;
+  // The priority of the isolate during the GC cycle. A nullopt value denotes a
+  // mixed priority cycle, meaning the Isolate's priority was changed while the
+  // cycle was in progress.
+  std::optional<v8::Isolate::Priority> priority = std::nullopt;
   GarbageCollectionPhases total;
   GarbageCollectionPhases total_cpp;
   GarbageCollectionPhases main_thread;
@@ -55,6 +61,11 @@ struct GarbageCollectionFullCycle {
   double efficiency_cpp_in_bytes_per_us = -1.0;
   double main_thread_efficiency_in_bytes_per_us = -1.0;
   double main_thread_efficiency_cpp_in_bytes_per_us = -1.0;
+  double collection_weight_in_percent = -1.0;
+  double collection_weight_cpp_in_percent = -1.0;
+  double main_thread_collection_weight_in_percent = -1.0;
+  double main_thread_collection_weight_cpp_in_percent = -1.0;
+  int64_t incremental_marking_start_stop_wall_clock_duration_in_us = -1;
 };
 
 struct GarbageCollectionFullMainThreadIncrementalMark {
@@ -81,6 +92,10 @@ using GarbageCollectionFullMainThreadBatchedIncrementalSweep =
 
 struct GarbageCollectionYoungCycle {
   int reason = -1;
+  // The priority of the isolate during the GC cycle. A nullopt value denotes a
+  // mixed priority cycle, meaning the Isolate's priority was changed while the
+  // cycle was in progress.
+  std::optional<v8::Isolate::Priority> priority = std::nullopt;
   int64_t total_wall_clock_duration_in_us = -1;
   int64_t main_thread_wall_clock_duration_in_us = -1;
   double collection_rate_in_percent = -1.0;
@@ -108,34 +123,12 @@ struct WasmModuleDecoded {
         function_count(function_count),
         wall_clock_duration_in_us(wall_clock_duration_in_us) {}
 
-  V8_DEPRECATED("Use the version without cpu_duration_in_us")
-  WasmModuleDecoded(bool async, bool streamed, bool success,
-                    size_t module_size_in_bytes, size_t function_count,
-                    int64_t wall_clock_duration_in_us,
-                    int64_t cpu_duration_in_us)
-      : async(async),
-        streamed(streamed),
-        success(success),
-        module_size_in_bytes(module_size_in_bytes),
-        function_count(function_count),
-        wall_clock_duration_in_us(wall_clock_duration_in_us),
-        cpu_duration_in_us(cpu_duration_in_us) {}
-
-  START_ALLOW_USE_DEPRECATED()
-  // Copy constructor and copy assignment operator are allowed to copy the
-  // {cpu_duration_in_us} field.
-  WasmModuleDecoded(const WasmModuleDecoded&) = default;
-  WasmModuleDecoded& operator=(const WasmModuleDecoded&) = default;
-  END_ALLOW_USE_DEPRECATED()
-
   bool async = false;
   bool streamed = false;
   bool success = false;
   size_t module_size_in_bytes = 0;
   size_t function_count = 0;
   int64_t wall_clock_duration_in_us = -1;
-  V8_DEPRECATED("We do not collect cpu times any more")
-  int64_t cpu_duration_in_us = -1;
 };
 
 struct WasmModuleCompiled {
@@ -155,30 +148,6 @@ struct WasmModuleCompiled {
         liftoff_bailout_count(liftoff_bailout_count),
         wall_clock_duration_in_us(wall_clock_duration_in_us) {}
 
-  V8_DEPRECATED("Use the version without cpu_duration_in_us")
-  WasmModuleCompiled(bool async, bool streamed, bool cached, bool deserialized,
-                     bool lazy, bool success, size_t code_size_in_bytes,
-                     size_t liftoff_bailout_count,
-                     int64_t wall_clock_duration_in_us,
-                     int64_t cpu_duration_in_us)
-      : async(async),
-        streamed(streamed),
-        cached(cached),
-        deserialized(deserialized),
-        lazy(lazy),
-        success(success),
-        code_size_in_bytes(code_size_in_bytes),
-        liftoff_bailout_count(liftoff_bailout_count),
-        wall_clock_duration_in_us(wall_clock_duration_in_us),
-        cpu_duration_in_us(cpu_duration_in_us) {}
-
-  START_ALLOW_USE_DEPRECATED()
-  // Copy constructor and copy assignment operator are allowed to copy the
-  // {cpu_duration_in_us} field.
-  WasmModuleCompiled(const WasmModuleCompiled&) = default;
-  WasmModuleCompiled& operator=(const WasmModuleCompiled&) = default;
-  END_ALLOW_USE_DEPRECATED()
-
   bool async = false;
   bool streamed = false;
   bool cached = false;
@@ -188,8 +157,6 @@ struct WasmModuleCompiled {
   size_t code_size_in_bytes = 0;
   size_t liftoff_bailout_count = 0;
   int64_t wall_clock_duration_in_us = -1;
-  V8_DEPRECATED("We do not collect cpu times any more")
-  int64_t cpu_duration_in_us = -1;
 };
 
 struct WasmModuleInstantiated {

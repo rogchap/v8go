@@ -62,10 +62,10 @@ class HeapConsistency final {
    * \returns whether a write barrier is needed and which barrier to invoke.
    */
   template <typename T, typename WeaknessTag, typename WriteBarrierPolicy,
-            typename CheckingPolicy>
+            typename CheckingPolicy, typename StorageType>
   static V8_INLINE WriteBarrierType GetWriteBarrierType(
       const internal::BasicMember<T, WeaknessTag, WriteBarrierPolicy,
-                                  CheckingPolicy>& value,
+                                  CheckingPolicy, StorageType>& value,
       WriteBarrierParams& params) {
     return internal::WriteBarrier::GetWriteBarrierType(
         value.GetRawSlot(), value.GetRawStorage(), params);
@@ -114,7 +114,7 @@ class HeapConsistency final {
    * has not yet been processed.
    *
    * \param params The parameters retrieved from `GetWriteBarrierType()`.
-   * \param object The pointer to the object. May be an interior pointer to a
+   * \param object The pointer to the object. May be an interior pointer to
    *   an interface of the actual object.
    */
   static V8_INLINE void DijkstraWriteBarrier(const WriteBarrierParams& params,

@@ -1,0 +1,143 @@
+name: V8 Upgrade
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' # Run every day
+
+permissions:
+  pull-requests: write
+  contents: write
+
+jobs:
+  upgrade:
+    name: Upgrade V8
+    runs-on: ubuntu-22.04
+    outputs:
+      v8_version: ${{ steps.check_version.outputs.NEW_V8_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: Run upgrade script
+        id: check_version
+        working-directory: ./deps
+        run: ./v8_upgrade.sh
+
+  build:
+    name: Build V8 for ${{ matrix.platform }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.platform }}
+    needs: upgrade
+    if: needs.upgrade.outputs.v8_version != '0'
+    strategy:
+      fail-fast: true
+      matrix:
+        platform: [ubuntu-22.04, macos-latest]
+        arch: [x64, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          clean: true
+          fetch-depth: 1
+
+      - name: Update version file
+        shell: bash
+        run: echo -n "${{ needs.upgrade.outputs.v8_version }}" > deps/VERSION
+
+      - name: Build Release for Linux
+        if: startsWith(matrix.platform, 'ubuntu')
+        uses: ./.github/actions/build-linux
+        with:
+          target-arch: ${{ matrix.arch }}
+
+      - name: Build Release for macOS
+        if: startsWith(matrix.platform, 'macos')
+        uses: ./.github/actions/build-macos
+        with:
+          target-arch: ${{ matrix.arch }}
+
+      - name: Set v8 build name
+        working-directory: ./deps
+        shell: bash
+        run: |
+          target_arch="$1"
+          os=$(echo "$(uname -s)" | tr '[:upper:]' '[:lower:]')
+          archive_name="v8_${os}_${{ matrix.arch }}"
+          echo "Using Archive Name: $archive_name"
+          echo "ARCHIVE_NAME=$archive_name" >> "$GITHUB_ENV"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARCHIVE_NAME }}
+          path: deps/v8/out/release/obj/libv8_monolith.a
+          retention-days: 1
+  
+  release:
+    name: Release V8
+    runs-on: ubuntu-22.04
+    needs:
+      - upgrade
+      - build
+    if: needs.upgrade.outputs.v8_version != '0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          clean: true
+          fetch-depth: 1
+
+      - name: Download Archives
+        uses: actions/download-artifact@v4
+        with:
+          path: artifact
+
+      - name: Display Downloads
+        run: ls -lhR artifact
+
+      - name: Copy artifacts to correct folders
+        shell: bash
+        run: |
+          rm deps/darwin_x86_64/libv8.a
+          rm deps/darwin_arm64/libv8.a
+          rm deps/linux_x86_64/libv8.a
+          rm deps/linux_arm64/libv8.a
+
+          cp artifact/v8_darwin_x64/libv8_monolith.a deps/darwin_x86_64/libv8.a
+          cp artifact/v8_darwin_arm64/libv8_monolith.a deps/darwin_arm64/libv8.a
+          cp artifact/v8_linux_x64/libv8_monolith.a deps/linux_x86_64/libv8.a
+          cp artifact/v8_linux_arm64/libv8_monolith.a deps/linux_arm64/libv8.a
+
+          rm -rf artifact
+
+      - name: Update version file
+        shell: bash
+        run: echo -n "${{ needs.upgrade.outputs.v8_version }}" > deps/VERSION
+
+      - name: Download V8 Source
+        shell: bash
+        working-directory: ./deps
+        run: ./v8_download.sh
+
+      - name: Ensure includes and files are up to date
+        shell: bash
+        run: ./deps/v8_upgrade.py ${{ needs.upgrade.outputs.v8_version }}
+
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "Upgrade V8 binaries for ${{ needs.upgrade.outputs.v8_version }} version"
+          branch: "v8_${{ needs.upgrade.outputs.v8_version }}_upgrade"
+          delete-branch: true
+          title: "Upgrade V8 binaries for ${{ needs.upgrade.outputs.v8_version }} version"
+          body: "Auto-generated pull request to upgrade V8 binary for ${{ needs.upgrade.outputs.v8_version }} version"

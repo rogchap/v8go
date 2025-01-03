@@ -369,6 +369,14 @@ domain Debugger
       # call stacks (default).
       integer maxDepth
 
+  # Replace previous blackbox execution contexts with passed ones. Forces backend to skip
+  # stepping/pausing in scripts in these execution contexts. VM will try to leave blackboxed script by
+  # performing 'step in' several times, finally resorting to 'step out' if unsuccessful.
+  experimental command setBlackboxExecutionContexts
+    parameters
+      # Array of execution context unique ids for the debugger to ignore.
+      array of string uniqueIds
+
   # Replace previous blackbox patterns with passed ones. Forces backend to skip stepping/pausing in
   # scripts with url matching one of the patterns. VM will try to leave blackboxed script by
   # performing 'step in' several times, finally resorting to 'step out' if unsuccessful.
@@ -376,6 +384,8 @@ domain Debugger
     parameters
       # Array of regexps that will be used to check script url for blackbox state.
       array of string patterns
+      # If true, also ignore scripts with no source url.
+      optional boolean skipAnonymous
 
   # Makes backend skip steps in the script in blackboxed ranges. VM will try leave blacklisted
   # scripts by performing 'step in' several times, finally resorting to 'step out' if unsuccessful.
@@ -511,6 +521,7 @@ domain Debugger
         CompileError
         BlockedByActiveGenerator
         BlockedByActiveFunction
+        BlockedByTopLevelEsModuleChange
       # Exception details if any. Only present when `status` is `CompileError`.
       optional Runtime.ExceptionDetails exceptionDetails
 
@@ -579,6 +590,7 @@ domain Debugger
         other
         promiseRejection
         XHR
+        step
       # Object containing break-specific auxiliary properties.
       optional object data
       # Hit breakpoints IDs
@@ -604,7 +616,6 @@ domain Debugger
     properties
       # Type of the debug symbols.
       enum type
-        None
         SourceMap
         EmbeddedDWARF
         ExternalDWARF
@@ -630,7 +641,7 @@ domain Debugger
       Runtime.ExecutionContextId executionContextId
       # Content hash of the script, SHA-256.
       string hash
-      # Embedder-specific auxiliary data.
+      # Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
       optional object executionContextAuxData
       # URL of source map associated with script (if any).
       optional string sourceMapURL
@@ -669,7 +680,7 @@ domain Debugger
       Runtime.ExecutionContextId executionContextId
       # Content hash of the script, SHA-256.
       string hash
-      # Embedder-specific auxiliary data.
+      # Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
       optional object executionContextAuxData
       # True, if this script is generated as a result of the live edit operation.
       experimental optional boolean isLiveEdit
@@ -687,8 +698,8 @@ domain Debugger
       experimental optional integer codeOffset
       # The language of the script.
       experimental optional Debugger.ScriptLanguage scriptLanguage
-      # If the scriptLanguage is WebASsembly, the source of debug symbols for the module.
-      experimental optional Debugger.DebugSymbols debugSymbols
+      # If the scriptLanguage is WebAssembly, the source of debug symbols for the module.
+      experimental optional array of Debugger.DebugSymbols debugSymbols
       # The name the embedder supplied for this script.
       experimental optional string embedderName
 
@@ -1012,9 +1023,31 @@ domain Runtime
   # Unique script identifier.
   type ScriptId extends string
 
-  # Represents the value serialiazed by the WebDriver BiDi specification
-  # https://w3c.github.io/webdriver-bidi.
-  type WebDriverValue extends object
+  # Represents options for serialization. Overrides `generatePreview` and `returnByValue`.
+  type SerializationOptions extends object
+    properties
+      enum serialization
+        # Whether the result should be deep-serialized. The result is put into
+        # `deepSerializedValue` and `ObjectId` is provided.
+        deep
+        # Whether the result is expected to be a JSON object which should be sent by value.
+        # The result is put either into `value` or into `unserializableValue`. Synonym of
+        # `returnByValue: true`. Overrides `returnByValue`.
+        json
+        # Only remote object id is put in the result. Same bahaviour as if no
+        # `serializationOptions`, `generatePreview` nor `returnByValue` are provided.
+        idOnly
+
+      # Deep serialization depth. Default is full depth. Respected only in `deep` serialization mode.
+      optional integer maxDepth
+
+      # Embedder-specific parameters. For example if connected to V8 in Chrome these control DOM
+      # serialization via `maxNodeDepth: integer` and `includeShadowTree: "none" | "open" | "all"`.
+      # Values can be only of type string or integer.
+      optional object additionalParameters
+
+  # Represents deep serialized value.
+  type DeepSerializedValue extends object
     properties
       enum type
         undefined
@@ -1040,8 +1073,13 @@ domain Runtime
         arraybuffer
         node
         window
+        generator
       optional any value
       optional string objectId
+      # Set if value reference met more then once during serialization. In such
+      # case, value is provided only to one of the serialized values. Unique
+      # per value in the scope of one CDP call.
+      optional integer weakLocalObjectReference
 
   # Unique object identifier.
   type RemoteObjectId extends string
@@ -1095,8 +1133,8 @@ domain Runtime
       optional UnserializableValue unserializableValue
       # String representation of the object.
       optional string description
-      # WebDriver BiDi representation of the value.
-      experimental optional WebDriverValue webDriverValue
+      # Deep serialized value.
+      experimental optional DeepSerializedValue deepSerializedValue
       # Unique object identifier (for non-primitive values).
       optional RemoteObjectId objectId
       # Preview containing abbreviated property values. Specified for `object` type values only.
@@ -1282,7 +1320,7 @@ domain Runtime
       # multiple processes, so can be reliably used to identify specific context while backend
       # performs a cross-process navigation.
       experimental string uniqueId
-      # Embedder-specific auxiliary data.
+      # Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
       optional object auxData
 
   # Detailed information about exception (or error) that was thrown during script compilation or
@@ -1386,6 +1424,7 @@ domain Runtime
       # execution. Overrides `setPauseOnException` state.
       optional boolean silent
       # Whether the result is expected to be a JSON object which should be sent by value.
+      # Can be overriden by `serializationOptions`.
       optional boolean returnByValue
       # Whether preview should be generated for the result.
       experimental optional boolean generatePreview
@@ -1409,10 +1448,10 @@ domain Runtime
       # boundaries).
       # This is mutually exclusive with `executionContextId`.
       experimental optional string uniqueContextId
-      # Whether the result should contain `webDriverValue`, serialized according to
-      # https://w3c.github.io/webdriver-bidi. This is mutually exclusive with `returnByValue`, but
-      # resulting `objectId` is still provided.
-      experimental optional boolean generateWebDriverValue
+      # Specifies the result serialization. If provided, overrides
+      # `generatePreview` and `returnByValue`.
+      experimental optional SerializationOptions serializationOptions
+
     returns
       # Call result.
       RemoteObject result
@@ -1498,8 +1537,9 @@ domain Runtime
       # boundaries).
       # This is mutually exclusive with `contextId`.
       experimental optional string uniqueContextId
-      # Whether the result should be serialized according to https://w3c.github.io/webdriver-bidi.
-      experimental optional boolean generateWebDriverValue
+      # Specifies the result serialization. If provided, overrides
+      # `generatePreview` and `returnByValue`.
+      experimental optional SerializationOptions serializationOptions
     returns
       # Evaluation result.
       RemoteObject result
@@ -1634,7 +1674,7 @@ domain Runtime
   # Binding function takes exactly one argument, this argument should be string,
   # in case of any other input, function throws an exception.
   # Each binding function call produces Runtime.bindingCalled notification.
-  experimental command addBinding
+  command addBinding
     parameters
       string name
       # If specified, the binding would only be exposed to the specified
@@ -1644,17 +1684,17 @@ domain Runtime
       # Deprecated in favor of `executionContextName` due to an unclear use case
       # and bugs in implementation (crbug.com/1169639). `executionContextId` will be
       # removed in the future.
-      deprecated optional ExecutionContextId executionContextId
+      experimental deprecated optional ExecutionContextId executionContextId
       # If specified, the binding is exposed to the executionContext with
       # matching name, even for contexts created after the binding is added.
       # See also `ExecutionContext.name` and `worldName` parameter to
       # `Page.addScriptToEvaluateOnNewDocument`.
       # This parameter is mutually exclusive with `executionContextId`.
-      experimental optional string executionContextName
+      optional string executionContextName
 
   # This method does not remove binding function from global object but
   # unsubscribes current runtime agent from Runtime.bindingCalled notifications.
-  experimental command removeBinding
+  command removeBinding
     parameters
       string name
 
