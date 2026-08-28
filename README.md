@@ -76,7 +76,7 @@ val, err := ctx.RunScript(src, filename)
 if err != nil {
   e := err.(*v8.JSError) // JavaScript errors will be returned as the JSError struct
   fmt.Println(e.Message) // the message of the exception thrown
-  fmt.Println(e.Location) // the filename, line number and the column where the error occured
+  fmt.Println(e.Location) // the filename, line number and the column where the error occurred
   fmt.Println(e.StackTrace) // the full stack trace of the error, if available
 
   fmt.Printf("javascript error: %v", e) // will format the standard error message
