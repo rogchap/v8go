@@ -52,7 +52,7 @@ printfn := v8.NewFunctionTemplate(iso, func(info *v8.FunctionCallbackInfo) *v8.V
 global := v8.NewObjectTemplate(iso) // a template that represents a JS Object
 global.Set("print", printfn) // sets the "print" property of the Object to our function
 ctx := v8.NewContext(iso, global) // new Context with the global Object set to our object template
-ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argunent 'foo'
+ctx.RunScript("print('foo')", "print.js") // will execute the Go callback with a single argument 'foo'
 ```
 
 ### Update a JavaScript object from Go
@@ -76,7 +76,7 @@ val, err := ctx.RunScript(src, filename)
 if err != nil {
   e := err.(*v8.JSError) // JavaScript errors will be returned as the JSError struct
   fmt.Println(e.Message) // the message of the exception thrown
-  fmt.Println(e.Location) // the filename, line number and the column where the error occured
+  fmt.Println(e.Location) // the filename, line number and the column where the error occurred
   fmt.Println(e.StackTrace) // the full stack trace of the error, if available
 
   fmt.Printf("javascript error: %v", e) // will format the standard error message
@@ -87,7 +87,7 @@ if err != nil {
 ### Pre-compile context-independent scripts to speed-up execution times
 
 For scripts that are large or are repeatedly run in different contexts,
-it is beneficial to compile the script once and used the cached data from that
+it is beneficial to compile the script once and use the cached data from that
 compilation to avoid recompiling every time you want to run it.
 
 ```go
